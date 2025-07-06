@@ -5,23 +5,32 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
+    "noEmit": true, // TypeScript sẽ không tạo file .js khi biên dịch
+    "esModuleInterop": true, // Cho phép sử dụng import/export với các module CommonJS
+    "module": "esnext", // Sử dụng ESNext module để tương thích với Next.js
+    "moduleResolution": "bundler", // Sử dụng module resolution của bundler để tương thích với Next.js
+    "resolveJsonModule": true, // Cho phép import JSON files
+    "isolatedModules": true, // Giúp Next.js xử lý từng file một cách độc lập
+    "jsx": "preserve", // Giữ nguyên JSX để Next.js xử lý
+    "incremental": true, // Bật incremental compilation để tăng tốc độ biên dịch
+    "plugins": [ 
       {
-        "name": "next"
+        "name": "next" // Plugin Next.js để hỗ trợ các tính năng đặc biệt của Next.js
       }
     ],
+    "baseUrl": ".", // Thiết lập baseUrl để sử dụng các alias
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"], 
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/store/*": ["./src/store/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/constants/*": ["./src/constants/*"],
+      "@/styles/*": ["./src/styles/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],  
   "exclude": ["node_modules"]
 }

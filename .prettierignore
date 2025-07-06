@@ -1,0 +1,7 @@
+node_modules
+.next
+.vercel
+public
+*.config.js
+package-lock.json
+yarn.lock
