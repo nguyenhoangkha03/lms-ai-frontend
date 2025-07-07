@@ -160,6 +160,18 @@ export interface TeacherProfile extends BaseEntity {
   publications?: Publication[];
 }
 
+export interface LoginFormData extends BaseEntity {}
+
+export interface ForgotPasswordFormData extends BaseEntity {}
+
+export interface RegisterFormData extends BaseEntity {}
+
+export interface ResetPasswordFormData extends BaseEntity {}
+
+export interface UpdateProfileFormData extends BaseEntity {}
+
+export interface ChangePasswordFormData extends BaseEntity {}
+
 // Course related types
 export interface Category extends BaseEntity {
   name: string;
@@ -937,7 +949,7 @@ export interface ToastAction {
 }
 
 // Redux state types
-export interface RootState {
+export interface RootStateStructure {
   auth: AuthState;
   user: UserState;
   courses: CourseState;

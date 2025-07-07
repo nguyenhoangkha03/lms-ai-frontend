@@ -226,9 +226,13 @@ export const API_ENDPOINTS = {
   // Admin
   ADMIN: {
     USERS: '/admin/users',
+    USER_DETAIL: (id: string) => `/admin/users/${id}`,
+
     COURSES: '/admin/courses',
     SYSTEM_SETTINGS: '/admin/settings',
     ANALYTICS: '/admin/analytics',
+    SETTINGS: '/admin/settings',
+    AUDIT_LOGS: '/admin/audit-logs',
   },
 } as const;
 
