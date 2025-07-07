@@ -57,6 +57,8 @@ export interface User extends BaseEntity {
   timezone: string;
   preferences?: Record<string, any>;
   profile?: UserProfile;
+  permissions?: string[];
+  roles?: string[];
 }
 
 export interface UserProfile extends BaseEntity {

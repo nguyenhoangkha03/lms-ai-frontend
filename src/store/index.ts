@@ -1,6 +1,6 @@
-// export { store, persistor } from './store';
-// export type { RootState, AppDispatch } from './store';
-// export { ReduxProvider } from './provider';
+export { store, persistor } from './store';
+export type { RootState, AppDispatch } from './store';
+export { ReduxProvider } from './provider';
 
 // Export all slices
 // export * from './slices/auth';
@@ -24,7 +24,7 @@
 // export * from './api/admin-api';
 
 // Export selectors
-// export * from './utils/selectors';
+export * from './utils/selectors';
 
 // Export middleware utilities
-// export { socket } from './middleware/websocket';
+export { socket } from './middleware/websocket';
