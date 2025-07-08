@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '@/lib/api/api-client';
 import { useToast } from '@/hooks/use-toast';
 
 interface MutationOptions<TData, TVariables> {

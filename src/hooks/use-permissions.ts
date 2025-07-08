@@ -1,5 +1,5 @@
 import { useAuth } from './use-auth';
-import { PermissionChecker } from '@/lib/permissions';
+import { PermissionChecker } from '@/lib/auth/permissions';
 import { useMemo } from 'react';
 
 export const usePermissions = () => {

@@ -1,11 +1,11 @@
-export { TokenManager } from './token-manager';
+export { TokenManager } from './auth/token-manager';
 export {
   PermissionChecker,
   PERMISSIONS,
   ROLE_PERMISSIONS,
-} from './permissions';
-export { AccessControl } from './access-control';
-export * from './demo-auth';
+} from './auth/permissions';
+export { AccessControl } from './auth/access-control';
+export * from './auth/demo-auth';
 
 // Export all auth components
 export { RouteGuard } from '@/components/auth/route-guard';

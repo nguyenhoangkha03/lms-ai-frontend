@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiClient } from '@/lib/api-client';
-import { ApiCache } from '@/lib/api-cache';
+import { apiClient } from '@/lib/api/api-client';
+import { ApiCache } from '@/lib/api/api-cache';
 import { useNetworkStatus } from './use-network-status';
 
 interface QueryOptions {

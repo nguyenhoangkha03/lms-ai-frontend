@@ -1,3 +1,5 @@
+import { ApiCache } from './api-cache';
+
 export const setupApiClient = () => {
   // Setup cache cleanup interval
   const cache = ApiCache.getInstance();

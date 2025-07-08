@@ -1,4 +1,4 @@
-export { ApiCache } from './api-cache';
+export { ApiCache } from '../api/api-cache';
 
 // Export hooks
 export { useApiQuery } from '@/hooks/use-api-query';

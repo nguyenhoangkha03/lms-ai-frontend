@@ -1,6 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useApiQuery } from './use-api-query';
-import { RequestTransformer, ResponseTransformer } from '@/lib/transformers';
+import {
+  RequestTransformer,
+  ResponseTransformer,
+} from '@/lib/api/transformers';
 
 interface PaginatedQueryOptions {
   initialPage?: number;

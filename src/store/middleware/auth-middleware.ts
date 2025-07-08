@@ -1,6 +1,6 @@
 import { Middleware } from '@reduxjs/toolkit';
 import { checkSessionExpiry, updateLastActivity } from '../slices/auth';
-import { TokenManager } from '@/lib/token-manager';
+import { TokenManager } from '@/lib/auth/token-manager';
 
 export const authMiddleware: Middleware = store => next => action => {
   const result = next(action);

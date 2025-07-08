@@ -1,7 +1,7 @@
-export { apiClient, ApiError } from './api-client';
+export { apiClient } from './api-client';
 export { RequestTransformer, ResponseTransformer } from './transformers';
-export { GlobalErrorHandler, ErrorType } from './error-handler';
-export type { ErrorInfo } from './error-handler';
+export { GlobalErrorHandler, ErrorType } from '../error-handler';
+export type { ErrorInfo } from '../error-handler';
 
 // Export hooks
 export { useApi } from '@/hooks/use-api';

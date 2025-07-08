@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { PermissionChecker } from '@/lib/permissions';
+import { PermissionChecker } from '@/lib/auth/permissions';
 import { USER_ROLES } from '@/constants';
 
 interface RoleBasedAccessProps {

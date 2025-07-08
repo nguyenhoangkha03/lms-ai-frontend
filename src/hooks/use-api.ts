@@ -1,7 +1,10 @@
 import { useState, useCallback } from 'react';
-import { apiClient, ApiError } from '@/lib/api-client';
+import { apiClient, ApiError } from '@/lib/api/api-client';
 import { GlobalErrorHandler, ErrorInfo } from '@/lib/error-handler';
-import { RequestTransformer, ResponseTransformer } from '@/lib/transformers';
+import {
+  RequestTransformer,
+  ResponseTransformer,
+} from '@/lib/api/transformers';
 
 interface ApiOptions {
   onSuccess?: (data: any) => void;

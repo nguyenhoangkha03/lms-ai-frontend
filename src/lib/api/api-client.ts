@@ -5,7 +5,7 @@ import axios, {
   AxiosError, // Type cho đối tượng lỗi của axios.
   InternalAxiosRequestConfig, // Type cho cấu hình request nội bộ, thường dùng trong interceptor.
 } from 'axios';
-import { TokenManager } from './token-manager';
+import { TokenManager } from '../auth/token-manager';
 import { API_CONFIG, ERROR_MESSAGES } from '@/constants';
 import { logout, refreshAuthToken } from '@/store/slices/auth';
 import { store } from '@/store';

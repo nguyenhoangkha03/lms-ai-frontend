@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { ROUTES, USER_ROLES } from '@/constants';
-import { PermissionChecker } from '@/lib/permissions';
+import { PermissionChecker } from '@/lib/auth/permissions';
 import { Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {

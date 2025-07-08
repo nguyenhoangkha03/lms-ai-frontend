@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { ApiError } from './api-client';
+import { ApiError } from './api/api-client';
 
 export enum ErrorType {
   NETWORK = 'NETWORK',
