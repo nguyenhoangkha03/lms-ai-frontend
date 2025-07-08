@@ -15,7 +15,7 @@ const mutex = new Mutex();
 // Câu hình cơ bản cho fetchBaseQuery
 // tự động gắn token vào header.
 const baseQuery = fetchBaseQuery({
-  baseUrl: API_CONFIG.baseUrl,
+  baseUrl: `${API_CONFIG.baseUrl}/${API_CONFIG.version}`,
   timeout: API_CONFIG.timeout,
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth?.token;

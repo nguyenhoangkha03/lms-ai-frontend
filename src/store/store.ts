@@ -25,16 +25,8 @@ import chatSlice from './slices/chat';
 import notificationSlice from './slices/notification';
 import uiSlice from './slices/ui';
 
-// // Import API slices
-import { authApi } from './api/auth-api';
-import { userApi } from './api/user-api';
-// import { courseApi } from './api/course-api';
-import { lessonApi } from './api/lesson-api';
-import { assessmentApi } from './api/assessment-api';
-import { chatApi } from './api/chat-api';
-import { notificationApi } from './api/notification-api';
-import { aiApi } from './api/ai-api';
-import { adminApi } from './api/admin-api';
+// Import API slices
+import { baseApi } from './api/base-api';
 
 const persistConfig = {
   key: 'lms-root',
@@ -73,15 +65,7 @@ const rootReducer = combineReducers({
   ui: uiSlice,
 
   // API slices
-  [authApi.reducerPath]: authApi.reducer,
-  // [userApi.reducerPath]: userApi.reducer,
-  //   [courseApi.reducerPath]: courseApi.reducer,
-  //   [lessonApi.reducerPath]: lessonApi.reducer,
-  //   [assessmentApi.reducerPath]: assessmentApi.reducer,
-  //   [chatApi.reducerPath]: chatApi.reducer,
-  //   [notificationApi.reducerPath]: notificationApi.reducer,
-  //   [aiApi.reducerPath]: aiApi.reducer,
-  //   [adminApi.reducerPath]: adminApi.reducer,
+  [baseApi.reducerPath]: baseApi.reducer,
 });
 
 // Persisted reducer
@@ -101,15 +85,7 @@ export const store = configureStore({
         ignoredPaths: ['socket'],
       },
     }).concat(
-      authApi.middleware,
-      //   userApi.middleware,
-      //   courseApi.middleware,
-      //   lessonApi.middleware,
-      //   assessmentApi.middleware,
-      //   chatApi.middleware,
-      //   notificationApi.middleware,
-      //   aiApi.middleware,
-      //   adminApi.middleware
+      baseApi.middleware,
 
       // Custom middleware
       errorHandlerMiddleware,

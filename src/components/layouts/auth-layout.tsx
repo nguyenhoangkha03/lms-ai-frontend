@@ -7,8 +7,8 @@ import { Loader2 } from 'lucide-react';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  requireAuth?: boolean;
-  redirectIfAuthenticated?: boolean;
+  requireAuth?: boolean; // Bắt buộc đăng nhập
+  redirectIfAuthenticated?: boolean; // Người đăng nhập sẽ bị redirect
   redirectTo?: string;
 }
 
@@ -29,6 +29,7 @@ export function AuthLayout({
       return;
     }
 
+    // Đã đăng nhập mà vào trang như login và register
     if (redirectIfAuthenticated && isAuthenticated && user) {
       const destination = redirectTo || getDashboardRoute(user.userType);
       router.push(destination);
