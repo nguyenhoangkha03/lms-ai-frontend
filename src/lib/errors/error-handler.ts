@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { ApiError } from './api/api-client';
+import { ApiError } from '../api/client';
 
 export enum ErrorType {
   NETWORK = 'NETWORK',
@@ -32,7 +32,6 @@ export class GlobalErrorHandler {
   public handleError(error: any): ErrorInfo {
     console.error('Global error handler:', error);
 
-    // Handle API errors
     if (error instanceof ApiError) {
       return this.handleApiError(error);
     }

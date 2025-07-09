@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { apiClient } from '@/lib/api/api-client';
+import { apiClient } from '@/lib/api/client';
 import { useAuth } from '@/hooks/use-auth';
 
 export const useRequestInterceptor = () => {

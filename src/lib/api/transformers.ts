@@ -23,7 +23,6 @@ export interface PaginationParams {
 }
 
 export class RequestTransformer {
-  // Transform pagination parameters
   static paginationParams(params: PaginationParams): Record<string, any> {
     const transformed: Record<string, any> = {};
 
@@ -33,7 +32,6 @@ export class RequestTransformer {
     if (params.sortOrder) transformed.sort_order = params.sortOrder;
     if (params.search) transformed.search = params.search.trim();
 
-    // Flatten filters
     if (params.filters) {
       Object.entries(params.filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -45,7 +43,6 @@ export class RequestTransformer {
     return transformed;
   }
 
-  // Transform form data to snake_case for API
   static toSnakeCase(data: Record<string, any>): Record<string, any> {
     const transformed: Record<string, any> = {};
 
@@ -70,7 +67,6 @@ export class RequestTransformer {
     return transformed;
   }
 
-  // Transform file upload data
   static fileUpload(
     file: File,
     additionalData?: Record<string, any>
@@ -92,7 +88,7 @@ export class RequestTransformer {
     return formData;
   }
 
-  // Transform date range parameters
+  // Chuyển sang chuỗi ISO và đặt tên key cho đúng
   static dateRange(
     startDate?: Date | string,
     endDate?: Date | string
@@ -114,7 +110,7 @@ export class RequestTransformer {
 }
 
 export class ResponseTransformer {
-  // Transform snake_case response to camelCase
+  // Chuyển lại thành CamelCase
   public static toCamelCase<T = any>(data: any): T {
     if (data === null || data === undefined) return data;
 
@@ -138,7 +134,7 @@ export class ResponseTransformer {
     return data as T;
   }
 
-  // Transform pagination response
+  // Chuẩn hóa phản hồi phân trang
   static pagination<T>(response: any): {
     items: T[];
     meta: {
@@ -175,7 +171,7 @@ export class ResponseTransformer {
     };
   }
 
-  // Transform API error response
+  // Định dạng lỗi chung
   static error(error: any): {
     message: string;
     errors: string[];

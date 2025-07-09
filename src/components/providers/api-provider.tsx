@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, ReactNode } from 'react';
-import { apiClient } from '@/lib/api/api-client';
-import { GlobalErrorHandler } from '@/lib/error-handler';
+import { apiClient } from '@/lib/api/client';
+import { GlobalErrorHandler } from '@/lib/errors/error-handler';
 
 interface ApiContextValue {
   apiClient: typeof apiClient;

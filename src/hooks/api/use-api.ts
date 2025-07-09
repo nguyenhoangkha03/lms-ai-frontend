@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { apiClient, ApiError } from '@/lib/api/api-client';
-import { GlobalErrorHandler, ErrorInfo } from '@/lib/error-handler';
+import { apiClient, ApiError } from '@/lib/api/client';
+import { GlobalErrorHandler, ErrorInfo } from '@/lib/errors/error-handler';
 import {
   RequestTransformer,
   ResponseTransformer,

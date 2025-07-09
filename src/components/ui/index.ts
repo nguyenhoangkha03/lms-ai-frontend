@@ -86,7 +86,7 @@ export { ThemeToggle } from '../theme-toggle';
 // Design system exports
 export { designTokens } from '../../styles/tokens';
 export { DESIGN_CONSTANTS } from '../../lib/design-tokens';
-export { useResponsive } from '../../hooks/use-responsive';
+export { useResponsive } from '../../hooks/ui/use-responsive';
 export {
   cn,
   spacing,

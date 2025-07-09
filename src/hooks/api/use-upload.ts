@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { apiClient } from '@/lib/api/api-client';
-import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/lib/api/client';
+import { useToast } from '@/hooks/ui/use-toast';
 
 interface UploadOptions {
   onSuccess?: (response: any) => void;

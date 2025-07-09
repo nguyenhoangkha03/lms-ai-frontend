@@ -1,6 +1,6 @@
 'use client';
 
-import { useResponsive } from '@/hooks/use-responsive';
+import { useResponsive } from '@/hooks/ui/use-responsive';
 import {
   Card,
   CardContent,

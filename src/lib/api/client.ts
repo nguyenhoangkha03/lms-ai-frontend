@@ -58,6 +58,7 @@ class ApiClient {
 
   private setupRequestInterceptor(): void {
     this.axiosInstance.interceptors.request.use(
+      // interceptor xử lý trước khi request được gửi
       (config: InternalAxiosRequestConfig) => {
         config.metadata = { startTime: Date.now() };
 
@@ -66,6 +67,7 @@ class ApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
+        // mã request id duy nhất -> phục vụ logging/tracking request trên backend
         config.headers['X-Request-ID'] = this.generateRequestId();
 
         // Kiểm tra xem code có đang chạy trên trình duyệt không.
@@ -87,6 +89,7 @@ class ApiClient {
 
         return config;
       },
+      // interceptor xử lý khi có lỗi trước khi gửi
       (error: AxiosError) => {
         console.error('Request interceptor error:', error);
         return Promise.reject(this.transformError(error));
@@ -226,7 +229,7 @@ class ApiClient {
       '/auth/forgot-password',
       '/auth/reset-password',
       '/auth/verify-email',
-      '/courses', // Public course listing
+      '/courses',
       '/categories',
       '/search',
     ];
@@ -261,18 +264,16 @@ class ApiClient {
       error.code || 'UNKNOWN_ERROR'
     );
 
-    // Show toast notification for certain errors
     this.handleErrorNotification(apiError);
 
     return apiError;
   }
 
   private handleErrorNotification(error: ApiError): void {
-    // Don't show notifications for auth endpoints or 401 errors (handled by auth system)
     if (
       error.endpoint.includes('/auth/') ||
       error.status === 401 ||
-      error.status === 422 // Validation errors (handled by forms)
+      error.status === 422
     ) {
       return;
     }
@@ -302,7 +303,6 @@ class ApiClient {
         }
     }
 
-    // Dispatch toast notification
     store.dispatch(
       addToast({
         type: 'error',
@@ -312,7 +312,6 @@ class ApiClient {
     );
   }
 
-  // Public API methods
   public get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return this.axiosInstance.get(url, config).then(response => response.data);
   }
@@ -376,7 +375,6 @@ class ApiClient {
       .then(response => response.data);
   }
 
-  // Download with progress tracking
   public download(
     url: string,
     filename?: string,
@@ -395,7 +393,6 @@ class ApiClient {
         },
       })
       .then(response => {
-        // Auto-download file if filename provided
         if (filename && typeof window !== 'undefined') {
           const blob = new Blob([response.data]);
           const downloadUrl = window.URL.createObjectURL(blob);
@@ -412,13 +409,11 @@ class ApiClient {
       });
   }
 
-  // Get axios instance for advanced usage
   public getInstance(): AxiosInstance {
     return this.axiosInstance;
   }
 }
 
-// Custom error class
 export class ApiError extends Error {
   public status: number;
   public data: any;
@@ -441,5 +436,4 @@ export class ApiError extends Error {
   }
 }
 
-// Export singleton instance
 export const apiClient = ApiClient.getInstance();

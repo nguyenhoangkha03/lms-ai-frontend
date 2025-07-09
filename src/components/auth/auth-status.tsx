@@ -25,7 +25,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { RoleBadge } from './role-badge';
-import { getInitials } from '@/lib/utils';
+import { getInitials } from '@/lib/utils/cn';
 
 export function AuthStatus() {
   const { user, isAuthenticated, logout, isLocked, loginAttempts } = useAuth();

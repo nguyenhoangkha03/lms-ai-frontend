@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
-import { GlobalErrorHandler } from '@/lib/error-handler';
+import { GlobalErrorHandler } from '@/lib/errors/error-handler';
 
 interface Props {
   children: ReactNode;

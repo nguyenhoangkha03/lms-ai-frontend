@@ -1,23 +1,20 @@
 export const DESIGN_CONSTANTS = {
-  // Layout
-  HEADER_HEIGHT: '4rem', // 64px
-  SIDEBAR_WIDTH: '16rem', // 256px
-  SIDEBAR_COLLAPSED_WIDTH: '4rem', // 64px
+  HEADER_HEIGHT: '4rem',
+  SIDEBAR_WIDTH: '16rem',
+  SIDEBAR_COLLAPSED_WIDTH: '4rem',
   FOOTER_HEIGHT: 'auto',
 
-  // Content spacing
   CONTAINER_PADDING: {
     mobile: '1rem',
     tablet: '1.5rem',
     desktop: '2rem',
   },
 
-  // Component sizes
   BUTTON_HEIGHT: {
-    sm: '2.25rem', // 36px
-    md: '2.5rem', // 40px
-    lg: '2.75rem', // 44px
-    xl: '3rem', // 48px
+    sm: '2.25rem',
+    md: '2.5rem',
+    lg: '2.75rem',
+    xl: '3rem',
   },
 
   INPUT_HEIGHT: {
@@ -27,7 +24,6 @@ export const DESIGN_CONSTANTS = {
     xl: '3rem',
   },
 
-  // Border radius consistency
   BORDER_RADIUS: {
     xs: '0.125rem',
     sm: '0.25rem',
@@ -38,14 +34,12 @@ export const DESIGN_CONSTANTS = {
     full: '9999px',
   },
 
-  // Animation timing
   ANIMATION_DURATION: {
     fast: '150ms',
     normal: '300ms',
     slow: '500ms',
   },
 
-  // Z-index layers
   Z_INDEX: {
     dropdown: 1000,
     sticky: 1020,

@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { usePermissions } from '@/hooks/use-permissions';
+import { usePermissions } from '@/hooks/auth/use-permissions';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

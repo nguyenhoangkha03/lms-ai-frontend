@@ -3,7 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { ErrorInfo, ErrorType } from '@/lib/error-handler';
+import { ErrorInfo, ErrorType } from '@/lib/errors/error-handler';
 
 interface ApiErrorProps {
   error: ErrorInfo;

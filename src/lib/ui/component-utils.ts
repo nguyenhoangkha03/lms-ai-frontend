@@ -1,12 +1,3 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-// Enhanced cn function
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-// Create consistent spacing utilities
 export const spacing = {
   xs: 'p-2',
   sm: 'p-4',
@@ -23,11 +14,9 @@ export const margins = {
   xl: 'm-10',
 } as const;
 
-// Focus ring utility
 export const focusRing =
   'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2';
 
-// Transition utilities
 export const transitions = {
   fast: 'transition-all duration-150 ease-in-out',
   normal: 'transition-all duration-300 ease-in-out',

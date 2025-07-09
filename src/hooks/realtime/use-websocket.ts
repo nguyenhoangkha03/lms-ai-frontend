@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from './';
+import { useAppDispatch, useAppSelector } from '..';
 import { socket } from '@/store/middleware/websocket';
 import { SOCKET_EVENTS } from '@/constants';
 

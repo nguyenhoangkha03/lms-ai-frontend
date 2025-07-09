@@ -1,4 +1,4 @@
-import { useAppDispatch } from './';
+import { useAppDispatch } from '..';
 import { updateProgress } from '@/store/slices/lesson';
 import { useWebSocket } from './use-websocket';
 
