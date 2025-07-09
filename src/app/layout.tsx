@@ -1,20 +1,10 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Inter } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/theme-provider';
-// import { ReduxProvider } from '@/store/provider';
 // import { Toaster } from '@/components/ui/toaster';
 import { APP_CONFIG } from '@/constants';
 import './globals.css';
-
-// const geistSans = Geist({
-//   variable: '--font-geist-sans',
-//   subsets: ['latin'],
-// });
-
-// const geistMono = Geist_Mono({
-//   variable: '--font-geist-mono',
-//   subsets: ['latin'],
-// });
+import { ReduxProvider } from '@/store';
 
 const inter = Inter({
   subsets: ['latin'], // chỉ cần tải các ký tự thuộc bộ latin
@@ -95,19 +85,18 @@ export default function RootLayout({
     <html lang="en" suppressContentEditableWarning>
       <head />
       <body className={`${inter.variable} font-sans antialiased`}>
-        {/* <ReduxProvider> */}
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <div className="relative flex min-h-screen flex-col">
-            <div className="flex-1">{children}</div>
-          </div>
-          {/* <Toaster /> */}
-        </ThemeProvider>
-        {/* </ReduxProvider>*/}
+        <ReduxProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <div className="relative flex min-h-screen flex-col">
+              <div className="flex-1">{children}</div>
+            </div>
+          </ThemeProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

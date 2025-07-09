@@ -11,6 +11,8 @@ export const selectCurrentCourse = (state: RootState) =>
   state.course?.currentCourse;
 export const selectCourseFilters = (state: RootState) => state.course?.filters;
 
+// Hàm biến đổi (số 2) sẽ CHỈ CHẠY LẠI khi giá trị trả về từ các selector đầu vào (số 1) thay đổi.
+// Nếu không có gì thay đổi, nó sẽ ngay lập tức trả về kết quả đã tính toán từ lần trước mà không cần chạy lại logic phức tạp bên trong.
 export const selectFilteredCourses = createSelector(
   [selectAllCourses, selectCourseFilters],
   (courses, filters) => {
@@ -41,7 +43,6 @@ export const selectFilteredCourses = createSelector(
       );
     }
 
-    // Sort
     if (filters?.sortBy) {
       filtered.sort((a, b) => {
         const aValue = a[filters.sortBy as keyof typeof a];
@@ -58,7 +59,6 @@ export const selectFilteredCourses = createSelector(
   }
 );
 
-// Chat selectors
 export const selectChatRooms = (state: RootState) => state.chat?.rooms;
 export const selectCurrentRoom = (state: RootState) => state.chat?.currentRoom;
 export const selectUnreadCounts = (state: RootState) =>
@@ -70,7 +70,6 @@ export const selectTotalUnreadMessages = createSelector(
     Object.values(unreadCounts!).reduce((total, count) => total + count, 0)
 );
 
-// Notification selectors
 export const selectNotifications = (state: RootState) =>
   state.notification?.notifications;
 export const selectUnreadNotificationCount = (state: RootState) =>
@@ -81,7 +80,6 @@ export const selectRecentNotifications = createSelector(
   notifications => notifications?.slice(0, 5)
 );
 
-// UI selectors
 export const selectTheme = (state: RootState) => state.ui?.theme;
 export const selectSidebarCollapsed = (state: RootState) =>
   state.ui?.sidebarCollapsed;

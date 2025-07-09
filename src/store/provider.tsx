@@ -3,7 +3,8 @@
 import { Loader2 } from 'lucide-react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './store';
+import { persistor, store } from './store';
+import { useEffect, useState } from 'react';
 
 interface ReduxProviderProps {
   children: React.ReactNode;
@@ -19,9 +20,23 @@ const PersistLoading = () => (
 );
 
 export function ReduxProvider({ children }: ReduxProviderProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return <Provider store={store}>{children}</Provider>;
+  }
+
+  if (!persistor) {
+    console.warn('Persistor not available, running without persistence');
+    return <Provider store={store}>{children}</Provider>;
+  }
+
   return (
     <Provider store={store}>
-      {/* Tạm hoãn render app cho đến khi state được rehydrate xong (khôi phục từ localStorage) */}
       <PersistGate loading={<PersistLoading />} persistor={persistor}>
         {children}
       </PersistGate>

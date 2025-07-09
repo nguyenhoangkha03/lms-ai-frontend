@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_CONFIG, ROUTES, USER_ROLES } from '@/constants';
 
-// Define protected routes for each role with granular control
 const protectedRoutes = {
   [USER_ROLES.STUDENT]: [
     '/student',
-    '/courses/*/lessons/*', // Student can access lesson player
-    '/assessments/*/take', // Student can take assessments
+    '/courses/*/lessons/*',
+    '/assessments/*/take',
   ],
   [USER_ROLES.TEACHER]: [
     '/teacher',
@@ -17,7 +16,6 @@ const protectedRoutes = {
     '/live-sessions',
   ],
   [USER_ROLES.ADMIN]: ['/admin', '/admin/*'],
-  // Shared protected routes (any authenticated user)
   shared: ['/profile', '/settings', '/chat', '/notifications'],
 };
 
@@ -27,8 +25,8 @@ const publicRoutes = [
   '/features',
   '/pricing',
   '/contact',
-  '/courses', // Public course catalog
-  '/courses/*', // Public course details (but not lessons)
+  '/courses',
+  '/courses/*',
   '/search',
   '/help',
   '/terms',
@@ -44,7 +42,6 @@ const publicRoutes = [
   '/500',
 ];
 
-// API routes that don't need authentication
 const publicApiRoutes = [
   '/api/auth/login',
   '/api/auth/register',
@@ -52,9 +49,9 @@ const publicApiRoutes = [
   '/api/auth/reset-password',
   '/api/auth/verify-email',
   '/api/auth/refresh',
-  '/api/courses', // Public course listing
-  '/api/categories', // Public categories
-  '/api/search', // Public search
+  '/api/courses',
+  '/api/categories',
+  '/api/search',
 ];
 
 export function middleware(request: NextRequest) {
@@ -62,7 +59,6 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get(AUTH_CONFIG.tokenKey)?.value;
   const userRole = request.cookies.get('user_role')?.value;
 
-  // Skip middleware for static assets and API routes
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/webhook') ||
@@ -73,12 +69,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle API routes
   if (pathname.startsWith('/api/')) {
     return handleApiRoutes(request, pathname, token, userRole);
   }
 
-  // Handle page routes
   return handlePageRoutes(request, pathname, token, userRole);
 }
 
@@ -88,9 +82,9 @@ function handleApiRoutes(
   token?: string,
   userRole?: string
 ): NextResponse {
-  // Check if API route is public
   const isPublicApiRoute = publicApiRoutes.some(route => {
     if (route.includes('*')) {
+      // Chuyển wildcard * thành biểu thức chính quy .* (match bất kỳ ký tự nào).
       const pattern = route.replace('*', '.*');
       return new RegExp(`^${pattern}`).test(pathname);
     }
@@ -101,7 +95,6 @@ function handleApiRoutes(
     return NextResponse.next();
   }
 
-  // Require authentication for protected API routes
   if (!token) {
     return NextResponse.json(
       { error: 'Authentication required' },
@@ -109,12 +102,10 @@ function handleApiRoutes(
     );
   }
 
-  // Verify token validity (basic check)
   if (!isValidToken(token)) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }
 
-  // Check role-based API access
   if (userRole && !hasApiAccess(pathname, userRole)) {
     return NextResponse.json(
       { error: 'Insufficient permissions' },
@@ -131,19 +122,15 @@ function handlePageRoutes(
   token?: string,
   userRole?: string
 ): NextResponse {
-  // Check if route is public
   const isPublicRoute = publicRoutes.some(route => {
     if (route.includes('*')) {
-      // Handle wildcard routes
       const pattern = route.replace('*', '.*');
       return new RegExp(`^${pattern}`).test(pathname);
     }
     return pathname === route || pathname.startsWith(`${route}/`);
   });
 
-  // Allow access to public routes
   if (isPublicRoute) {
-    // Redirect authenticated users away from auth pages
     if (token && isAuthPage(pathname)) {
       const dashboardRoute = getDashboardRoute(userRole);
       return NextResponse.redirect(new URL(dashboardRoute, request.url));
@@ -151,7 +138,6 @@ function handlePageRoutes(
     return NextResponse.next();
   }
 
-  // Check if route requires authentication
   const requiresAuth = isProtectedRoute(pathname);
 
   if (requiresAuth && !token) {
@@ -160,23 +146,20 @@ function handlePageRoutes(
     return NextResponse.redirect(loginUrl);
   }
 
-  // Verify token validity
   if (token && !isValidToken(token)) {
     const loginUrl = new URL(ROUTES.LOGIN, request.url);
     loginUrl.searchParams.set('redirect', pathname);
     loginUrl.searchParams.set('reason', 'token_expired');
 
     const response = NextResponse.redirect(loginUrl);
-    // Clear invalid token
+
     response.cookies.delete(AUTH_CONFIG.tokenKey);
     response.cookies.delete('user_role');
 
     return response;
   }
 
-  // Check role-based access
   if (token && userRole && !hasRouteAccess(pathname, userRole)) {
-    // Redirect to appropriate dashboard or forbidden page
     if (isUserDashboardRoute(pathname, userRole)) {
       const dashboardRoute = getDashboardRoute(userRole);
       return NextResponse.redirect(new URL(dashboardRoute, request.url));
@@ -185,13 +168,14 @@ function handlePageRoutes(
     }
   }
 
-  // Add security headers
   const response = NextResponse.next();
 
-  // Add security headers for authenticated routes
   if (token) {
+    // Ngăn không cho trang của bạn được nhúng vào <iframe> ở bất kỳ nơi nào.
     response.headers.set('X-Frame-Options', 'DENY');
+    // Ngăn trình duyệt đoán sai loại nội dung (Content-Type sniffing).
     response.headers.set('X-Content-Type-Options', 'nosniff');
+    // Kiểm soát thông tin referrer (nguồn gốc URL) khi gửi request ra ngoài:
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   }
 
@@ -200,11 +184,9 @@ function handlePageRoutes(
 
 function isValidToken(token: string): boolean {
   try {
-    // Basic JWT structure validation
     const parts = token.split('.');
     if (parts.length !== 3) return false;
 
-    // Check if token is expired
     const payload = JSON.parse(atob(parts[1]));
     const currentTime = Math.floor(Date.now() / 1000);
 
@@ -242,7 +224,6 @@ function isProtectedRoute(pathname: string): boolean {
 }
 
 function hasRouteAccess(pathname: string, userRole: string): boolean {
-  // Check shared routes first
   const hasSharedAccess = protectedRoutes.shared.some(route => {
     if (route.includes('*')) {
       const pattern = route.replace('*', '[^/]+');
@@ -267,10 +248,8 @@ function hasRouteAccess(pathname: string, userRole: string): boolean {
 }
 
 function hasApiAccess(pathname: string, userRole: string): boolean {
-  // Admin has access to all API routes
   if (userRole === USER_ROLES.ADMIN) return true;
 
-  // Define API access rules
   const apiAccessRules = {
     [USER_ROLES.STUDENT]: [
       '/api/courses',
@@ -314,7 +293,10 @@ function hasApiAccess(pathname: string, userRole: string): boolean {
   });
 }
 
-function isUserDashboardRoute(pathname: string, userRole: string): boolean {
+function isUserDashboardRoute(
+  pathname: string,
+  userRole: string
+): boolean | string {
   const dashboardRoutes = {
     [USER_ROLES.STUDENT]: '/student',
     [USER_ROLES.TEACHER]: '/teacher',
@@ -341,14 +323,6 @@ function getDashboardRoute(userRole?: string): string {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

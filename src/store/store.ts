@@ -1,18 +1,23 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
+// persistStore: Hàm để kích hoạt việc lưu trữ.
+// persistReducer: Một "bộ lọc" để bọc reducer của bạn, quyết định phần nào của state sẽ được lưu.
 import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import storageEngine from './storage-engine';
+// Tuần tự hóa (Serialization) là quá trình chuyển đổi một object thành chuỗi JSON (hoặc định dạng
+//  lưu trữ khác) để có thể lưu vào file, gửi qua network, hoặc lưu vào localStorage.
 import {
   FLUSH, // Xóa ngay lập tức mọi thay đổi đang chờ được lưu vào storage.
-  REHYDRATE, // Khôi phục state từ storage.
-  PAUSE, // Tạm dừng việc lưu trữ state.
-  PERSIST, // Bắt đầu quá trình lưu trữ state.
-  PURGE, // Xóa toàn bộ state khỏi storage.
-  REGISTER, // Đăng ký một reducer mới để lưu trữ.
+  REHYDRATE, // Khi app load lại, lấy data từ localStorage
+  PAUSE, // Tạm dừng việc lưu trữ state. Như bấm Pause khi đang record
+  PERSIST, // Bắt đầu quá trình lưu trữ state. Như "resume" lại việc lưu sau khi pause
+  PURGE, // Xóa toàn bộ state khỏi storage. Reset sạch dữ liệu persist
+  REGISTER, // Đăng ký một reducer mới để lưu trữ. Gọi khi slice/reducer được persist đăng ký
 } from 'redux-persist';
 
 // Import middleware
 import { websocketMiddleware } from './middleware/websocket';
 import { errorHandlerMiddleware } from './middleware/error-handler';
+import { authMiddleware } from './middleware/auth-middleware';
 import { authTransform } from './transforms/auth-transform';
 
 // // Import slices
@@ -30,14 +35,16 @@ import { baseApi } from './api/base-api';
 
 const persistConfig = {
   key: 'lms-root',
-  version: 1,
-  storage,
+  version: 1, // thay đổi cấu trúc state và muốn người dùng cũ phải làm mới state, bạn có thể tăng số phiên bản này
+  storage: storageEngine,
   whitelist: ['auth', 'user', 'ui'], // Only persist auth, user, and ui slices
+  // không được lưu
   blacklist: [
     'chat',
     'notification',
     'lesson',
     'assessment',
+
     // Don't persist API cache
     'authApi',
     'userApi',
@@ -49,8 +56,8 @@ const persistConfig = {
     'aiApi',
     'adminApi',
   ], // Do not persist chat and notification slices
-  transforms: [authTransform],
-  debug: process.env.NODE_ENV === 'development',
+  transforms: [authTransform], // áp dụng biến đổi trước khi lưu
+  debug: process.env.NODE_ENV === 'development', // Bật chế độ gỡ lỗi cho redux-persist khi chạy ở môi trường development.
 };
 
 const rootReducer = combineReducers({
@@ -68,7 +75,7 @@ const rootReducer = combineReducers({
   [baseApi.reducerPath]: baseApi.reducer,
 });
 
-// Persisted reducer
+// phiên bản "nâng cấp" của rootReducer, nó biết cách tự động lưu và lấy lại một phần trạng thái từ localStorage.
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
@@ -78,9 +85,12 @@ export const store = configureStore({
       // kiểm tra xem action và state có thể serialize được không (giúp debug tốt hơn).
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        // 	Bỏ qua cảnh báo nếu action có meta.websocket
         ignoredActionsPaths: ['meta.websocket'],
+        // Không kiểm tra state ở state.socket
         ignoredPaths: ['socket'],
       },
+      //  không được mutate trực tiếp bất kỳ phần nào trong state
       immutableCheck: {
         ignoredPaths: ['socket'],
       },
@@ -89,7 +99,8 @@ export const store = configureStore({
 
       // Custom middleware
       errorHandlerMiddleware,
-      websocketMiddleware
+      websocketMiddleware,
+      authMiddleware
     ),
   devTools: process.env.NODE_ENV !== 'production' && {
     name: 'LMS Redux Store',
@@ -99,10 +110,23 @@ export const store = configureStore({
 });
 
 // Kích hoạt cơ chế tự động lưu trữ (persist) Redux state vào storage (localStorage hoặc sessionStorage).
-export const persistor = persistStore(store, null, () => {
-  console.log('Redux store rehydrated');
-});
+// Object này sau đó sẽ được sử dụng bởi component <PersistGate> trong cây React để trì hoãn việc
+//  render giao diện cho đến khi trạng thái đã được khôi phục thành công từ localStorage.
+export const persistor = (() => {
+  // Kiểm tra nếu đang chạy ở server-side
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
+  try {
+    return persistStore(store, null, () => {
+      console.log('Redux store rehydrated');
+    });
+  } catch (error) {
+    console.warn('Failed to create persistor:', error);
+    return null;
+  }
+})();
 // store.getState là hàm, gọi store.getState() sẽ trả về toàn bộ state của Redux store
 // typeof store.getState trả về () => StateObject
 // RetyurnType<typeof store.getState> sẽ trả về kiểu của toàn bộ state object
