@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { ROUTES, USER_ROLES } from '@/constants';
 import {
   LayoutDashboard,

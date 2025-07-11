@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { AuthStatus } from '@/components/auth/auth-status';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import {
   Search,
   Bell,
