@@ -11,11 +11,10 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/sonner';
 import { ProgressBar } from '@/components/ui/progress-bar';
 
-// Create a client instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute
+      staleTime: 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
     },
