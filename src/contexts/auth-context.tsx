@@ -34,12 +34,10 @@ interface AuthContextType {
   error: string | null;
   permissions: string[];
 
-  // Session management
   sessionExpiry: string | null;
   lastActivity: string | null;
   isSessionActive: boolean;
 
-  // Role checking
   isStudent: boolean;
   isTeacher: boolean;
   isAdmin: boolean;
@@ -47,17 +45,14 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
 
-  // Actions
   checkAuth: () => Promise<boolean>;
   refreshSession: () => Promise<boolean>;
   logout: (logoutAll?: boolean) => Promise<void>;
   updateUserData: (userData: Partial<User>) => void;
 
-  // Activity tracking
   updateActivity: () => void;
   isActivityTracked: boolean;
 
-  // Security features
   requiresReauth: boolean;
   isMfaEnabled: boolean;
   canAccessResource: (resource: string, action?: string) => boolean;
@@ -65,7 +60,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Enhanced Auth Provider
 interface AuthProviderProps {
   children: React.ReactNode;
 }
@@ -74,20 +68,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
 
-  // Initialize RBAC sync
-  useRBACSync();
+  //   useRBACSync();
+  useRBACSync(auth.user, auth.isAuthenticated);
 
   const [isActivityTracked, setIsActivityTracked] = useState(false);
   const [requiresReauth, setRequiresReauth] = useState(false);
 
-  // RTK Query hooks
   const { refetch: checkAuthQuery } = useCheckAuthQuery(undefined, {
     skip: !auth.token,
   });
   const [refreshTokenMutation] = useRefreshTokenMutation();
   const [logoutMutation] = useLogoutMutation();
 
-  // Enhanced role checking
   const hasRole = useCallback(
     (role: string): boolean => {
       return auth.user?.userType === role;
@@ -111,15 +103,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [auth.permissions]
   );
 
-  // Enhanced security resource access control
   const canAccessResource = useCallback(
     (resource: string, action = 'read'): boolean => {
       if (!auth.isAuthenticated) return false;
 
-      // Admin has access to everything
       if (auth.user?.userType === 'admin') return true;
 
-      // Resource-based access control
       const resourcePermissions: Record<string, Record<string, string[]>> = {
         courses: {
           read: ['student', 'teacher', 'admin'],
@@ -154,7 +143,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [auth.isAuthenticated, auth.user?.userType]
   );
 
-  // Check authentication status
   const checkAuth = useCallback(async (): Promise<boolean> => {
     try {
       dispatch(setLoading(true));
@@ -182,7 +170,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [dispatch, checkAuthQuery]);
 
-  // Refresh session
   const refreshSession = useCallback(async (): Promise<boolean> => {
     const refreshToken = tokenManager.getRefreshToken();
     if (!refreshToken) {
@@ -201,7 +188,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [dispatch, refreshTokenMutation]);
 
-  // Enhanced logout with cleanup
   const handleLogout = useCallback(
     async (logoutAll = false): Promise<void> => {
       try {
@@ -211,7 +197,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('Logout API call failed:', error);
       } finally {
-        // Always clear local state regardless of API call result
         dispatch(logout());
         setIsActivityTracked(false);
         setRequiresReauth(false);
@@ -221,7 +206,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [dispatch, logoutMutation]
   );
 
-  // Update user data
   const updateUserData = useCallback(
     (userData: Partial<User>) => {
       dispatch(updateUser(userData));
@@ -229,14 +213,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [dispatch]
   );
 
-  // Activity tracking
   const updateActivity = useCallback(() => {
     if (auth.isAuthenticated) {
       dispatch(updateLastActivity());
     }
   }, [dispatch, auth.isAuthenticated]);
 
-  // Session expiry monitoring
   useEffect(() => {
     if (!auth.sessionExpiry || !auth.isAuthenticated) return;
 
@@ -250,21 +232,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Auto-refresh token 5 minutes before expiry
       const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
       if (refreshTime > 0 && refreshTime < 60000) {
-        // Within 1 minute of refresh time
         refreshSession();
       }
     };
 
-    const interval = setInterval(checkSessionExpiry, 30000); // Check every 30 seconds
-    checkSessionExpiry(); // Initial check
+    const interval = setInterval(checkSessionExpiry, 30000);
+    checkSessionExpiry();
 
     return () => clearInterval(interval);
   }, [auth.sessionExpiry, auth.isAuthenticated, dispatch, refreshSession]);
 
-  // Activity tracking setup
   useEffect(() => {
     if (!auth.isAuthenticated) {
       setIsActivityTracked(false);
@@ -275,7 +254,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const handleActivity = () => updateActivity();
 
-    // Track various user activities
     const events = [
       'mousedown',
       'mousemove',
@@ -291,7 +269,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       document.addEventListener(event, handleActivity, { passive: true });
     });
 
-    // Track page visibility changes
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         updateActivity();
@@ -300,8 +277,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Periodic activity update
-    const interval = setInterval(updateActivity, 5 * 60 * 1000); // Every 5 minutes
+    const interval = setInterval(updateActivity, 5 * 60 * 1000);
 
     setIsActivityTracked(true);
 
@@ -315,7 +291,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [auth.isAuthenticated, isActivityTracked, updateActivity]);
 
-  // Re-authentication requirement check
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.lastActivity) return;
 
@@ -323,12 +298,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const currentTime = Date.now();
     const timeSinceActivity = currentTime - lastActivityTime;
 
-    // Require re-auth after 30 minutes of inactivity for sensitive operations
-    const requiresReauthTime = 30 * 60 * 1000; // 30 minutes
+    const requiresReauthTime = 30 * 60 * 1000;
     setRequiresReauth(timeSinceActivity > requiresReauthTime);
   }, [auth.isAuthenticated, auth.lastActivity]);
 
-  // Initialize auth check on mount
   useEffect(() => {
     const token = tokenManager.getToken();
     if (token && !auth.isAuthenticated) {
@@ -336,21 +309,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [checkAuth, auth.isAuthenticated]);
 
-  // Context value
   const contextValue: AuthContextType = {
-    // Core state
     user: auth.user,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
     error: auth.error,
     permissions: auth.permissions,
 
-    // Session management
     sessionExpiry: auth.sessionExpiry,
     lastActivity: auth.lastActivity,
     isSessionActive: auth.isAuthenticated && !requiresReauth,
 
-    // Role checking
     isStudent: hasRole('student'),
     isTeacher: hasRole('teacher'),
     isAdmin: hasRole('admin'),
@@ -358,17 +327,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     hasPermission,
     hasAnyPermission,
 
-    // Actions
     checkAuth,
     refreshSession,
     logout: handleLogout,
     updateUserData,
 
-    // Activity tracking
     updateActivity,
     isActivityTracked,
 
-    // Security features
     requiresReauth,
     isMfaEnabled: auth.user?.twoFactorEnabled || false,
     canAccessResource,
@@ -379,7 +345,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// Enhanced useAuth hook with additional features
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -388,7 +353,6 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
-// Specialized hooks for common use cases
 export function useRequireAuth(redirectTo = '/login') {
   const { isAuthenticated, isLoading } = useAuth();
 

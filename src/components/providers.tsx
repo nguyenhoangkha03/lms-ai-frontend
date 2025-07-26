@@ -36,13 +36,13 @@ export function Providers({ children }: ProvidersProps) {
       >
         <ReduxProvider>
           <AuthProvider>
-            <NotificationProvider>
-              <SocketProvider>
+            <SocketProvider>
+              <NotificationProvider>
                 <ProgressBar />
                 {children}
                 <Toaster position="top-right" expand richColors closeButton />
-              </SocketProvider>
-            </NotificationProvider>
+              </NotificationProvider>
+            </SocketProvider>
           </AuthProvider>
         </ReduxProvider>
       </ThemeProvider>
