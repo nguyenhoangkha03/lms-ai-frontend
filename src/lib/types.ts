@@ -6,7 +6,12 @@ export interface User {
   lastName: string;
   displayName: string;
   phone?: string;
+  organizationId?: string;
+  departmentId?: string;
+  metadata?: Record<string, any>;
+  sessionId?: string;
   userType: 'student' | 'teacher' | 'admin';
+  roles: string[];
   status:
     | 'pending'
     | 'active'
