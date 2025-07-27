@@ -61,7 +61,6 @@ export const useAuth = () => {
     [dispatch, loginMutation]
   );
 
-  // Register function
   const register = useCallback(
     async (userData: RegisterFormData) => {
       try {
@@ -78,7 +77,6 @@ export const useAuth = () => {
     [dispatch, registerMutation]
   );
 
-  // Logout function
   const handleLogout = useCallback(
     async (logoutAll = false) => {
       try {
@@ -95,7 +93,6 @@ export const useAuth = () => {
     [dispatch, logoutMutation]
   );
 
-  // Refresh token function
   const refreshToken = useCallback(async () => {
     const refreshTokenValue = tokenManager.getRefreshToken();
     if (!refreshTokenValue) {
@@ -116,19 +113,16 @@ export const useAuth = () => {
     }
   }, [dispatch, refreshTokenMutation]);
 
-  // Update activity tracker
   const updateActivity = useCallback(() => {
     if (auth.isAuthenticated) {
       dispatch(updateLastActivity());
     }
   }, [dispatch, auth.isAuthenticated]);
 
-  // Clear auth error
   const clearAuthError = useCallback(() => {
     dispatch(clearError());
   }, [dispatch]);
 
-  // Set auth error
   const setAuthError = useCallback(
     (error: string) => {
       dispatch(setError(error));
@@ -136,7 +130,6 @@ export const useAuth = () => {
     [dispatch]
   );
 
-  // Check if user has specific role
   const hasRole = useCallback(
     (role: string) => {
       return auth.user?.userType === role;
@@ -144,7 +137,6 @@ export const useAuth = () => {
     [auth.user?.userType]
   );
 
-  // Check if user has permission
   const hasPermission = useCallback(
     (permission: string) => {
       return auth.permissions.includes(permission);
@@ -152,13 +144,11 @@ export const useAuth = () => {
     [auth.permissions]
   );
 
-  // Activity tracker effect
   useEffect(() => {
     if (!auth.isAuthenticated) return;
 
     const handleActivity = () => updateActivity();
 
-    // Track user activity
     const events = [
       'mousedown',
       'mousemove',
@@ -170,7 +160,6 @@ export const useAuth = () => {
       document.addEventListener(event, handleActivity, true);
     });
 
-    // Update activity every 5 minutes
     const interval = setInterval(updateActivity, 5 * 60 * 1000);
 
     return () => {
@@ -181,7 +170,6 @@ export const useAuth = () => {
     };
   }, [auth.isAuthenticated, updateActivity]);
 
-  // Session expiry check
   useEffect(() => {
     if (!auth.sessionExpiry || !auth.isAuthenticated) return;
 
@@ -194,7 +182,6 @@ export const useAuth = () => {
       return;
     }
 
-    // Refresh token 5 minutes before expiry
     const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
     if (refreshTime > 0) {
       const refreshTimeout = setTimeout(() => {
@@ -203,10 +190,15 @@ export const useAuth = () => {
 
       return () => clearTimeout(refreshTimeout);
     }
+
+    const refreshTimeout = setTimeout(() => {
+      refreshToken();
+    }, refreshTime);
+
+    return () => clearTimeout(refreshTimeout);
   }, [auth.sessionExpiry, auth.isAuthenticated, refreshToken, dispatch]);
 
   return {
-    // State
     user: auth.user,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading || isLoggingIn || isRegistering,
@@ -214,7 +206,6 @@ export const useAuth = () => {
     permissions: auth.permissions,
     twoFactorRequired: auth.twoFactorRequired,
 
-    // Actions
     login,
     register,
     logout: handleLogout,
@@ -224,7 +215,6 @@ export const useAuth = () => {
     setError: setAuthError,
     checkAuth,
 
-    // Helpers
     hasRole,
     hasPermission,
     isStudent: hasRole('student'),

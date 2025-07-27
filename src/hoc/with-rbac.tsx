@@ -16,9 +16,6 @@ interface WithRBACOptions {
   hierarchyLevel?: number;
 }
 
-/**
- * HOC for RBAC protection
- */
 export function withRBAC<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   options: WithRBACOptions = {}

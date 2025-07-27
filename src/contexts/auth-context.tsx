@@ -22,7 +22,6 @@ import {
   useLogoutMutation,
 } from '@/lib/redux/api/auth-api';
 import { tokenManager } from '@/lib/api/client';
-import { LOCAL_STORAGE_KEYS } from '@/lib/constants';
 import { useRBACSync } from '@/lib/auth/rbac-integration';
 import type { User } from '@/lib/types';
 import { toast } from 'sonner';
@@ -68,7 +67,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
 
-  //   useRBACSync();
   useRBACSync(auth.user, auth.isAuthenticated);
 
   const [isActivityTracked, setIsActivityTracked] = useState(false);
@@ -369,7 +367,7 @@ export function useRequireRole(
   allowedRoles: string[],
   redirectTo = '/unauthorized'
 ) {
-  const { user, hasRole, isAuthenticated, isLoading } = useAuth();
+  const { user: _user, hasRole, isAuthenticated, isLoading } = useAuth();
 
   const hasRequiredRole = allowedRoles.some(role => hasRole(role));
 

@@ -69,9 +69,7 @@ export const Tabs: React.FC<TabsProps> = ({
           disabled={tab.disabled}
           data-state={activeTab === tab.id ? 'active' : 'inactive'}
         >
-          {tab.icon && (
-            <span className="mr-2 [&>svg]:h-4 [&>svg]:w-4">{tab.icon}</span>
-          )}
+          {tab.icon && <span className="mr-2">{tab.icon}</span>}
           {tab.label}
           {tab.badge && (
             <span className="ml-2 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-xs">

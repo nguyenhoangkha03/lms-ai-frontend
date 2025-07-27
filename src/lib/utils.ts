@@ -2,10 +2,12 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 
+// gộp các class name
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// định dạng kích thước file
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
 
@@ -16,6 +18,7 @@ export function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// định dạng thời gian từ giây thành chuỗi dạng HH:MM:SS hoặc MM:SS
 export function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -27,6 +30,7 @@ export function formatDuration(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+// định dạng thời gian so với thời gian hiện tại
 export function formatRelativeTime(date: string | Date): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
@@ -41,6 +45,7 @@ export function formatRelativeTime(date: string | Date): string {
   return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 
+// định dạng theo mẫu chỉ định
 export function formatDate(
   date: string | Date,
   formatStr = 'MMM dd, yyyy'
@@ -49,19 +54,22 @@ export function formatDate(
   return format(dateObj, formatStr);
 }
 
+// cắt chuỗi văn bản nếu vượt quá độ dài chỉ định, thêm ...
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
 }
 
+// tạo slug từ chuỗi văn bản
 export function generateSlug(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^\w\s-]/g, '') // xóa mọi ký tự không phải chữ, số, khoảng trắng, gạch ngang
+    .replace(/[\s_-]+/g, '-') // thay thế khoảng trắng, gạch ngang bằng gạch ngang
+    .replace(/^-+|-+$/g, ''); // xóa gạch ngang ở đầu và cuối
 }
 
+// viết hoa chữ cái đầu tiên của mỗi từ
 export function capitalizeWords(text: string): string {
   return text.replace(
     /\w\S*/g,
@@ -69,6 +77,7 @@ export function capitalizeWords(text: string): string {
   );
 }
 
+// lấy các chữ cái đầu tiên của mỗi từ
 export function getInitials(name: string): string {
   return name
     .split(' ')
@@ -77,6 +86,7 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+// tạo id ngẫu nhiên
 export function generateId(length = 8): string {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -87,6 +97,7 @@ export function generateId(length = 8): string {
   return result;
 }
 
+// trì hoãn thực hiện hàm
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -98,6 +109,7 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
+// hạn chế số lần thực hiện hàm trong một khoảng thời gian
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
@@ -112,6 +124,7 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 }
 
+// sao chép sâu
 export function deepClone<T>(obj: T): T {
   if (obj === null || typeof obj !== 'object') return obj;
   if (obj instanceof Date) return new Date(obj.getTime()) as any;
@@ -126,6 +139,7 @@ export function deepClone<T>(obj: T): T {
   return obj;
 }
 
+// kiểm tra xem một giá trị (chuỗi, mảng, hoặc đối tượng) có rỗng không.
 export function isEmpty(obj: any): boolean {
   if (obj == null) return true;
   if (Array.isArray(obj) || typeof obj === 'string') return obj.length === 0;
@@ -133,6 +147,7 @@ export function isEmpty(obj: any): boolean {
   return false;
 }
 
+// chuyển đổi chuỗi thành màu sắc
 export function stringToColor(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -155,6 +170,7 @@ export function stringToColor(str: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+// tính thời gian đọc của văn bảng
 export function calculateReadingTime(
   text: string,
   wordsPerMinute = 200
@@ -163,10 +179,12 @@ export function calculateReadingTime(
   return Math.ceil(words / wordsPerMinute);
 }
 
+// định dạng phần trăm
 export function formatPercentage(value: number, decimals = 1): string {
   return `${(value * 100).toFixed(decimals)}%`;
 }
 
+// định dạng tiền tệ
 export function formatCurrency(amount: number, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -174,23 +192,28 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
   }).format(amount);
 }
 
+// định dạng số
 export function formatNumber(num: number): string {
   return new Intl.NumberFormat('en-US').format(num);
 }
 
+// lấy phần mở rộng của tệp
 export function getFileExtension(filename: string): string {
   return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2);
 }
 
+// kiểm tra xem tệp có trong danh sách các loại tệp được cho phép không
 export function isFileTypeAllowed(file: File, allowedTypes: string[]): boolean {
   return allowedTypes.includes(file.type);
 }
 
+// kiểm tra xem email có hợp lệ không
 export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
+// kiểm tra xem URL có hợp lệ không
 export function isValidUrl(url: string): boolean {
   try {
     new URL(url);
@@ -200,25 +223,24 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
+// xác định màu chữ tương phản (đen hoặc trắng) cho màu nền
 export function getContrastColor(backgroundColor: string): string {
-  // Remove # if present
   const hex = backgroundColor.replace('#', '');
 
-  // Convert to RGB
   const r = parseInt(hex.substr(0, 2), 16);
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
-
-  // Calculate luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
   return luminance > 0.5 ? '#000000' : '#FFFFFF';
 }
 
+// trì hoãn thực hiện hàm
 export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// thử lại một hàm bất đồng bộ tối đa số lần chỉ định, với độ trễ giữa các lần thử
 export async function retry<T>(
   fn: () => Promise<T>,
   retries: number = 3,
@@ -235,10 +257,12 @@ export async function retry<T>(
   }
 }
 
+// kiểm tra xem có đang chạy trong môi trường client hay không
 export function isClient(): boolean {
   return typeof window !== 'undefined';
 }
 
+// lấy thông tin trình duyệt
 export function getBrowserInfo() {
   if (!isClient()) return null;
 
@@ -268,6 +292,7 @@ export function getBrowserInfo() {
   };
 }
 
+// sao chép văn bản vào clipboard
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (!isClient() || !navigator.clipboard) {
     return false;

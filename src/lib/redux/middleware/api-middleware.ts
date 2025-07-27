@@ -3,7 +3,6 @@ import {
   isRejectedWithValue,
   isFulfilled,
 } from '@reduxjs/toolkit';
-import { baseApi } from '@/lib/api/base-api';
 import { toast } from 'sonner';
 
 export const apiMiddleware = createListenerMiddleware();
@@ -26,7 +25,7 @@ interface RTKQueryError {
 
 apiMiddleware.startListening({
   matcher: isRejectedWithValue,
-  effect: async (action, listenerApi) => {
+  effect: async (action, _listenerApi) => {
     const { error, meta } = action as {
       error: RTKQueryError;
       meta: RTKQueryMeta;
@@ -39,7 +38,6 @@ apiMiddleware.startListening({
       return;
     }
 
-    // Handle specific error types
     if (error?.status === 'FETCH_ERROR') {
       toast.error('Network error. Please check your connection.');
     } else if (error?.status === 429) {
@@ -54,7 +52,7 @@ apiMiddleware.startListening({
 
 apiMiddleware.startListening({
   matcher: isFulfilled,
-  effect: async (action, listenerApi) => {
+  effect: async (action, _listenerApi) => {
     const { meta } = action as { meta: RTKQueryMeta };
     const endpoint = meta?.arg?.endpointName;
 

@@ -9,7 +9,6 @@ import React, {
 } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import {
-  setNotifications,
   addNotification,
   markAsRead,
   markAllAsRead,
@@ -63,14 +62,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Handle real-time notifications
   useEffect(() => {
     if (!socket || !connected) return;
 
     const handleNewNotification = (notification: Notification) => {
       dispatch(addNotification(notification));
 
-      // Show toast for in-app notifications
       if (notificationState.settings.inApp) {
         toast(notification.title, {
           description: notification.message,
@@ -86,16 +83,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     };
   }, [socket, connected, dispatch, notificationState.settings.inApp]);
 
-  // Load initial notifications
   useEffect(() => {
     if (!isInitialized) {
-      // In a real app, this would fetch from API
-      // For now, we'll just mark as initialized
       setIsInitialized(true);
     }
   }, [isInitialized]);
 
-  // Context actions
   const handleMarkAsRead = useCallback(
     (notificationId: string) => {
       dispatch(markAsRead(notificationId));
@@ -125,7 +118,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     [dispatch]
   );
 
-  // Utility functions
   const getNotificationsByType = useCallback(
     (type: string) => {
       return notificationState.notifications.filter(n => n.type === type);
@@ -148,19 +140,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   );
 
   const contextValue: NotificationContextType = {
-    // State
     notifications: notificationState.notifications,
     unreadCount: notificationState.unreadCount,
     settings: notificationState.settings,
 
-    // Actions
     markAsRead: handleMarkAsRead,
     markAllAsRead: handleMarkAllAsRead,
     removeNotification: handleRemoveNotification,
     clearAll: handleClearAll,
     updateNotificationSettings: handleUpdateSettings,
 
-    // Utilities
     getNotificationsByType,
     getUnreadNotifications,
     isNotificationRead,

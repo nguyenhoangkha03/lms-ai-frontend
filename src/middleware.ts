@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify } from 'jose'; // javascript object signing and encryption
 import { ROUTES, USER_ROLES } from '@/lib/constants';
 
 const JWT_SECRET = new TextEncoder().encode(

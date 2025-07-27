@@ -5,7 +5,6 @@ import { RBACSystem, AccessContext } from '@/lib/auth/rbac';
 export function useRBAC() {
   const { user, isAuthenticated } = useAuth();
 
-  // Create access context from current user and environment
   const createAccessContext = useCallback(
     (additionalContext?: Partial<AccessContext>): AccessContext => {
       return {
@@ -27,7 +26,6 @@ export function useRBAC() {
     [user]
   );
 
-  // Check single permission
   const hasPermission = useCallback(
     (permissionId: string, context?: Partial<AccessContext>): boolean => {
       if (!isAuthenticated || !user?.id) return false;
@@ -38,7 +36,6 @@ export function useRBAC() {
     [isAuthenticated, user?.id, createAccessContext]
   );
 
-  // Check multiple permissions (any)
   const hasAnyPermission = useCallback(
     (permissionIds: string[], context?: Partial<AccessContext>): boolean => {
       if (!isAuthenticated || !user?.id) return false;
@@ -49,7 +46,6 @@ export function useRBAC() {
     [isAuthenticated, user?.id, createAccessContext]
   );
 
-  // Check multiple permissions (all)
   const hasAllPermissions = useCallback(
     (permissionIds: string[], context?: Partial<AccessContext>): boolean => {
       if (!isAuthenticated || !user?.id) return false;
@@ -64,7 +60,6 @@ export function useRBAC() {
     [isAuthenticated, user?.id, createAccessContext]
   );
 
-  // Check role
   const hasRole = useCallback(
     (roleId: string): boolean => {
       if (!isAuthenticated || !user?.id) return false;
@@ -73,7 +68,6 @@ export function useRBAC() {
     [isAuthenticated, user?.id]
   );
 
-  // Check multiple roles (any)
   const hasAnyRole = useCallback(
     (roleIds: string[]): boolean => {
       if (!isAuthenticated || !user?.id) return false;
@@ -82,7 +76,6 @@ export function useRBAC() {
     [isAuthenticated, user?.id]
   );
 
-  // Check resource access
   const canAccessResource = useCallback(
     (
       resource: string,
@@ -102,7 +95,6 @@ export function useRBAC() {
     [isAuthenticated, user?.id, createAccessContext]
   );
 
-  // Check role hierarchy
   const hasRoleHierarchy = useCallback(
     (requiredLevel: number): boolean => {
       if (!isAuthenticated || !user?.id) return false;
@@ -111,47 +103,38 @@ export function useRBAC() {
     [isAuthenticated, user?.id]
   );
 
-  // Get user roles
   const userRoles = useMemo(() => {
     if (!isAuthenticated || !user?.id) return [];
     return RBACSystem.getUserRoles(user.id);
   }, [isAuthenticated, user?.id]);
 
-  // Get user permissions
   const userPermissions = useMemo(() => {
     if (!isAuthenticated || !user?.id) return [];
     return RBACSystem.getUserPermissions(user.id);
   }, [isAuthenticated, user?.id]);
 
-  // Generate access report
   const getAccessReport = useCallback(() => {
     if (!isAuthenticated || !user?.id) return null;
     return RBACSystem.generateAccessReport(user.id);
   }, [isAuthenticated, user?.id]);
 
   return {
-    // Permission checks
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
 
-    // Role checks
     hasRole,
     hasAnyRole,
     hasRoleHierarchy,
 
-    // Resource access
     canAccessResource,
 
-    // User data
     userRoles,
     userPermissions,
 
-    // Utilities
     createAccessContext,
     getAccessReport,
 
-    // Convenience flags
     isStudent: hasRole('student'),
     isTeacher: hasRole('teacher'),
     isAdmin: hasRole('admin'),
@@ -161,7 +144,6 @@ export function useRBAC() {
   };
 }
 
-// Specialized hooks for common use cases
 export function usePermissionCheck(
   permissionId: string,
   context?: Partial<AccessContext>

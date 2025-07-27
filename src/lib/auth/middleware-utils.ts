@@ -93,7 +93,7 @@ export class AuthMiddlewareUtils {
     return hash.toString(36);
   }
 
-  private static getTrustedDevices(userId: string): string[] {
+  private static getTrustedDevices(_userId: string): string[] {
     return [];
   }
 

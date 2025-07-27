@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { AdvancedTokenManager } from './token-manager';
 
 export class TokenInterceptor {
@@ -8,17 +8,12 @@ export class TokenInterceptor {
     reject: (reason: any) => void;
   }> = [];
 
-  /**
-   * Setup axios interceptors for automatic token management
-   */
   static setup(axiosInstance: typeof axios) {
-    // Request interceptor - add token to requests
     axiosInstance.interceptors.request.use(
       async (config: any) => {
         const token = AdvancedTokenManager.getAccessToken();
 
         if (token) {
-          // Check if token needs refresh before making request
           if (AdvancedTokenManager.needsRefresh()) {
             try {
               await AdvancedTokenManager.refreshTokenSilently();
@@ -37,7 +32,6 @@ export class TokenInterceptor {
           }
         }
 
-        // Add request metadata
         config.headers['X-Request-ID'] = crypto.randomUUID();
         config.headers['X-Timestamp'] = new Date().toISOString();
 
@@ -48,7 +42,6 @@ export class TokenInterceptor {
       }
     );
 
-    // Response interceptor - handle token expiry
     axiosInstance.interceptors.response.use(
       (response: AxiosResponse) => {
         return response;
@@ -58,7 +51,6 @@ export class TokenInterceptor {
 
         if (error.response?.status === 401 && !originalRequest._retry) {
           if (this.isRefreshing) {
-            // Queue the request while refresh is in progress
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
             })
@@ -101,9 +93,6 @@ export class TokenInterceptor {
     );
   }
 
-  /**
-   * Process queued requests after token refresh
-   */
   private static processQueue(error: any, token: string | null = null) {
     this.failedQueue.forEach(({ resolve, reject }) => {
       if (error) {
@@ -116,9 +105,6 @@ export class TokenInterceptor {
     this.failedQueue = [];
   }
 
-  /**
-   * Redirect to login page
-   */
   private static redirectToLogin() {
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname + window.location.search;
@@ -127,7 +113,6 @@ export class TokenInterceptor {
   }
 }
 
-// Initialize token manager when module loads
 if (typeof window !== 'undefined') {
   AdvancedTokenManager.initialize();
 }

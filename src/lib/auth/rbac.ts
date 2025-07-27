@@ -195,7 +195,6 @@ class RBACSystem {
         action: 'manage_roles',
       },
 
-      // Analytics permissions
       {
         id: 'analytics.view',
         name: 'View Analytics',
@@ -211,7 +210,6 @@ class RBACSystem {
         action: 'export',
       },
 
-      // System permissions
       {
         id: 'system.settings',
         name: 'System Settings',
@@ -234,7 +232,6 @@ class RBACSystem {
         action: 'logs',
       },
 
-      // Communication permissions
       {
         id: 'chat.participate',
         name: 'Chat Participation',
@@ -264,7 +261,6 @@ class RBACSystem {
         action: 'host',
       },
 
-      // AI features permissions
       {
         id: 'ai.recommendations',
         name: 'AI Recommendations',
@@ -293,9 +289,6 @@ class RBACSystem {
     });
   }
 
-  /**
-   * Setup default roles for LMS system
-   */
   private static setupDefaultRoles(): void {
     const roles: Role[] = [
       {
@@ -386,9 +379,6 @@ class RBACSystem {
     });
   }
 
-  /**
-   * Check if user has permission for a specific action
-   */
   static hasPermission(
     userId: string,
     permissionId: string,
@@ -402,11 +392,9 @@ class RBACSystem {
       return false;
     }
 
-    // Check if any of user's roles has the permission
     for (const roleId of userRoles) {
       const role = this.roles.get(roleId);
       if (role && role.permissions.includes(permissionId)) {
-        // Check role conditions if they exist
         if (
           role.conditions &&
           !this.evaluateConditions(role.conditions, context)
@@ -414,7 +402,6 @@ class RBACSystem {
           continue;
         }
 
-        // Check permission conditions if they exist
         if (
           permission.conditions &&
           !this.evaluateConditions(permission.conditions, context)
@@ -476,18 +463,11 @@ class RBACSystem {
     return this.userRoles.get(userId) || [];
   }
 
-  /**
-   * Set user roles
-   */
   static setUserRoles(userId: string, roleIds: string[]): void {
-    // Validate roles exist
     const validRoles = roleIds.filter(roleId => this.roles.has(roleId));
     this.userRoles.set(userId, validRoles);
   }
 
-  /**
-   * Add role to user
-   */
   static addUserRole(userId: string, roleId: string): void {
     if (!this.roles.has(roleId)) {
       throw new Error(`Role ${roleId} does not exist`);

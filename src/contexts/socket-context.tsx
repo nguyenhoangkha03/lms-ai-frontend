@@ -18,23 +18,18 @@ interface SocketContextType {
   connected: boolean;
   error: string | null;
 
-  // Connection management
   connect: () => void;
   disconnect: () => void;
 
-  // Event handling
   emit: (event: string, data?: any) => void;
   on: (event: string, callback: (data: any) => void) => () => void;
   off: (event: string, callback?: (data: any) => void) => void;
 
-  // Room management
   joinRoom: (roomId: string) => void;
   leaveRoom: (roomId: string) => void;
 
-  // Messaging
   sendMessage: (roomId: string, message: string, type?: string) => void;
 
-  // Utility
   isConnected: () => boolean;
   getSocketId: () => string | null;
 }
@@ -61,7 +56,6 @@ export function SocketProvider({
   const maxReconnectAttempts = 5;
   const reconnectDelay = 1000;
 
-  // Connect to socket
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
     if (!isAuthenticated || !user?.id) return;
@@ -80,7 +74,6 @@ export function SocketProvider({
         reconnectionDelay: reconnectDelay,
       });
 
-      // Connection event handlers
       socket.on('connect', () => {
         console.log('Socket connected:', socket.id);
         setConnected(true);
@@ -129,7 +122,6 @@ export function SocketProvider({
         toast.error('Unable to reconnect. Please refresh the page.');
       });
 
-      // Authentication error
       socket.on('auth_error', err => {
         console.error('Socket authentication error:', err);
         setError('Authentication failed');
@@ -143,7 +135,6 @@ export function SocketProvider({
     }
   }, [isAuthenticated, user, namespace, reconnectAttempts]);
 
-  // Disconnect from socket
   const disconnect = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.disconnect();
@@ -153,7 +144,6 @@ export function SocketProvider({
     }
   }, []);
 
-  // Emit event
   const emit = useCallback((event: string, data?: any) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit(event, data);
@@ -162,7 +152,6 @@ export function SocketProvider({
     }
   }, []);
 
-  // Subscribe to event
   const on = useCallback((event: string, callback: (data: any) => void) => {
     if (socketRef.current) {
       socketRef.current.on(event, callback);
@@ -174,7 +163,6 @@ export function SocketProvider({
     return () => {};
   }, []);
 
-  // Unsubscribe from event
   const off = useCallback((event: string, callback?: (data: any) => void) => {
     if (socketRef.current) {
       if (callback) {
@@ -185,7 +173,6 @@ export function SocketProvider({
     }
   }, []);
 
-  // Join room
   const joinRoom = useCallback(
     (roomId: string) => {
       emit(SOCKET_EVENTS.JOIN_ROOM, { roomId });
@@ -193,7 +180,6 @@ export function SocketProvider({
     [emit]
   );
 
-  // Leave room
   const leaveRoom = useCallback(
     (roomId: string) => {
       emit(SOCKET_EVENTS.LEAVE_ROOM, { roomId });
@@ -201,7 +187,6 @@ export function SocketProvider({
     [emit]
   );
 
-  // Send message
   const sendMessage = useCallback(
     (roomId: string, message: string, type = 'text') => {
       emit(SOCKET_EVENTS.NEW_MESSAGE, {
@@ -214,17 +199,14 @@ export function SocketProvider({
     [emit]
   );
 
-  // Check if connected
   const isConnected = useCallback(() => {
     return socketRef.current?.connected || false;
   }, []);
 
-  // Get socket ID
   const getSocketId = useCallback(() => {
     return socketRef.current?.id || null;
   }, []);
 
-  // Auto-connect/disconnect based on auth status
   useEffect(() => {
     if (isAuthenticated && user && autoConnect) {
       connect();
@@ -237,7 +219,6 @@ export function SocketProvider({
     };
   }, [isAuthenticated, user, autoConnect, connect, disconnect]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       disconnect();
@@ -249,23 +230,18 @@ export function SocketProvider({
     connected,
     error,
 
-    // Connection management
     connect,
     disconnect,
 
-    // Event handling
     emit,
     on,
     off,
 
-    // Room management
     joinRoom,
     leaveRoom,
 
-    // Messaging
     sendMessage,
 
-    // Utility
     isConnected,
     getSocketId,
   };
@@ -285,7 +261,6 @@ export function useSocket(): SocketContextType {
   return context;
 }
 
-// Custom hooks for specific socket use cases
 export function useSocketEvent(
   event: string,
   callback: (data: any) => void,
@@ -310,6 +285,8 @@ export function useRoomConnection(roomId: string | null) {
         leaveRoom(roomId);
       };
     }
+
+    return () => {};
   }, [connected, roomId, joinRoom, leaveRoom]);
 
   return { connected };

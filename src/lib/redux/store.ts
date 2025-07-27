@@ -5,12 +5,6 @@ import authSlice from './slices/auth-slice';
 import uiSlice from './slices/ui-slice';
 import courseSlice from './slices/course-slice';
 import notificationSlice from './slices/notification-slice';
-// import { authApi } from './api/auth-api';
-// import { userApi } from './api/user-api';
-// import { courseApi } from './api/course-api';
-// import { assessmentApi } from './api/assessment-api';
-// import { chatApi } from './api/chat-api';
-// import { aiApi } from './api/ai-api';
 
 export const store = configureStore({
   reducer: {
