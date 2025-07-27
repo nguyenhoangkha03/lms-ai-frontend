@@ -22,6 +22,8 @@ import {
 import { useNotifications } from '@/contexts/notification-context';
 import { NotificationFilters } from './notification-filters';
 import { cn } from '@/lib/utils';
+import { NotificationList } from './notification-list';
+import { GroupedNotificationList } from './grouped-notification-list';
 
 interface NotificationCenterProps {
   trigger?: React.ReactNode;

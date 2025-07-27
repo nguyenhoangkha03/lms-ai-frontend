@@ -9,7 +9,6 @@ import { FormInput } from '@/components/ui/form-fields/form-input';
 import { FormTextarea } from '@/components/ui/form-fields/form-textarea';
 import { FormSelect } from '@/components/ui/form-fields/form-select';
 import { FormFileUpload } from '@/components/ui/form-fields/form-file-upload';
-import { FormCombobox } from '@/components/ui/form-fields/form-combobox';
 import { useFormWithSchema } from '@/hooks/use-form-with-schema';
 import {
   courseSchema,
@@ -18,8 +17,13 @@ import {
 import { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 
+// Step component props interface
+interface StepComponentProps {
+  form: UseFormReturn<CourseFormData>;
+}
+
 // Step 1: Basic Information
-function BasicInfoStep({ form }: { form: UseFormReturn<CourseFormData> }) {
+const BasicInfoStep: React.FC<StepComponentProps> = ({ form }) => {
   const categories = [
     { value: 'programming', label: 'Programming' },
     { value: 'design', label: 'Design' },
@@ -109,12 +113,7 @@ function BasicInfoStep({ form }: { form: UseFormReturn<CourseFormData> }) {
             )}
           </FormFieldWrapper>
 
-          <FormFieldWrapper
-            form={form}
-            name="level"
-            label="Difficulty Level"
-            required
-          >
+          <FormFieldWrapper form={form} name="level" label="Difficulty Level">
             {field => (
               <FormSelect
                 {...field}
@@ -142,10 +141,10 @@ function BasicInfoStep({ form }: { form: UseFormReturn<CourseFormData> }) {
       </FormGrid>
     </FormSection>
   );
-}
+};
 
 // Step 2: Media and Pricing
-function MediaPricingStep({ form }: { form: UseFormReturn<CourseFormData> }) {
+const MediaPricingStep: React.FC<StepComponentProps> = ({ form }) => {
   return (
     <FormSection
       title="Media & Pricing"
@@ -234,10 +233,10 @@ function MediaPricingStep({ form }: { form: UseFormReturn<CourseFormData> }) {
       </FormGrid>
     </FormSection>
   );
-}
+};
 
 // Step 3: Learning Objectives
-function ObjectivesStep({ form }: { form: UseFormReturn<CourseFormData> }) {
+const ObjectivesStep: React.FC<StepComponentProps> = ({ form }) => {
   const [objectives, setObjectives] = React.useState<string[]>(['']);
   const [requirements, setRequirements] = React.useState<string[]>(['']);
   const [targetAudience, setTargetAudience] = React.useState<string[]>(['']);
@@ -415,7 +414,7 @@ function ObjectivesStep({ form }: { form: UseFormReturn<CourseFormData> }) {
       </FormGrid>
     </FormSection>
   );
-}
+};
 
 interface CourseCreationFormProps {
   onComplete: (data: CourseFormData) => Promise<void>;
@@ -478,7 +477,6 @@ export function CourseCreationForm({
           'description',
           'shortDescription',
           'categoryId',
-          'level',
           'language',
         ]);
       case 1:
@@ -491,14 +489,13 @@ export function CourseCreationForm({
   };
 
   return (
-    <h1>Đang fix</h1>
-    // <MultiStepForm
-    //   form={form}
-    //   steps={steps}
-    //   onComplete={onComplete}
-    //   validateStep={validateStep}
-    //   showProgress
-    //   showStepNumbers
-    // />
+    <MultiStepForm
+      form={form}
+      steps={steps}
+      onComplete={onComplete}
+      validateStep={validateStep}
+      showProgress
+      showStepNumbers
+    />
   );
 }
