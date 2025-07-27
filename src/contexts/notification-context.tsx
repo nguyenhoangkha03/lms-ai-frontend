@@ -36,6 +36,7 @@ interface NotificationContextType {
   unreadCount: number;
   settings: NotificationSettings;
 
+  addNotification: (notification: Notification) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   removeNotification: (notificationId: string) => void;
@@ -88,6 +89,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       setIsInitialized(true);
     }
   }, [isInitialized]);
+
+  const handleAddNotification = useCallback(
+    (notification: Notification) => {
+      dispatch(addNotification(notification));
+    },
+    [dispatch]
+  );
 
   const handleMarkAsRead = useCallback(
     (notificationId: string) => {
@@ -144,6 +152,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     unreadCount: notificationState.unreadCount,
     settings: notificationState.settings,
 
+    addNotification: handleAddNotification,
     markAsRead: handleMarkAsRead,
     markAllAsRead: handleMarkAllAsRead,
     removeNotification: handleRemoveNotification,

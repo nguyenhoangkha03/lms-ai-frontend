@@ -464,15 +464,17 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  category:
+  type:
     | 'academic'
     | 'social'
     | 'system'
-    | 'security'
-    | 'marketing'
-    | 'administrative';
+    | 'success'
+    | 'error'
+    | 'warning'
+    | 'info';
+  description?: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  category?: string;
   relatedId?: string;
   relatedType?: string;
   isRead: boolean;
@@ -481,6 +483,8 @@ export interface Notification {
   imageUrl?: string;
   actionUrl?: string;
   actions?: NotificationAction[];
+  metadata?: Record<string, any>;
+  avatar?: string;
   expiresAt?: string;
   createdAt: string;
 }
@@ -489,8 +493,28 @@ export interface NotificationAction {
   id: string;
   label: string;
   url?: string;
+  handler?: () => void;
   action?: string;
-  variant?: 'primary' | 'secondary' | 'destructive';
+  variant?:
+    | 'primary'
+    | 'secondary'
+    | 'destructive'
+    | 'outline'
+    | 'default'
+    | 'ghost'
+    | 'link'
+    | 'ai'
+    | 'gradient';
+}
+
+export interface NotificationSettings {
+  email: boolean;
+  push: boolean;
+  inApp: boolean;
+  marketing: boolean;
+  academicUpdates: boolean;
+  socialActivity: boolean;
+  systemAlerts: boolean;
 }
 
 // Form types

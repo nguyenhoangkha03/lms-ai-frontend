@@ -144,11 +144,40 @@ export const PAGINATION = {
 } as const;
 
 export const SOCKET_EVENTS = {
-  // Chat events
+  // Auth events
+  CONNECT: 'connect',
+  DISCONNECT: 'disconnect',
   JOIN_ROOM: 'join_room',
   LEAVE_ROOM: 'leave_room',
-  NEW_MESSAGE: 'new_message',
+
+  // Notification events
+  NOTIFICATION: 'notification',
+  MARK_NOTIFICATION_READ: 'mark_notification_read',
+
+  // Course events
+  COURSE_UPDATE: 'course_update',
+  LESSON_COMPLETE: 'lesson_complete',
+
+  // Assignment events
+  ASSIGNMENT_DUE: 'assignment_due',
+  ASSIGNMENT_GRADED: 'assignment_graded',
+
+  // Message events
+  MESSAGE_RECEIVED: 'message_received',
   MESSAGE_TYPING: 'message_typing',
+
+  // Achievement events
+  ACHIEVEMENT_EARNED: 'achievement_earned',
+  BADGE_UNLOCKED: 'badge_unlocked',
+
+  // Live session events
+  SESSION_STARTED: 'session_started',
+  SESSION_ENDED: 'session_ended',
+  PARTICIPANT_JOINED: 'participant_joined',
+  PARTICIPANT_LEFT: 'participant_left',
+
+  // Chat events
+  NEW_MESSAGE: 'new_message',
   MESSAGE_READ: 'message_read',
 
   // Video session events
@@ -159,7 +188,6 @@ export const SOCKET_EVENTS = {
 
   // Real-time updates
   PROGRESS_UPDATE: 'progress_update',
-  NOTIFICATION: 'notification',
   ASSIGNMENT_UPDATE: 'assignment_update',
   GRADE_UPDATE: 'grade_update',
 
