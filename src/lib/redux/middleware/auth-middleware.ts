@@ -1,4 +1,4 @@
-import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
+import { createListenerMiddleware } from '@reduxjs/toolkit';
 import { toast } from 'sonner';
 import {
   loginSuccess,
@@ -7,11 +7,9 @@ import {
   refreshTokenSuccess,
 } from '../slices/auth-slice';
 import { tokenManager } from '@/lib/api/client';
-import type { RootState } from '../store';
 
 export const authMiddleware = createListenerMiddleware();
 
-// Handle login success
 authMiddleware.startListening({
   actionCreator: loginSuccess,
   effect: async (action, listenerApi) => {
@@ -34,7 +32,6 @@ authMiddleware.startListening({
   },
 });
 
-// Handle logout
 authMiddleware.startListening({
   actionCreator: logout,
   effect: async (action, listenerApi) => {
@@ -63,7 +60,6 @@ authMiddleware.startListening({
   },
 });
 
-// Handle session expiry
 authMiddleware.startListening({
   actionCreator: sessionExpired,
   effect: async (action, listenerApi) => {
@@ -82,7 +78,6 @@ authMiddleware.startListening({
   },
 });
 
-// Handle token refresh
 authMiddleware.startListening({
   actionCreator: refreshTokenSuccess,
   effect: async (action, listenerApi) => {

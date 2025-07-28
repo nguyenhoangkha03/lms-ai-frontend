@@ -71,6 +71,11 @@ export const baseApi = createApi({
     'VideoSession',
     'AIRecommendation',
     'Analytics',
+    'OnboardingProgress',
+    'SkillAssessment',
+    'AssessmentResult',
+    'LearningPath',
+    'Preferences',
   ],
   endpoints: () => ({}),
 });

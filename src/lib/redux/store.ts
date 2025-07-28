@@ -5,6 +5,10 @@ import authSlice from './slices/auth-slice';
 import uiSlice from './slices/ui-slice';
 import courseSlice from './slices/course-slice';
 import notificationSlice from './slices/notification-slice';
+import onboardingSlice from './slices/onboarding-slice';
+import { authMiddleware } from './middleware/auth-middleware';
+import { errorMiddleware } from './middleware/error-middleware';
+import { apiMiddleware } from './middleware/api-middleware';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +20,7 @@ export const store = configureStore({
     ui: uiSlice,
     course: courseSlice,
     notification: notificationSlice,
+    onboarding: onboardingSlice,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
@@ -23,7 +28,11 @@ export const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
         ignoredPaths: ['socket', 'api'],
       },
-    }).concat(baseApi.middleware),
+    })
+      .concat(baseApi.middleware)
+      .concat(apiMiddleware.middleware)
+      .concat(authMiddleware.middleware)
+      .concat(errorMiddleware.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });
 
