@@ -21,7 +21,7 @@ export const confirmPasswordValidation = (_passwordField: string) =>
 export const loginSchema = z.object({
   email: emailValidation,
   password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
 
 export const registerSchema = z
@@ -88,34 +88,62 @@ export const teacherApplicationSchema = z.object({
   personalInfo: z.object({
     firstName: z.string().min(1, 'First name is required').max(50),
     lastName: z.string().min(1, 'Last name is required').max(50),
-    email: emailValidation,
-    phone: z
+    email: z.string().email('Please enter a valid email address'),
+    phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+    country: z.string().min(1, 'Please select your country'),
+    timezone: z.string().min(1, 'Please select your timezone'),
+  }),
+  education: z.object({
+    highestDegree: z.string().min(1, 'Please select your highest degree'),
+    fieldOfStudy: z.string().min(1, 'Field of study is required'),
+    institution: z.string().min(1, 'Institution is required'),
+    graduationYear: z.string().min(1, 'Graduation year is required'),
+    additionalCertifications: z.string().optional(),
+  }),
+  experience: z.object({
+    teachingExperience: z
       .string()
-      .min(10, 'Phone number must be at least 10 digits')
-      .regex(
-        /^[+]?[\s./0-9]*[(]?[0-9]*[)]?[-\s./0-9]*$/g,
-        'Invalid phone number'
-      ),
-    dateOfBirth: z.date({
-      message: 'Date of birth is required',
-    }),
-  }),
-  professionalInfo: z.object({
-    education: z.string().min(1, 'Education background is required'),
-    experience: z.string().min(1, 'Teaching experience is required'),
-    specialization: z
+      .min(1, 'Please select your experience level'),
+    subjectAreas: z
       .array(z.string())
-      .min(1, 'At least one specialization is required'),
-    resume: z.instanceof(File, { message: 'Resume file is required' }),
-    certifications: z.array(z.instanceof(File)).optional(),
+      .min(1, 'Please select at least one subject area'),
+    previousInstitutions: z.string().optional(),
+    onlineTeachingExperience: z.boolean().default(false),
+    totalStudentsTaught: z.string().optional(),
   }),
-  verification: z.object({
-    identityDocument: z.instanceof(File, {
-      message: 'Identity document is required',
-    }),
-    teachingLicense: z.instanceof(File, {
-      message: 'Teaching license is required',
-    }),
+  motivation: z.object({
+    whyTeach: z.string().min(50, 'Please provide at least 50 characters'),
+    teachingPhilosophy: z
+      .string()
+      .min(50, 'Please provide at least 50 characters'),
+    specialSkills: z.string().optional(),
+    courseIdeas: z.string().optional(),
+  }),
+  availability: z.object({
+    hoursPerWeek: z.string().optional(),
+    preferredSchedule: z.array(z.string()).optional(),
+    startDate: z.string().optional(),
+  }),
+  documents: z.object({
+    resumeUploaded: z
+      .boolean()
+      .refine(val => val === true, 'Resume is required'),
+    degreeUploaded: z
+      .boolean()
+      .refine(val => val === true, 'Degree certificate is required'),
+    certificationUploaded: z.boolean().optional(),
+    idUploaded: z
+      .boolean()
+      .refine(val => val === true, 'Government ID is required'),
+  }),
+  agreements: z.object({
+    termsAccepted: z
+      .boolean()
+      .refine(val => val === true, 'You must accept the terms'),
+    backgroundCheckConsent: z
+      .boolean()
+      .refine(val => val === true, 'Background check consent is required'),
+    communicationConsent: z.boolean().default(true),
   }),
 });
 
