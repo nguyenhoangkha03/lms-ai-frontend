@@ -9,6 +9,7 @@ import onboardingSlice from './slices/onboarding-slice';
 import { authMiddleware } from './middleware/auth-middleware';
 import { errorMiddleware } from './middleware/error-middleware';
 import { apiMiddleware } from './middleware/api-middleware';
+import dashboardSlice from './slices/dashboard-slice';
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     course: courseSlice,
     notification: notificationSlice,
     onboarding: onboardingSlice,
+    dashboard: dashboardSlice,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
