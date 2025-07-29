@@ -11,7 +11,7 @@ import {
   Linkedin,
   Github,
 } from 'lucide-react';
-import { ROUTES, APP_CONFIG } from '@/lib/constants';
+import { ROUTES, APP_CONFIG } from '@/lib/constants/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 

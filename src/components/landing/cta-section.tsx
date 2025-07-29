@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, CheckCircle } from 'lucide-react';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 
 export const CTASection: React.FC = () => {
   const benefits = [

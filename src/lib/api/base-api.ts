@@ -1,5 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { API_CONFIG } from '../constants';
+import { API_CONFIG } from '../constants/constants';
 import { tokenManager } from './client';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
@@ -84,6 +84,13 @@ export const baseApi = createApi({
     'StudyStreak',
     'UpcomingDeadlines',
     'LearningGoals',
+    'Category',
+    'Wishlist',
+    'Enrollment',
+    'CourseDetail',
+    'CourseSearchResponse',
+    'CourseFilters',
+    'Review',
   ],
   endpoints: () => ({}),
 });

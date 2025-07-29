@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Brain, ArrowLeft } from 'lucide-react';
-import { APP_CONFIG, ROUTES } from '@/lib/constants';
+import { APP_CONFIG, ROUTES } from '@/lib/constants/constants';
 
 interface AuthLayoutProps {
   children: React.ReactNode;

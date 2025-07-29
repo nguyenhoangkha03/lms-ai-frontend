@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { APP_CONFIG } from '@/lib/constants';
+import { APP_CONFIG } from '@/lib/constants/constants';
 
 interface SEOProps {
   title?: string;

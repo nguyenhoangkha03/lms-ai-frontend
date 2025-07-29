@@ -7,7 +7,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Shield, AlertTriangle, ArrowLeft } from 'lucide-react';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

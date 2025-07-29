@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { API_CONFIG, SOCKET_EVENTS } from '@/lib/constants';
+import { API_CONFIG, SOCKET_EVENTS } from '@/lib/constants/constants';
 import { useAuth } from './auth-context';
 import { toast } from 'sonner';
 

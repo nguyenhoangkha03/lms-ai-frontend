@@ -27,14 +27,24 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email',
   TEACHER_REGISTER: '/teacher-register',
 
+  // Course discovery routes
+  COURSES: '/courses',
+  COURSE_DETAIL: (slug: string) => `/courses/${slug}`,
+  COURSE_CATEGORY: (slug: string) => `/courses/categories/${slug}`,
+  COURSE_SEARCH: '/courses/search',
+
   // Student routes
   STUDENT_DASHBOARD: '/student/dashboard',
   STUDENT_COURSES: '/student/courses',
+  STUDENT_MY_COURSES: '/student/my-courses',
+  STUDENT_WISHLIST: '/student/wishlist',
   STUDENT_ASSIGNMENTS: '/student/assignments',
   STUDENT_GRADES: '/student/grades',
   STUDENT_PROGRESS: '/student/progress',
   STUDENT_AI_TUTOR: '/student/ai-tutor',
   STUDENT_RECOMMENDATIONS: '/student/recommendations',
+  STUDENT_COURSE_LEARN: (courseId: string, lessonId?: string) =>
+    `/student/courses/${courseId}${lessonId ? `/lessons/${lessonId}` : ''}`,
 
   // Teacher routes
   TEACHER_DASHBOARD: '/teacher/dashboard',
@@ -50,11 +60,6 @@ export const ROUTES = {
   ADMIN_COURSES: '/admin/courses',
   ADMIN_ANALYTICS: '/admin/analytics',
   ADMIN_SETTINGS: '/admin/settings',
-
-  // Course routes
-  COURSES: '/courses',
-  COURSE_DETAIL: '/courses/[slug]',
-  LESSON: '/learn/[courseId]/[lessonId]',
 
   // Communication routes
   CHAT: '/chat/[roomId]',
@@ -233,4 +238,51 @@ export const AI_CONFIG = {
     EXPLORATORY: 'exploratory',
     ASSESSMENT: 'assessment',
   },
+} as const;
+
+export const COURSE_SORT_OPTIONS = {
+  POPULARITY: 'popularity',
+  RATING: 'rating',
+  NEWEST: 'newest',
+  PRICE_LOW: 'price_low',
+  PRICE_HIGH: 'price_high',
+  DURATION: 'duration',
+} as const;
+
+export const COURSE_FILTERS = {
+  PRICE: {
+    ALL: 'all',
+    FREE: 'free',
+    PAID: 'paid',
+  },
+  DURATION: {
+    SHORT: 'short', // < 3 hours
+    MEDIUM: 'medium', // 3-10 hours
+    LONG: 'long', // > 10 hours
+  },
+  LEVEL: {
+    BEGINNER: 'beginner',
+    INTERMEDIATE: 'intermediate',
+    ADVANCED: 'advanced',
+    EXPERT: 'expert',
+    ALL_LEVELS: 'all_levels',
+  },
+} as const;
+
+export const ENROLLMENT_STATUS = {
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  PAUSED: 'paused',
+  CANCELLED: 'cancelled',
+} as const;
+
+export const LESSON_TYPES = {
+  VIDEO: 'video',
+  TEXT: 'text',
+  AUDIO: 'audio',
+  INTERACTIVE: 'interactive',
+  QUIZ: 'quiz',
+  ASSIGNMENT: 'assignment',
+  LIVE_SESSION: 'live_session',
+  DOWNLOAD: 'download',
 } as const;

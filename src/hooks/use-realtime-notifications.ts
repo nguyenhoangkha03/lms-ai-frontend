@@ -5,7 +5,7 @@ import { useSocket } from '@/contexts/socket-context';
 import { useNotifications } from '@/contexts/notification-context';
 import { useNotificationPermissions } from './use-notification-permissions';
 import { useToast } from '@/components/notifications/toast-provider';
-import { SOCKET_EVENTS } from '@/lib/constants';
+import { SOCKET_EVENTS } from '@/lib/constants/constants';
 import type { Notification } from '@/lib/types';
 
 export function useRealtimeNotifications() {

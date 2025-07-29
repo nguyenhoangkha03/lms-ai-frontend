@@ -23,7 +23,7 @@ import {
   loginSchema,
   type LoginFormData,
 } from '@/lib/validations/auth-schemas';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { SocialLoginButtons } from './social-login-buttons';
 

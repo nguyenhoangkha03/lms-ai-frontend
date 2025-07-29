@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { API_CONFIG, LOCAL_STORAGE_KEYS } from '../constants';
+import { API_CONFIG, LOCAL_STORAGE_KEYS } from '../constants/constants';
 import { toast } from 'react-hot-toast';
 
 interface ApiError {

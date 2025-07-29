@@ -1,4 +1,4 @@
-import { APP_CONFIG } from './constants';
+import { APP_CONFIG } from './constants/constants';
 
 export interface Course {
   name: string;

@@ -17,7 +17,7 @@ import {
   updateSettings,
 } from '@/lib/redux/slices/notification-slice';
 import { useSocket } from './socket-context';
-import { SOCKET_EVENTS } from '@/lib/constants';
+import { SOCKET_EVENTS } from '@/lib/constants/constants';
 import type { Notification } from '@/lib/types';
 import { toast } from 'sonner';
 

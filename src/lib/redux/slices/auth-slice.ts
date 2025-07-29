@@ -1,5 +1,5 @@
 import { tokenManager } from '@/lib/api/client';
-import { LOCAL_STORAGE_KEYS } from '@/lib/constants';
+import { LOCAL_STORAGE_KEYS } from '@/lib/constants/constants';
 import { User } from '@/lib/types';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 

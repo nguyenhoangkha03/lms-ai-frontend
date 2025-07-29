@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, Play } from 'lucide-react';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 
 export const FeaturesHeroSection: React.FC = () => {
   return (

@@ -20,7 +20,7 @@ import {
   forgotPasswordSchema,
   type ForgotPasswordFormData,
 } from '@/lib/validations/auth-schemas';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 import {
   Mail,
   AlertCircle,

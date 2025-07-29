@@ -1,5 +1,5 @@
 import { ProtectedRoute } from '@/components/auth/protected-route';
-import { USER_ROLES } from '@/lib/constants';
+import { USER_ROLES } from '@/lib/constants/constants';
 
 export default function AdminLayout({
   children,

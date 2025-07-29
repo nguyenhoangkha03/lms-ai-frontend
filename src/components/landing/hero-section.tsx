@@ -13,7 +13,7 @@ import {
   BookOpen,
   TrendingUp,
 } from 'lucide-react';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 
 export const HeroSection: React.FC = () => {
   return (

@@ -32,7 +32,7 @@ import {
   registerSchema,
   type RegisterFormData,
 } from '@/lib/validations/auth-schemas';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants/constants';
 import {
   Eye,
   EyeOff,

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Brain } from 'lucide-react';
-import { ROUTES, APP_CONFIG } from '@/lib/constants';
+import { ROUTES, APP_CONFIG } from '@/lib/constants/constants';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 const navigation = [

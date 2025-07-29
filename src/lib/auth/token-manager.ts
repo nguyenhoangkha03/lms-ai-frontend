@@ -1,5 +1,5 @@
 import { jwtDecode } from 'jwt-decode';
-import { LOCAL_STORAGE_KEYS } from '@/lib/constants';
+import { LOCAL_STORAGE_KEYS } from '@/lib/constants/constants';
 
 interface JWTPayload {
   sub: string;
