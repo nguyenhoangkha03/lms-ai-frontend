@@ -43,8 +43,13 @@ export const ROUTES = {
   STUDENT_PROGRESS: '/student/progress',
   STUDENT_AI_TUTOR: '/student/ai-tutor',
   STUDENT_RECOMMENDATIONS: '/student/recommendations',
+
+  // Learning experience routes
   STUDENT_COURSE_LEARN: (courseId: string, lessonId?: string) =>
     `/student/courses/${courseId}${lessonId ? `/lessons/${lessonId}` : ''}`,
+  STUDENT_LESSON_PLAYER: (courseId: string, lessonId: string) =>
+    `/student/courses/${courseId}/lessons/${lessonId}`,
+  STUDENT_COURSE_OVERVIEW: (courseId: string) => `/student/courses/${courseId}`,
 
   // Teacher routes
   TEACHER_DASHBOARD: '/teacher/dashboard',
@@ -285,4 +290,51 @@ export const LESSON_TYPES = {
   ASSIGNMENT: 'assignment',
   LIVE_SESSION: 'live_session',
   DOWNLOAD: 'download',
+} as const;
+
+export const INTERACTIVE_ELEMENT_TYPES = {
+  QUIZ: 'quiz',
+  POLL: 'poll',
+  HOTSPOT: 'hotspot',
+  DRAG_DROP: 'drag_drop',
+  CODE_EXERCISE: 'code_exercise',
+  SIMULATION: 'simulation',
+} as const;
+
+export const LEARNING_ACTIVITY_TYPES = {
+  VIDEO_START: 'video_start',
+  VIDEO_PAUSE: 'video_pause',
+  VIDEO_COMPLETE: 'video_complete',
+  NOTE_CREATED: 'note_created',
+  INTERACTIVE_COMPLETED: 'interactive_completed',
+  LESSON_COMPLETED: 'lesson_completed',
+  BOOKMARK_CREATED: 'bookmark_created',
+} as const;
+
+export const VIDEO_QUALITY_OPTIONS = {
+  AUTO: 'auto',
+  HD_1080: '1080p',
+  HD_720: '720p',
+  SD_480: '480p',
+  SD_360: '360p',
+} as const;
+
+export const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+
+export const VIDEO_SHORTCUTS = {
+  PLAY_PAUSE: 'Space',
+  SKIP_FORWARD: 'ArrowRight',
+  SKIP_BACKWARD: 'ArrowLeft',
+  VOLUME_UP: 'ArrowUp',
+  VOLUME_DOWN: 'ArrowDown',
+  FULLSCREEN: 'KeyF',
+  MUTE: 'KeyM',
+} as const;
+
+export const LEARNING_PREFERENCES = {
+  AUTO_PLAY: 'autoPlay',
+  RESUME_POSITION: 'resumePosition',
+  SUBTITLES_ENABLED: 'subtitlesEnabled',
+  SHORTCUTS_ENABLED: 'shortcutsEnabled',
+  SKIP_DURATION: 'skipDuration',
 } as const;

@@ -129,6 +129,7 @@ export interface Lesson {
     | 'interactive'
     | 'quiz'
     | 'assignment';
+  videoUrl?: string;
   videoDuration?: number;
   orderIndex: number;
   isPreview: boolean;
@@ -145,6 +146,7 @@ export interface Lesson {
     type: string;
     url: string;
     size: number;
+    downloadable: boolean;
   }[];
 }
 

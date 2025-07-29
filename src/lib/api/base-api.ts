@@ -91,6 +91,13 @@ export const baseApi = createApi({
     'CourseSearchResponse',
     'CourseFilters',
     'Review',
+    'LearningSession',
+    'LessonProgress',
+    'Note',
+    'InteractiveElement',
+    'Interactive',
+    'Bookmark',
+    'Resource',
   ],
   endpoints: () => ({}),
 });
