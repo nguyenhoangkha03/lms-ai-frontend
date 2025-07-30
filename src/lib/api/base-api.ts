@@ -106,6 +106,9 @@ export const baseApi = createApi({
     'SessionHeartbeat',
     'AdaptiveQuestionAdjustment',
     'AIFeedback',
+    'StudentAnalytics',
+    'Achievements',
+    'AIInsights',
   ],
   endpoints: () => ({}),
 });
