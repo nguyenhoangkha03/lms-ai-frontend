@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
   Users,
   TrendingUp,
   AlertTriangle,
-  Calendar,
   FileText,
   MoreHorizontal,
   Play,
@@ -16,16 +15,8 @@ import {
   Eye,
   Clock,
   CheckCircle,
-  Target,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

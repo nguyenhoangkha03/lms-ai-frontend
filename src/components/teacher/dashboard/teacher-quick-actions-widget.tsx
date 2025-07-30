@@ -12,7 +12,6 @@ import {
   Clock,
   Users,
   PlusCircle,
-  Calendar,
   Zap,
   ArrowRight,
   CheckCircle,

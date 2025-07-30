@@ -5,11 +5,9 @@ import { motion } from 'framer-motion';
 import {
   Users,
   Search,
-  Filter,
   Mail,
   TrendingUp,
   AlertTriangle,
-  CheckCircle,
   Clock,
   GraduationCap,
   MessageSquare,
@@ -49,7 +47,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
