@@ -119,6 +119,13 @@ export const baseApi = createApi({
     'AtRiskStudents',
     'GradingQueue',
     'CourseAnalytics',
+    'CourseCreation',
+    'CourseDraft',
+    'CourseTemplate',
+    'AISuggestions',
+    'CourseContent',
+    'LessonContent',
+    'CourseCreationAnalytics',
   ],
   endpoints: () => ({}),
 });
