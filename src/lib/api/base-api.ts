@@ -137,6 +137,13 @@ export const baseApi = createApi({
     'AssessmentStatistics',
     'Gradebook',
     'ManualGrading',
+    'VideoSession',
+    'SessionParticipant',
+    'BreakoutRoom',
+    'Poll',
+    'Whiteboard',
+    'Attendance',
+    'SessionAnalytics',
   ],
   endpoints: () => ({}),
 });
