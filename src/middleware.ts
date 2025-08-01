@@ -27,42 +27,42 @@ const routeConfigs: RouteConfig[] = [
   { path: '/reset-password', allowedRoles: [], requiresAuth: false },
   { path: '/verify-email', allowedRoles: [], requiresAuth: false },
 
-  { path: '/student', allowedRoles: [USER_ROLES.STUDENT], requiresAuth: true },
-  {
-    path: '/student/dashboard',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
-  {
-    path: '/student/courses',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
-  {
-    path: '/student/assignments',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
-  {
-    path: '/student/grades',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
-  {
-    path: '/student/progress',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
-  {
-    path: '/student/ai-tutor',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
-  {
-    path: '/student/recommendations',
-    allowedRoles: [USER_ROLES.STUDENT],
-    requiresAuth: true,
-  },
+  //   { path: '/student', allowedRoles: [USER_ROLES.STUDENT], requiresAuth: true },
+  //   {
+  //     path: '/student/dashboard',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/student/courses',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/student/assignments',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/student/grades',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/student/progress',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/student/ai-tutor',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/student/recommendations',
+  //     allowedRoles: [USER_ROLES.STUDENT],
+  //     requiresAuth: true,
+  //   },
 
   //   { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
   //   {

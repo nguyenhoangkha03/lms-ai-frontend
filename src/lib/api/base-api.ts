@@ -144,6 +144,11 @@ export const baseApi = createApi({
     'Whiteboard',
     'Attendance',
     'SessionAnalytics',
+    'AIRecommendation',
+    'ContentFeed',
+    'LearningPath',
+    'TutoringSession',
+    'SmartSuggestion',
   ],
   endpoints: () => ({}),
 });
