@@ -64,37 +64,37 @@ const routeConfigs: RouteConfig[] = [
     requiresAuth: true,
   },
 
-  { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
-  {
-    path: '/teacher/dashboard',
-    allowedRoles: [USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
-  {
-    path: '/teacher/courses',
-    allowedRoles: [USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
-  {
-    path: '/teacher/students',
-    allowedRoles: [USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
-  {
-    path: '/teacher/assessments',
-    allowedRoles: [USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
-  {
-    path: '/teacher/grading',
-    allowedRoles: [USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
-  {
-    path: '/teacher/analytics',
-    allowedRoles: [USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
+  //   { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
+  //   {
+  //     path: '/teacher/dashboard',
+  //     allowedRoles: [USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/teacher/courses',
+  //     allowedRoles: [USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/teacher/students',
+  //     allowedRoles: [USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/teacher/assessments',
+  //     allowedRoles: [USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/teacher/grading',
+  //     allowedRoles: [USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/teacher/analytics',
+  //     allowedRoles: [USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
 
   { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
   {

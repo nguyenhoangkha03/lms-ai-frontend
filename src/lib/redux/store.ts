@@ -6,10 +6,10 @@ import uiSlice from './slices/ui-slice';
 import courseSlice from './slices/course-slice';
 import notificationSlice from './slices/notification-slice';
 import onboardingSlice from './slices/onboarding-slice';
+import dashboardSlice from './slices/dashboard-slice';
 import { authMiddleware } from './middleware/auth-middleware';
 import { errorMiddleware } from './middleware/error-middleware';
 import { apiMiddleware } from './middleware/api-middleware';
-import dashboardSlice from './slices/dashboard-slice';
 
 export const store = configureStore({
   reducer: {

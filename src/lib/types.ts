@@ -269,6 +269,13 @@ export interface Question {
   correctAnswer?: any;
   tags?: string[];
   attachments?: FileAttachment[];
+  bloomsTaxonomy?:
+    | 'remember'
+    | 'understand'
+    | 'apply'
+    | 'analyze'
+    | 'evaluate'
+    | 'create';
 }
 
 export interface QuestionOption {

@@ -307,6 +307,7 @@ export const courseCreationApi = baseApi.injectEndpoints({
         context: string;
         courseData?: Partial<CourseDraft>;
         customPrompt?: string;
+        assessmentType?: string;
       }
     >({
       query: data => ({

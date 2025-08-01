@@ -1,11 +1,12 @@
 export interface Assessment {
   id: string;
+  courseId: string;
+  lessonId?: string;
+  teacherId: string;
   title: string;
   description: string;
   instructions: string;
-  courseId: string;
-  lessonId?: string;
-  type:
+  assessmentType:
     | 'quiz'
     | 'exam'
     | 'assignment'
@@ -14,68 +15,42 @@ export interface Assessment {
     | 'final_exam'
     | 'midterm'
     | 'project';
-  settings: AssessmentSettings;
-  antiCheatSettings: AntiCheatSettings;
-  questions: Question[];
-  totalQuestions: number;
-  totalPoints: number;
-  passingScore: number;
-  timeLimit?: number; // in minutes
-  attemptsAllowed: number;
-  isAdaptive: boolean;
-  showResults: 'immediate' | 'after_submission' | 'after_due_date' | 'never';
-  shuffleQuestions: boolean;
-  shuffleAnswers: boolean;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'suspended';
+
+  timeLimit?: number;
+  maxAttempts: number;
   availableFrom?: string;
   availableUntil?: string;
+
+  passingScore: number;
+  totalPoints: number;
+  weight: number;
+
+  randomizeQuestions: boolean;
+  randomizeAnswers: boolean;
+  showResults: boolean;
+  showCorrectAnswers: boolean;
+  isMandatory: boolean;
+  isProctored: boolean;
+
+  gradingMethod: 'automatic' | 'manual' | 'hybrid' | 'peer_review';
+
+  questions: Question[];
+
+  settings: AssessmentSettings;
+  antiCheatSettings: AntiCheatSettings;
+
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AssessmentSettings {
-  allowBackNavigation: boolean;
-  showProgressBar: boolean;
-  showQuestionNumbers: boolean;
-  showTimeRemaining: boolean;
-  autoSubmitOnTimeUp: boolean;
-  pauseAllowed: boolean;
-  maxPauseDuration?: number; // in minutes
-  requireSequentialCompletion: boolean;
-  showCorrectAnswers: boolean;
-  showExplanations: boolean;
-  showScore: boolean;
-  allowReview: boolean;
-  passwordProtected: boolean;
-  password?: string;
-}
-
-export interface AntiCheatSettings {
-  enabled: boolean;
-  requireFullscreen: boolean;
-  detectTabSwitching: boolean;
-  blockRightClick: boolean;
-  blockCopyPaste: boolean;
-  blockPrintScreen: boolean;
-  requireWebcam: boolean;
-  enableProctoring: boolean;
-  suspiciousActivityThreshold: number;
-  autoFlagHighRisk: boolean;
-  lockdownBrowser: boolean;
-  ipRestriction?: string[];
-  maxTabSwitches: number;
-  maxWindowBlurEvents: number;
-  monitorMouseMovement: boolean;
-  monitorKeystrokes: boolean;
-  faceDetection: boolean;
-  multiplePersonDetection: boolean;
-  screenRecording: boolean;
-  audioRecording: boolean;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface Question {
   id: string;
-  type:
+  assessmentId: string;
+  questionText: string;
+  questionType:
     | 'multiple_choice'
     | 'true_false'
     | 'short_answer'
@@ -85,232 +60,427 @@ export interface Question {
     | 'ordering'
     | 'numeric'
     | 'code';
-  title: string;
-  content: string;
-  points: number;
-  difficultyLevel: number; // 1-5
-  timeLimit?: number; // in seconds
-  required: boolean;
-  options?: QuestionOption[];
-  correctAnswer?: any;
   explanation?: string;
-  hints?: string[];
-  attachments?: Array<{
-    id: string;
-    name: string;
-    url: string;
-    type: string;
-  }>;
-  metadata?: {
-    topic: string;
-    learningObjective: string;
-    bloomsTaxonomy: string;
-  };
+  points: number;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  orderIndex: number;
+  timeLimit?: number;
+  hint?: string;
+
+  // Question-specific data
+  options?: QuestionOption[];
+  correctAnswer: string | string[] | number;
+  validationRules?: ValidationRules;
+
+  // Metadata
+  tags: string[];
+  attachments: Attachment[];
+  analytics: QuestionAnalytics;
+
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface QuestionOption {
   id: string;
   text: string;
   isCorrect: boolean;
-  explanation?: string;
-  weight?: number; // for partial credit
+  feedback?: string;
+  orderIndex: number;
 }
 
-export interface AssessmentSession {
+export interface ValidationRules {
+  required: boolean;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  customValidation?: string;
+}
+
+export interface QuestionAnalytics {
+  attempts: number;
+  correctAnswers: number;
+  averageScore: number;
+  averageTimeSpent: number;
+  difficultyIndex: number;
+  discriminationIndex: number;
+}
+
+export interface AssessmentSettings {
+  navigation: {
+    allowBackward: boolean;
+    showProgress: boolean;
+    confirmBeforeSubmit: boolean;
+  };
+  security: {
+    preventCopyPaste: boolean;
+    preventPrint: boolean;
+    preventRightClick: boolean;
+    requireFullscreen: boolean;
+  };
+  display: {
+    questionsPerPage: number;
+    showQuestionNumbers: boolean;
+    showTimer: boolean;
+    theme: 'light' | 'dark' | 'high-contrast';
+  };
+  accessibility: {
+    screenReader: boolean;
+    largeText: boolean;
+    highContrast: boolean;
+    keyboardNavigation: boolean;
+  };
+}
+
+export interface AntiCheatSettings {
+  proctoring: ProctoringSettings;
+  lockdown: LockdownSettings;
+  monitoring: MonitoringSettings;
+  violations: ViolationSettings;
+}
+
+export interface ProctoringSettings {
+  enabled: boolean;
+  requireWebcam: boolean;
+  requireMicrophone: boolean;
+  recordSession: boolean;
+  identityVerification: boolean;
+  faceDetection: boolean;
+  voiceDetection: boolean;
+  environmentScan: boolean;
+}
+
+export interface LockdownSettings {
+  fullscreenMode: boolean;
+  preventTabSwitching: boolean;
+  preventWindowSwitching: boolean;
+  blockExternalApps: boolean;
+  allowedApplications: string[];
+  preventVirtualMachine: boolean;
+  preventMultipleMonitors: boolean;
+}
+
+export interface MonitoringSettings {
+  trackMouseMovement: boolean;
+  trackKeystrokes: boolean;
+  trackFocusLoss: boolean;
+  trackTabSwitching: boolean;
+  trackCopyPaste: boolean;
+  screenshotInterval: number; // seconds
+  heartbeatInterval: number; // seconds
+}
+
+export interface ViolationSettings {
+  suspiciousActivityThreshold: number;
+  autoSubmitOnViolation: boolean;
+  warningSystem: {
+    enabled: boolean;
+    maxWarnings: number;
+    warningTypes: string[];
+  };
+  penaltySystem: {
+    enabled: boolean;
+    penaltyPerViolation: number;
+    maxPenalty: number;
+  };
+}
+
+export interface AssessmentAttempt {
   id: string;
-  assessmentId: string;
   studentId: string;
-  status:
-    | 'not_started'
-    | 'in_progress'
-    | 'paused'
-    | 'completed'
-    | 'timed_out'
-    | 'flagged';
+  assessmentId: string;
+  attemptNumber: number;
   startedAt: string;
-  pausedAt?: string;
   submittedAt?: string;
-  timeRemaining?: number; // in seconds
-  timeSpent: number; // in seconds
-  currentQuestionIndex: number;
-  currentQuestionId?: string;
-  answers: Record<string, any>;
+  timeSpent: number;
+  score: number;
+  maxScore: number;
+  percentage: number;
+
+  // Status
+  status: 'in_progress' | 'submitted' | 'graded' | 'flagged';
+  gradingStatus: 'pending' | 'graded' | 'reviewing' | 'manual_review_required';
+
+  // Answers
+  answers: AssessmentAnswer[];
+
+  // Security & Monitoring
+  sessionToken?: string;
   securityEvents: SecurityEvent[];
-  proctoring: ProctoringData;
-  analytics: SessionAnalytics;
-  ipAddress: string;
-  userAgent: string;
-  isReviewMode: boolean;
-  suspiciousActivityScore: number;
+  proctoringData?: ProctoringData;
+
+  // Grading
+  gradedAt?: string;
+  gradedBy?: string;
+  feedback?: string;
+  manualReviewRequired: boolean;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssessmentAnswer {
+  id: string;
+  attemptId: string;
+  questionId: string;
+  answer: string | string[] | number;
+  isCorrect?: boolean;
+  points: number;
+  maxPoints: number;
+  timeSpent: number;
+  attempts: number;
+
+  // AI Grading (for essays, short answers)
+  aiScore?: number;
+  aiConfidence?: number;
+  aiFeedback?: string;
+  aiAnalysis?: {
+    keyPoints: string[];
+    missingElements: string[];
+    qualityScore: number;
+    plagiarismScore: number;
+  };
+
+  // Manual Grading
+  manualScore?: number;
+  manualFeedback?: string;
+  gradedBy?: string;
+  gradedAt?: string;
+
   flaggedForReview: boolean;
-  flagReason?: string;
+  reviewReason?: string;
+
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SecurityEvent {
   id: string;
-  sessionId: string;
-  type:
+  attemptId: string;
+  eventType:
     | 'tab_switch'
     | 'window_blur'
     | 'fullscreen_exit'
     | 'copy_attempt'
     | 'paste_attempt'
     | 'right_click'
-    | 'key_combination'
     | 'suspicious_behavior'
     | 'face_not_detected'
     | 'multiple_faces'
-    | 'noise_detected';
-  timestamp: string;
-  severity: 'low' | 'medium' | 'high';
+    | 'voice_detected'
+    | 'network_issue';
+  severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
-  metadata?: Record<string, any>;
-  autoDetected: boolean;
-  reviewed: boolean;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  notes?: string;
+  metadata: Record<string, any>;
+  timestamp: string;
+  resolved: boolean;
+  resolvedBy?: string;
+  resolvedAt?: string;
 }
 
 export interface ProctoringData {
-  webcamEnabled: boolean;
-  microphoneEnabled: boolean;
-  screenRecording: boolean;
-  faceDetectionResults: Array<{
-    timestamp: string;
-    facesDetected: number;
-    confidence: number;
-    emotions?: string[];
-    lookingAway: boolean;
-  }>;
-  audioAnalysis: Array<{
-    timestamp: string;
-    noiseLevel: number;
-    speechDetected: boolean;
-    suspiciousAudio: boolean;
-  }>;
+  sessionId: string;
+  recordingUrl?: string;
   screenshots: Array<{
     timestamp: string;
     url: string;
-    analyzed: boolean;
-    flags?: string[];
+    flagged: boolean;
+    reason?: string;
+  }>;
+  identityVerification: {
+    verified: boolean;
+    confidence: number;
+    method: 'face_recognition' | 'id_document' | 'manual';
+    verifiedAt: string;
+  };
+  environmentScan: {
+    completed: boolean;
+    issues: string[];
+    scannedAt: string;
+  };
+  violations: Array<{
+    type: string;
+    severity: string;
+    timestamp: string;
+    evidence?: string;
   }>;
 }
 
-export interface SessionAnalytics {
-  mouseMovements: Array<{
-    timestamp: string;
-    x: number;
-    y: number;
-    action: 'move' | 'click' | 'scroll';
-  }>;
-  keystrokes: Array<{
-    timestamp: string;
-    key: string;
-    questionId: string;
-  }>;
-  focusEvents: Array<{
-    timestamp: string;
-    type: 'focus' | 'blur';
-    duration?: number;
-  }>;
-  pageVisibility: Array<{
-    timestamp: string;
-    visible: boolean;
-  }>;
-  scrollBehavior: Array<{
-    timestamp: string;
-    questionId: string;
-    scrollTop: number;
-    scrollSpeed: number;
-  }>;
-  timePerQuestion: Record<string, number>;
-  hesitationPatterns: Array<{
-    questionId: string;
-    pauseDuration: number;
-    changeCount: number;
-  }>;
+export interface GradingRubric {
+  id: string;
+  assessmentId?: string;
+  title: string;
+  description: string;
+  type: 'holistic' | 'analytic' | 'single_point';
+  isTemplate: boolean;
+  isActive: boolean;
+
+  criteria: RubricCriterion[];
+  maxScore: number;
+  version: number;
+
+  // Usage tracking
+  usageCount: number;
+  lastUsedAt?: string;
+
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
 }
 
-export interface AssessmentAttempt {
+export interface RubricCriterion {
+  id: string;
+  name: string;
+  description: string;
+  weight: number;
+  levels: RubricLevel[];
+}
+
+export interface RubricLevel {
+  id: string;
+  name: string;
+  description: string;
+  points: number;
+  order: number;
+}
+
+// Component Props Types
+export interface AssessmentFormData {
+  basicInfo: {
+    title: string;
+    description: string;
+    instructions: string;
+    assessmentType: string;
+    courseId: string;
+    lessonId?: string;
+  };
+  configuration: {
+    timeLimit?: number;
+    maxAttempts: number;
+    passingScore: number;
+    weight: number;
+    availableFrom?: string;
+    availableUntil?: string;
+    randomizeQuestions: boolean;
+    randomizeAnswers: boolean;
+    showResults: boolean;
+    showCorrectAnswers: boolean;
+    isMandatory: boolean;
+    isProctored: boolean;
+    gradingMethod: string;
+  };
+  questions: Question[];
+  antiCheatSettings: AntiCheatSettings;
+  gradingRubric?: GradingRubric;
+}
+
+export interface QuestionFormData {
+  questionText: string;
+  questionType: string;
+  points: number;
+  difficulty: string;
+  timeLimit?: number;
+  hint?: string;
+  explanation?: string;
+  options?: QuestionOption[];
+  correctAnswer: string | string[] | number;
+  tags: string[];
+  validationRules?: ValidationRules;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+}
+
+// AI Generation Types
+export interface AIGenerationSettings {
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  customPrompt?: string;
+  includeExplanations: boolean;
+  includeHints: boolean;
+  generateImages: boolean;
+}
+
+// Question Bank Filter Types
+export interface QuestionBankFilters {
+  search?: string;
+  questionType?: string[];
+  difficulty?: string[];
+  tags?: string[];
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+  usageRange?: {
+    min: number;
+    max: number;
+  };
+  sortBy?: 'created' | 'updated' | 'usage' | 'difficulty' | 'score';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// Manual Grading Types
+export interface ManualGradingQueue {
   id: string;
   assessmentId: string;
-  studentId: string;
-  sessionId: string;
-  attempt: number;
-  score: number;
-  maxScore: number;
-  percentage: number;
-  passed: boolean;
-  timeSpent: number;
+  assessmentTitle: string;
+  courseTitle: string;
+  pendingSubmissions: number;
+  avgGradingTime: number;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  dueDate?: string;
+  assignedTo?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  createdAt: string;
+}
+
+export interface GradingSession {
+  id: string;
+  graderId: string;
+  assessmentAttemptId: string;
   startedAt: string;
-  submittedAt: string;
-  answers: Array<{
-    questionId: string;
-    answer: any;
-    isCorrect: boolean;
-    points: number;
-    timeSpent: number;
-  }>;
-  feedback?: string;
-  gradedBy?: string;
-  gradedAt?: string;
-  flagged: boolean;
-  flagReason?: string;
-  integrity: {
-    suspiciousActivityScore: number;
-    securityEventsCount: number;
-    manualReviewRequired: boolean;
-    cleared: boolean;
-  };
+  completedAt?: string;
+  status: 'active' | 'paused' | 'completed' | 'abandoned';
+  currentQuestionIndex: number;
+  questionsGraded: number;
+  totalQuestions: number;
+  timeSpent: number;
 }
 
-// Real-time monitoring types
-export interface SessionHeartbeat {
-  sessionId: string;
-  timestamp: number;
-  isActive: boolean;
-  windowFocused: boolean;
-  fullscreenActive: boolean;
-  batteryLevel?: number;
-  networkStatus: 'online' | 'offline' | 'slow';
-  performance: {
-    memory: number;
-    cpu: number;
-    responseTime: number;
+export interface BulkGradingOperation {
+  id: string;
+  assessmentId: string;
+  operationType:
+    | 'auto_grade'
+    | 'apply_rubric'
+    | 'publish_grades'
+    | 'send_feedback';
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  totalItems: number;
+  processedItems: number;
+  failedItems: number;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdBy: string;
+  results?: {
+    success: number;
+    failed: number;
+    skipped: number;
+    errors: Array<{
+      itemId: string;
+      error: string;
+    }>;
   };
-}
-
-export interface AdaptiveQuestionAdjustment {
-  currentDifficultyLevel: number;
-  suggestedDifficultyLevel: number;
-  reason: string;
-  confidence: number;
-  nextQuestionPool: string[];
-}
-
-export interface AIFeedback {
-  overallPerformance: {
-    score: number;
-    percentile: number;
-    level: 'excellent' | 'good' | 'satisfactory' | 'needs_improvement' | 'poor';
-    summary: string;
-  };
-  strengthAreas: Array<{
-    topic: string;
-    confidence: number;
-    evidence: string[];
-  }>;
-  improvementAreas: Array<{
-    topic: string;
-    difficulty: number;
-    recommendations: string[];
-  }>;
-  learningRecommendations: Array<{
-    type: 'review' | 'practice' | 'advance';
-    content: string;
-    priority: 'high' | 'medium' | 'low';
-    estimatedTime: number;
-  }>;
-  nextSteps: string[];
 }

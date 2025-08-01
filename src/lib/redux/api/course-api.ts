@@ -1,4 +1,5 @@
 import { baseApi } from '@/lib/api/base-api';
+import { Lesson } from '@/lib/types';
 import {
   Course,
   Enrollment,
@@ -212,6 +213,77 @@ export const courseApi = baseApi.injectEndpoints({
         { type: 'Progress', id: courseId },
       ],
     }),
+
+    getCoursesQuery: builder.query<
+      {
+        courses: Course[];
+        total: number;
+        page: number;
+        limit: number;
+      },
+      {
+        teacherId?: string;
+        status?: string;
+        limit?: number;
+        page?: number;
+        id?: string;
+      }
+    >({
+      query: params => ({
+        url: '/courses',
+        params,
+      }),
+      providesTags: ['Course'],
+    }),
+
+    getLessonsQuery: builder.query<
+      {
+        lessons: Lesson[];
+        total: number;
+        page: number;
+        limit: number;
+      },
+      {
+        courseId: string;
+        lessonId?: string;
+        status?: string;
+        limit?: number;
+        page?: number;
+      }
+    >({
+      query: ({ courseId, ...params }) => ({
+        url: `/courses/${courseId}/lessons`,
+        params,
+      }),
+      providesTags: ['Lesson'],
+    }),
+
+    getCourseById: builder.query<Course, string>({
+      query: id => `/courses/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Course', id }],
+    }),
+
+    getLessonById: builder.query<
+      Lesson,
+      { courseId: string; lessonId: string }
+    >({
+      query: ({ courseId, lessonId }) =>
+        `/courses/${courseId}/lessons/${lessonId}`,
+      providesTags: (result, error, { lessonId }) => [
+        { type: 'Lesson', id: lessonId },
+      ],
+    }),
+
+    getCourseCategories: builder.query<
+      {
+        categories: Category[];
+        total: number;
+      },
+      void
+    >({
+      query: () => '/courses/categories',
+      providesTags: ['Category'],
+    }),
   }),
 });
 
@@ -232,4 +304,9 @@ export const {
   useGetCourseReviewsQuery,
   useAddCourseReviewMutation,
   useGetCourseProgressQuery,
+  useGetCoursesQueryQuery: useGetCoursesQuery,
+  useGetLessonsQueryQuery: useGetLessonsQuery,
+  useGetCourseByIdQuery,
+  useGetLessonByIdQuery,
+  useGetCourseCategoriesQuery,
 } = courseApi;

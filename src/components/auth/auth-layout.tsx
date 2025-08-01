@@ -1,4 +1,3 @@
-// src/components/auth/auth-layout.tsx
 'use client';
 
 import React from 'react';
@@ -34,7 +33,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   backButtonHref = ROUTES.HOME,
 }) => {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Left Side - Branding */}
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 lg:flex lg:flex-1">
         {/* Background Pattern */}
@@ -71,7 +70,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                 <motion.div
                   key={feature}
                   initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  animate={{ opacity: 1, x: 40 }}
                   transition={{ duration: 0.6, delay: 0.2 + index * 0.1 }}
                   className="flex items-center gap-3"
                 >
@@ -85,7 +84,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       </div>
 
       {/* Right Side - Auth Form */}
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen flex-1 flex-col overflow-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-4">

@@ -21,6 +21,7 @@ export interface Course {
   thumbnailUrl: string;
   trailerVideoUrl?: string;
   teacherId: string;
+  description: string;
   teacher: {
     id: string;
     name: string;

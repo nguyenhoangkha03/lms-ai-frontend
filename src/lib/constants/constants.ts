@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  name: 'LMS AI Platform',
+  name: 'Learnary',
   version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
   description: 'AI-Powered Learning Management System',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
