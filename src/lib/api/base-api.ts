@@ -135,6 +135,8 @@ export const baseApi = createApi({
     'AssessmentAnalytics',
     'GeneratedQuiz',
     'AssessmentStatistics',
+    'Gradebook',
+    'ManualGrading',
   ],
   endpoints: () => ({}),
 });
