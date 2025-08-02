@@ -156,6 +156,13 @@ export const baseApi = createApi({
     'LearningOutcome',
     'ResourceOptimization',
     'Dashboard',
+    'ChatbotConversation',
+    'ChatbotMessage',
+    'TutoringSession',
+    'LearningHint',
+    'KnowledgeGraph',
+    'LearningStyle',
+    'ContentRecommendation',
   ],
   endpoints: () => ({}),
 });

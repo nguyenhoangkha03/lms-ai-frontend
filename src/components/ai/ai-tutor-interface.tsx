@@ -1,39 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
+  Bot,
   Send,
   Mic,
   MicOff,
-  Volume2,
-  VolumeX,
-  Brain,
-  User,
-  Bot,
-  Lightbulb,
-  HelpCircle,
-  BookOpen,
-  Target,
-  Zap,
-  Star,
+  Settings,
+  Minimize2,
+  X,
   ThumbsUp,
   ThumbsDown,
-  MoreHorizontal,
-  X,
-  Minimize2,
-  Maximize2,
-  Settings,
-  Download,
-  Share2,
   Copy,
-  Sparkles,
-  Clock,
-  MessageCircle,
-  FileText,
-  Paperclip,
-  Smile,
-  RotateCcw,
+  RefreshCw,
+  Lightbulb,
+  Target,
+  Brain,
+  MessageSquare,
+  Volume2,
+  VolumeX,
+  MoreVertical,
 } from 'lucide-react';
 import {
   Card,
@@ -45,18 +32,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,1061 +40,875 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import {
-  useGetTutoringSessionsQuery,
-  useCreateTutoringSessionMutation,
-  useAskTutorQuestionMutation,
-  useEndTutoringSessionMutation,
-} from '@/lib/redux/api/ai-recommendation-api';
-import {
-  AITutoringSession,
-  TutoringMessage,
-} from '@/lib/types/ai-recommendation';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const messageTypeIcons = {
-  text: MessageCircle,
-  question: HelpCircle,
-  explanation: Lightbulb,
-  hint: Target,
-  encouragement: Star,
-  correction: Zap,
-  summary: FileText,
-};
-
-const messageTypeColors = {
-  text: 'text-blue-600 bg-blue-100',
-  question: 'text-purple-600 bg-purple-100',
-  explanation: 'text-green-600 bg-green-100',
-  hint: 'text-orange-600 bg-orange-100',
-  encouragement: 'text-pink-600 bg-pink-100',
-  correction: 'text-red-600 bg-red-100',
-  summary: 'text-teal-600 bg-teal-100',
-};
-
-const modeIcons = {
-  adaptive: Brain,
-  guided: Target,
-  exploratory: Lightbulb,
-  assessment: FileText,
-};
+import {
+  useCreateConversationMutation,
+  useGetConversationQuery,
+  useSendMessageMutation,
+  useAskTutorQuestionMutation,
+  useRequestHintMutation,
+  useCreateTutoringSessionMutation,
+  useGetTutoringSessionQuery,
+  useEndTutoringSessionMutation,
+} from '@/lib/redux/api/intelligent-tutoring-api';
+import { type ChatbotMessage } from '@/lib/types/intelligent-tutoring';
+import { useAuth } from '@/hooks/use-auth';
 
 interface AITutorInterfaceProps {
-  className?: string;
-  isMinimized?: boolean;
-  onToggleMinimize?: () => void;
-  currentContext?: {
-    courseId?: string;
-    lessonId?: string;
-    assessmentId?: string;
-    topic?: string;
-  };
   mode?: 'adaptive' | 'guided' | 'exploratory' | 'assessment';
+  courseId?: string;
+  lessonId?: string;
+  isMinimized?: boolean;
+  onToggleMinimized?: () => void;
+  onClose?: () => void;
+  className?: string;
   showVoiceControls?: boolean;
   showSettings?: boolean;
 }
 
-export const AITutorInterface: React.FC<AITutorInterfaceProps> = ({
-  className,
-  isMinimized = false,
-  onToggleMinimize,
-  currentContext,
+export function AITutorInterface({
   mode = 'adaptive',
+  courseId,
+  lessonId,
+  isMinimized = false,
+  onToggleMinimized,
+  onClose,
+  className = '',
   showVoiceControls = true,
-}) => {
+  showSettings = true,
+}: AITutorInterfaceProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Local state
-  const [currentMessage, setCurrentMessage] = useState('');
+  // State management
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false);
-  const [showSettings, setShowSettingsDialog] = useState(false);
-  const [selectedMode, setSelectedMode] = useState(mode);
-  const [sessionSettings, setSessionSettings] = useState({
-    voiceEnabled: true,
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Settings state
+  const [tutorSettings, setTutorSettings] = useState({
     autoSpeak: false,
-    personality: 'friendly',
-    difficultyLevel: 'adaptive',
-    responseLength: 'medium',
-    includeExamples: true,
-    showSteps: true,
-    encouragement: true,
+    voiceSpeed: 1,
+    difficulty: 'medium',
+    helpfulness: 'balanced',
+    enableHints: true,
+    enableExplanations: true,
+    contextAware: true,
   });
 
+  // References
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const speechRecognition = useRef<any>(null);
+
   // API hooks
-  const {
-    data: sessions = [],
-    isLoading: sessionsLoading,
-    refetch: refetchSessions,
-  } = useGetTutoringSessionsQuery({ status: 'active', limit: 1 });
+  const [createConversation] = useCreateConversationMutation();
+  const [sendMessage, { isLoading: isSendingMessage }] =
+    useSendMessageMutation();
+  const [askTutorQuestion] = useAskTutorQuestionMutation();
+  const [requestHint] = useRequestHintMutation();
+  const [createTutoringSession] = useCreateTutoringSessionMutation();
+  const [endTutoringSession] = useEndTutoringSessionMutation();
 
-  const [createSession] = useCreateTutoringSessionMutation();
-  const [askQuestion] = useAskTutorQuestionMutation();
-  const [endSession] = useEndTutoringSessionMutation();
+  const { data: conversationData, refetch: refetchConversation } =
+    useGetConversationQuery(conversationId!, {
+      skip: !conversationId,
+      pollingInterval: 2000, // Poll every 2 seconds for new messages
+    });
 
-  const currentSession = sessions[0] || null;
-  const messages = currentSession?.messages || [];
+  const { data: sessionData } = useGetTutoringSessionQuery(sessionId!, {
+    skip: !sessionId,
+  });
 
-  // Auto-scroll to bottom
+  // Initialize conversation and session
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    initializeTutorSession();
+  }, [mode, courseId, lessonId]);
 
-  // Auto-focus input when not minimized
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (!isMinimized && inputRef.current) {
-      inputRef.current.focus();
+    scrollToBottom();
+  }, [conversationData?.messages]);
+
+  // Initialize speech recognition if available
+  useEffect(() => {
+    if (showVoiceControls && 'webkitSpeechRecognition' in window) {
+      speechRecognition.current = new (window as any).webkitSpeechRecognition();
+      speechRecognition.current.continuous = false;
+      speechRecognition.current.interimResults = false;
+      speechRecognition.current.lang = 'en-US';
+
+      speechRecognition.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(transcript);
+        setIsListening(false);
+      };
+
+      speechRecognition.current.onerror = () => {
+        setIsListening(false);
+        toast({
+          title: 'Voice Recognition Error',
+          description: 'Unable to recognize speech. Please try again.',
+          variant: 'destructive',
+        });
+      };
+
+      speechRecognition.current.onend = () => {
+        setIsListening(false);
+      };
     }
-  }, [isMinimized]);
+  }, [showVoiceControls]);
 
-  // Create session if none exists
-  useEffect(() => {
-    if (!currentSession && !sessionsLoading) {
-      handleCreateSession();
-    }
-  }, [currentSession, sessionsLoading]);
-
-  // Handle create session
-  const handleCreateSession = async () => {
+  const initializeTutorSession = async () => {
     try {
-      await createSession({
-        mode: selectedMode,
-        topic: currentContext?.topic,
+      // Create a new conversation
+      const conversationResult = await createConversation({
+        courseId,
+        conversationType: 'academic_help',
         context: {
-          currentCourse: currentContext?.courseId,
-          currentLesson: currentContext?.lessonId,
-          currentAssessment: currentContext?.assessmentId,
-          difficulty: 0.5,
+          currentCourse: courseId,
+          currentLesson: lessonId,
+          mode,
+        },
+      }).unwrap();
+
+      setConversationId(conversationResult.id);
+
+      // Create a tutoring session
+      const sessionResult = await createTutoringSession({
+        mode,
+        context: {
+          currentCourse: courseId,
+          currentLesson: lessonId,
+          difficulty:
+            tutorSettings.difficulty === 'easy'
+              ? 1
+              : tutorSettings.difficulty === 'hard'
+                ? 3
+                : 2,
           learningObjectives: [],
         },
-      });
-      refetchSessions();
+      }).unwrap();
+
+      setSessionId(sessionResult.id);
+
+      // Send welcome message
+      await sendWelcomeMessage(conversationResult.id);
     } catch (error) {
+      console.error('Failed to initialize tutor session:', error);
       toast({
-        title: 'Session Error',
-        description: 'Failed to create tutoring session',
+        title: 'Connection Error',
+        description: 'Unable to connect to AI tutor. Please try again.',
         variant: 'destructive',
       });
     }
   };
 
-  // Handle send message
-  const handleSendMessage = async () => {
-    if (!currentMessage.trim() || !currentSession) return;
-
-    const messageText = currentMessage.trim();
-    setCurrentMessage('');
+  const sendWelcomeMessage = async (convId: string) => {
+    const welcomeMessage = getWelcomeMessage();
 
     try {
-      await askQuestion({
-        question: messageText,
-        context: {
-          sessionId: currentSession.id,
-          mode: selectedMode,
-          userPreferences: sessionSettings,
-        },
-      });
-      refetchSessions();
+      await sendMessage({
+        conversationId: convId,
+        content: welcomeMessage,
+        messageType: 'text',
+      }).unwrap();
     } catch (error) {
-      toast({
-        title: 'Message Error',
-        description: 'Failed to send message',
-        variant: 'destructive',
-      });
+      console.error('Failed to send welcome message:', error);
     }
   };
 
-  // Handle voice input
+  const getWelcomeMessage = () => {
+    const modeMessages = {
+      adaptive:
+        "Hi! I'm your AI tutor. I'll adapt to your learning style and pace. What would you like to learn about today?",
+      guided:
+        "Welcome! I'll guide you through your lessons step by step. Let's start with your current topic.",
+      exploratory:
+        "Hello! I'm here to help you explore new concepts. Ask me anything you're curious about!",
+      assessment:
+        "Hi! I'll help you prepare for assessments and review key concepts. What topic should we focus on?",
+    };
+
+    return modeMessages[mode] || modeMessages.adaptive;
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !conversationId || isSendingMessage) return;
+
+    const userMessage = inputValue;
+    setInputValue('');
+    setIsTyping(true);
+
+    try {
+      // Send user message
+      await sendMessage({
+        conversationId,
+        content: userMessage,
+        messageType: 'text',
+      }).unwrap();
+
+      // Get AI response
+      const response = await askTutorQuestion({
+        question: userMessage,
+        context: {
+          courseId,
+          lessonId,
+          difficulty:
+            tutorSettings.difficulty === 'easy'
+              ? 1
+              : tutorSettings.difficulty === 'hard'
+                ? 3
+                : 2,
+        },
+      }).unwrap();
+
+      // Speak response if auto-speak is enabled
+      if (tutorSettings.autoSpeak && response.content) {
+        speakText(response.content);
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast({
+        title: 'Message Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const handleVoiceInput = () => {
-    if (
-      !('webkitSpeechRecognition' in window) &&
-      !('SpeechRecognition' in window)
-    ) {
+    if (!speechRecognition.current) {
       toast({
         title: 'Voice Not Supported',
-        description: 'Voice input is not supported in this browser',
+        description: 'Voice recognition is not supported in your browser.',
         variant: 'destructive',
       });
       return;
     }
 
     if (isListening) {
+      speechRecognition.current.stop();
       setIsListening(false);
-      return;
+    } else {
+      speechRecognition.current.start();
+      setIsListening(true);
     }
-
-    setIsListening(true);
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setCurrentMessage(transcript);
-      setIsListening(false);
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-      toast({
-        title: 'Voice Recognition Error',
-        description: 'Failed to recognize speech',
-        variant: 'destructive',
-      });
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
   };
 
-  // Handle text-to-speech
-  const handleSpeak = (text: string) => {
-    if (!sessionSettings.voiceEnabled) return;
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = tutorSettings.voiceSpeed;
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      speechSynthesis.speak(utterance);
+    }
+  };
 
-    if (isSpeaking) {
+  const stopSpeaking = () => {
+    if ('speechSynthesis' in window) {
       speechSynthesis.cancel();
       setIsSpeaking(false);
-      return;
     }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    speechSynthesis.speak(utterance);
   };
 
-  // Handle message feedback
-  const handleMessageFeedback = (
-    messageId: string,
-    feedback: 'positive' | 'negative'
-  ) => {
-    // Implement feedback API call
+  const handleRequestHint = async () => {
+    if (!conversationId) return;
+
+    try {
+      const hint = await requestHint({
+        context: `Course: ${courseId}, Lesson: ${lessonId}`,
+        studentLevel:
+          tutorSettings.difficulty === 'easy'
+            ? 1
+            : tutorSettings.difficulty === 'hard'
+              ? 3
+              : 2,
+      }).unwrap();
+
+      await sendMessage({
+        conversationId,
+        content: `💡 **Hint:** ${hint.hintText}`,
+        messageType: 'text',
+      }).unwrap();
+    } catch (error) {
+      console.error('Failed to get hint:', error);
+      toast({
+        title: 'Hint Error',
+        description: 'Unable to get hint. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCopyMessage = (content: string) => {
+    navigator.clipboard.writeText(content);
     toast({
-      title: 'Thank you!',
-      description: `Your ${feedback} feedback helps improve the AI tutor`,
+      title: 'Copied!',
+      description: 'Message copied to clipboard.',
     });
   };
 
-  // Render message
-  const renderMessage = (message: TutoringMessage, index: number) => {
-    const isUser = message.role === 'student';
-    const isSystem = message.role === 'system';
-    const MessageIcon = messageTypeIcons[message.messageType] || MessageCircle;
+  const handleRateMessage = async (
+    messageId: string,
+    rating: 'positive' | 'negative'
+  ) => {
+    // In a real implementation, this would call an API to rate the message
+    toast({
+      title: 'Thank you!',
+      description: 'Your feedback helps improve the AI tutor.',
+    });
+  };
+
+  const handleEndSession = async () => {
+    if (sessionId) {
+      try {
+        await endTutoringSession({
+          sessionId,
+          feedback: {
+            satisfaction: 5, // This could be collected from user
+            helpful: true,
+          },
+        }).unwrap();
+
+        toast({
+          title: 'Session Ended',
+          description: 'Your tutoring session has been saved.',
+        });
+
+        if (onClose) {
+          onClose();
+        }
+      } catch (error) {
+        console.error('Failed to end session:', error);
+      }
+    }
+  };
+
+  const renderMessage = (message: ChatbotMessage) => {
+    const isUser = message.sender === 'user';
+    const isSystem = message.sender === 'system';
 
     return (
       <motion.div
         key={message.id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
         className={cn(
-          'flex gap-3 rounded-lg p-4',
-          isUser ? 'ml-8 bg-primary/5' : 'mr-8 bg-muted/50',
-          isSystem &&
-            'mx-4 border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20'
+          'flex gap-3 p-4',
+          isUser ? 'flex-row-reverse' : 'flex-row'
         )}
       >
-        {/* Avatar */}
-        <Avatar className={cn('h-8 w-8', isUser ? 'order-2' : 'order-1')}>
-          {isUser ? (
-            <>
-              <AvatarImage src="" />
-              <AvatarFallback>
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </>
-          ) : (
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500">
-              <Bot className="h-4 w-4 text-white" />
-            </AvatarFallback>
+        {!isUser && (
+          <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-blue-500 text-white">
+            <Bot className="h-4 w-4" />
+          </div>
+        )}
+
+        <div
+          className={cn(
+            'max-w-[80%] rounded-lg px-3 py-2',
+            isUser
+              ? 'bg-blue-500 text-white'
+              : isSystem
+                ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                : 'bg-gray-100 dark:bg-gray-800'
           )}
-        </Avatar>
+        >
+          <div className="text-sm">{message.content}</div>
 
-        {/* Message content */}
-        <div className={cn('flex-1 space-y-2', isUser ? 'order-1' : 'order-2')}>
-          {/* Message header */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">
-              {isUser ? 'You' : isSystem ? 'System' : 'AI Tutor'}
-            </span>
-
-            {!isUser && !isSystem && (
-              <Badge
-                variant="outline"
-                className={cn(
-                  'text-xs',
-                  messageTypeColors[message.messageType] || 'bg-gray-100'
-                )}
-              >
-                <MessageIcon className="mr-1 h-3 w-3" />
-                {message.messageType}
-              </Badge>
+          {message.aiMetadata?.sources &&
+            message.aiMetadata.sources.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {message.aiMetadata.sources.map((source, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {source}
+                  </Badge>
+                ))}
+              </div>
             )}
 
-            <span className="text-xs text-muted-foreground">
-              {new Date(message.timestamp).toLocaleTimeString()}
-            </span>
-          </div>
-
-          {/* Message text */}
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <p className="mb-2 whitespace-pre-wrap leading-relaxed">
-              {message.content}
-            </p>
-          </div>
-
-          {/* Message metadata */}
-          {message.metadata && (
-            <div className="mt-3 space-y-2">
-              {/* Confidence score */}
-              {message.metadata.confidence && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Confidence:
-                  </span>
-                  <Progress
-                    value={message.metadata.confidence * 100}
-                    className="h-1 w-20"
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    {Math.round(message.metadata.confidence * 100)}%
-                  </span>
-                </div>
-              )}
-
-              {/* Related concepts */}
-              {message.metadata.relatedConcepts &&
-                message.metadata.relatedConcepts.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    <span className="mr-2 text-xs text-muted-foreground">
-                      Related:
-                    </span>
-                    {message.metadata.relatedConcepts.map((concept, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {concept}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-              {/* References */}
-              {message.metadata.references &&
-                message.metadata.references.length > 0 && (
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">
-                      References:
-                    </span>
-                    {message.metadata.references.map((ref, idx) => (
-                      <div key={idx} className="text-xs">
-                        <button
-                          className="text-primary hover:underline"
-                          onClick={() => window.open(ref, '_blank')}
-                        >
-                          {ref}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          {message.educationalContent?.concepts && (
+            <div className="mt-2">
+              <p className="text-xs font-medium">Key Concepts:</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {message.educationalContent.concepts.map((concept, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {concept}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Message actions */}
           {!isUser && !isSystem && (
-            <div className="flex items-center gap-2 pt-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => handleSpeak(message.content)}
-                  >
-                    {isSpeaking ? (
-                      <VolumeX className="h-3 w-3" />
-                    ) : (
-                      <Volume2 className="h-3 w-3" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Read aloud</TooltipContent>
-              </Tooltip>
+            <div className="mt-2 flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopyMessage(message.content)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Copy message</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() =>
-                      navigator.clipboard.writeText(message.content)
-                    }
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Copy message</TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRateMessage(message.id, 'positive')}
+                    >
+                      <ThumbsUp className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Helpful</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              <Separator orientation="vertical" className="h-4" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRateMessage(message.id, 'negative')}
+                    >
+                      <ThumbsDown className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Not helpful</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs hover:text-green-600"
-                    onClick={() =>
-                      handleMessageFeedback(message.id, 'positive')
-                    }
-                  >
-                    <ThumbsUp className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Helpful</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs hover:text-red-600"
-                    onClick={() =>
-                      handleMessageFeedback(message.id, 'negative')
-                    }
-                  >
-                    <ThumbsDown className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Not helpful</TooltipContent>
-              </Tooltip>
+              {tutorSettings.autoSpeak && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => speakText(message.content)}
+                      >
+                        <Volume2 className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Speak message</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           )}
+
+          <div className="mt-1 text-xs text-gray-500">
+            {new Date(message.timestamp).toLocaleTimeString()}
+          </div>
         </div>
+
+        {isUser && (
+          <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-gray-500 text-white">
+            {user?.displayName?.charAt(0) || 'U'}
+          </div>
+        )}
       </motion.div>
     );
   };
 
-  // Quick actions
-  const quickActions = [
-    {
-      icon: HelpCircle,
-      label: 'Ask for help',
-      message:
-        'I need help understanding this concept. Can you explain it in simple terms?',
-    },
-    {
-      icon: Lightbulb,
-      label: 'Get a hint',
-      message: 'Can you give me a hint to solve this problem?',
-    },
-    {
-      icon: Target,
-      label: 'Explain step-by-step',
-      message: 'Can you break this down into step-by-step instructions?',
-    },
-    {
-      icon: BookOpen,
-      label: 'More examples',
-      message: 'Can you show me more examples of this concept?',
-    },
-    {
-      icon: Star,
-      label: 'Check my work',
-      message: 'Can you review my answer and provide feedback?',
-    },
-    {
-      icon: RotateCcw,
-      label: 'Start over',
-      message: 'Let me try a different approach. Can you help me start over?',
-    },
-  ];
-
   if (isMinimized) {
     return (
-      <Card
-        className={cn('fixed bottom-4 right-4 z-50 w-80 shadow-lg', className)}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className={cn('fixed bottom-4 right-4 z-50', className)}
       >
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500">
-                    <Bot className="h-4 w-4 text-white" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-background bg-green-500" />
-              </div>
-              <div>
-                <CardTitle className="text-sm">AI Tutor</CardTitle>
-                <CardDescription className="text-xs">
-                  {currentSession?.status === 'active'
-                    ? 'Ready to help'
-                    : 'Offline'}
-                </CardDescription>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={onToggleMinimize}
-            >
-              <Maximize2 className="h-3 w-3" />
-            </Button>
-          </div>
-        </CardHeader>
-
-        {messages.length > 0 && (
-          <CardContent className="pt-0">
-            <div className="text-xs text-muted-foreground">
-              Last message:{' '}
-              {new Date(
-                messages[messages.length - 1]?.timestamp
-              ).toLocaleTimeString()}
-            </div>
-          </CardContent>
-        )}
-      </Card>
+        <Button
+          onClick={onToggleMinimized}
+          className="h-12 w-12 rounded-full shadow-lg"
+          size="sm"
+        >
+          <Bot className="h-6 w-6" />
+        </Button>
+      </motion.div>
     );
   }
 
   return (
-    <TooltipProvider>
-      <Card
-        className={cn('flex h-[600px] w-full max-w-4xl flex-col', className)}
-      >
+    <motion.div
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={cn(
+        'fixed bottom-4 right-4 z-50 h-[600px] w-96 shadow-xl',
+        className
+      )}
+    >
+      <Card className="flex h-full flex-col">
+        {/* Header */}
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500">
-                    <Bot className="h-5 w-5 text-white" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-green-500">
-                  <div className="h-2 w-2 rounded-full bg-white" />
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-blue-500" />
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  AI Tutor 24/7
-                  <Badge variant="secondary" className="text-xs">
-                    {React.createElement(modeIcons[selectedMode], {
-                      className: 'h-3 w-3 mr-1',
-                    })}
-                    {selectedMode}
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  {currentSession?.status === 'active'
-                    ? `Active session • ${messages.length} messages`
-                    : 'Starting new session...'}
+                <CardTitle className="text-sm">AI Tutor</CardTitle>
+                <CardDescription className="text-xs capitalize">
+                  {mode} mode
+                  {sessionData && (
+                    <>
+                      {' '}
+                      • {Math.round(sessionData.sessionMetrics.duration / 60)}
+                      min
+                    </>
+                  )}
                 </CardDescription>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              {/* Session insights */}
-              {currentSession?.insights && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8">
-                      <Brain className="mr-1 h-3 w-3" />
-                      Insights
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="space-y-1 text-xs">
-                      <div>
-                        Understanding:{' '}
-                        {Math.round(
-                          currentSession.insights.understandingLevel * 100
-                        )}
-                        %
-                      </div>
-                      <div>
-                        Engagement:{' '}
-                        {Math.round(
-                          currentSession.insights.engagementLevel * 100
-                        )}
-                        %
-                      </div>
-                      <div>
-                        Confidence:{' '}
-                        {Math.round(
-                          currentSession.insights.confidenceLevel * 100
-                        )}
-                        %
-                      </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+            <div className="flex items-center gap-1">
+              {sessionData && (
+                <Badge variant="outline" className="text-xs">
+                  Session Active
+                </Badge>
               )}
 
-              {/* Settings */}
-              {showSettings && (
-                <Dialog
-                  open={showSettings}
-                  onOpenChange={setShowSettingsDialog}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                      <Settings className="h-3 w-3" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Tutor Settings</DialogTitle>
-                      <DialogDescription>
-                        Customize your AI tutoring experience
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <Tabs defaultValue="preferences" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="preferences">
-                          Preferences
-                        </TabsTrigger>
-                        <TabsTrigger value="voice">Voice</TabsTrigger>
-                        <TabsTrigger value="advanced">Advanced</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="preferences" className="space-y-4">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">
-                              Show step-by-step solutions
-                            </label>
-                            <Switch
-                              checked={sessionSettings.showSteps}
-                              onCheckedChange={checked =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  showSteps: checked,
-                                }))
-                              }
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">
-                              Include examples
-                            </label>
-                            <Switch
-                              checked={sessionSettings.includeExamples}
-                              onCheckedChange={checked =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  includeExamples: checked,
-                                }))
-                              }
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">
-                              Encouragement messages
-                            </label>
-                            <Switch
-                              checked={sessionSettings.encouragement}
-                              onCheckedChange={checked =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  encouragement: checked,
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="voice" className="space-y-4">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">
-                              Voice responses
-                            </label>
-                            <Switch
-                              checked={sessionSettings.voiceEnabled}
-                              onCheckedChange={checked =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  voiceEnabled: checked,
-                                }))
-                              }
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">
-                              Auto-speak responses
-                            </label>
-                            <Switch
-                              checked={sessionSettings.autoSpeak}
-                              onCheckedChange={checked =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  autoSpeak: checked,
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="advanced" className="space-y-4">
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium">
-                              Response length
-                            </label>
-                            <select
-                              className="mt-1 w-full rounded-md border p-2"
-                              value={sessionSettings.responseLength}
-                              onChange={e =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  responseLength: e.target.value as any,
-                                }))
-                              }
-                            >
-                              <option value="short">Short</option>
-                              <option value="medium">Medium</option>
-                              <option value="detailed">Detailed</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-sm font-medium">
-                              Difficulty level
-                            </label>
-                            <select
-                              className="mt-1 w-full rounded-md border p-2"
-                              value={sessionSettings.difficultyLevel}
-                              onChange={e =>
-                                setSessionSettings(prev => ({
-                                  ...prev,
-                                  difficultyLevel: e.target.value as any,
-                                }))
-                              }
-                            >
-                              <option value="beginner">Beginner</option>
-                              <option value="intermediate">Intermediate</option>
-                              <option value="advanced">Advanced</option>
-                              <option value="adaptive">Adaptive</option>
-                            </select>
-                          </div>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </DialogContent>
-                </Dialog>
-              )}
-
-              {/* More actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <MoreHorizontal className="h-3 w-3" />
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      // Export conversation
-                      const conversation = messages.map(m => ({
-                        role: m.role,
-                        content: m.content,
-                        timestamp: m.timestamp,
-                      }));
-                      const dataStr = JSON.stringify(conversation, null, 2);
-                      const dataUri =
-                        'data:application/json;charset=utf-8,' +
-                        encodeURIComponent(dataStr);
-                      const exportFileDefaultName = `tutor-conversation-${Date.now()}.json`;
-                      const linkElement = document.createElement('a');
-                      linkElement.setAttribute('href', dataUri);
-                      linkElement.setAttribute(
-                        'download',
-                        exportFileDefaultName
-                      );
-                      linkElement.click();
-                    }}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Conversation
+                  <DropdownMenuItem onClick={handleRequestHint}>
+                    <Lightbulb className="mr-2 h-4 w-4" />
+                    Get Hint
                   </DropdownMenuItem>
-
-                  <DropdownMenuItem>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Share Session
-                  </DropdownMenuItem>
-
+                  {showSettings && (
+                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
-
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (currentSession) {
-                        endSession(currentSession.id);
-                        refetchSessions();
-                      }
-                    }}
-                    className="text-red-600"
-                  >
+                  <DropdownMenuItem onClick={handleEndSession}>
                     <X className="mr-2 h-4 w-4" />
                     End Session
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Minimize button */}
-              {onToggleMinimize && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={onToggleMinimize}
-                >
-                  <Minimize2 className="h-3 w-3" />
+              {onToggleMinimized && (
+                <Button variant="ghost" size="sm" onClick={onToggleMinimized}>
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              )}
+
+              {onClose && (
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                  <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Session metrics */}
-          {currentSession?.sessionMetrics && (
+          {/* Session Insights */}
+          {sessionData && (
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {Math.round(currentSession.sessionMetrics.duration / 60)}min
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="h-3 w-3" />
-                {currentSession.sessionMetrics.messagesCount} messages
-              </div>
-              <div className="flex items-center gap-1">
-                <HelpCircle className="h-3 w-3" />
-                {currentSession.sessionMetrics.questionsAsked} questions
+                <Brain className="h-3 w-3" />
+                Understanding:{' '}
+                {Math.round(sessionData.insights.understandingLevel * 100)}%
               </div>
               <div className="flex items-center gap-1">
                 <Target className="h-3 w-3" />
-                {currentSession.sessionMetrics.hintsProvided} hints
+                Engagement:{' '}
+                {Math.round(sessionData.insights.engagementLevel * 100)}%
               </div>
             </div>
           )}
         </CardHeader>
 
-        {/* Messages area */}
-        <CardContent className="flex-1 overflow-hidden p-0">
-          <ScrollArea className="h-full px-4">
-            <div className="space-y-4 py-4">
-              {messages.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="py-8 text-center"
-                >
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
-                    <Sparkles className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="mb-2 text-lg font-medium">
-                    Welcome to AI Tutor!
-                  </h3>
-                  <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-                    I'm here to help you learn 24/7. Ask me anything about your
-                    studies, request explanations, or get hints for problems
-                    you're working on.
-                  </p>
+        {/* Messages */}
+        <CardContent className="flex-1 p-0">
+          <ScrollArea className="h-full">
+            <div className="space-y-2">
+              {conversationData?.messages?.map(renderMessage)}
 
-                  {/* Quick actions */}
-                  <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
-                    {quickActions.slice(0, 4).map((action, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        className="h-auto justify-start p-3"
-                        onClick={() => setCurrentMessage(action.message)}
-                      >
-                        <action.icon className="mr-2 h-4 w-4" />
-                        <span className="text-xs">{action.label}</span>
-                      </Button>
-                    ))}
+              {isTyping && (
+                <div className="flex gap-3 p-4">
+                  <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-blue-500 text-white">
+                    <Bot className="h-4 w-4" />
                   </div>
-                </motion.div>
-              ) : (
-                <AnimatePresence>
-                  {messages.map((message, index) =>
-                    renderMessage(message, index)
-                  )}
-                </AnimatePresence>
+                  <div className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 dark:bg-gray-800">
+                    <div className="flex space-x-1">
+                      <div className="h-2 w-2 animate-bounce rounded-full bg-gray-500 [animation-delay:-0.3s]"></div>
+                      <div className="h-2 w-2 animate-bounce rounded-full bg-gray-500 [animation-delay:-0.15s]"></div>
+                      <div className="h-2 w-2 animate-bounce rounded-full bg-gray-500"></div>
+                    </div>
+                  </div>
+                </div>
               )}
+
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
         </CardContent>
 
-        {/* Input area */}
+        {/* Input */}
         <div className="border-t p-4">
-          {/* Quick actions bar */}
-          {messages.length > 0 && (
-            <div className="mb-3 flex gap-2 overflow-x-auto pb-2">
-              {quickActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  className="flex-shrink-0 whitespace-nowrap"
-                  onClick={() => setCurrentMessage(action.message)}
-                >
-                  <action.icon className="mr-1 h-3 w-3" />
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* Message input */}
-          <div className="flex items-end gap-2">
+          <div className="flex gap-2">
             <div className="relative flex-1">
-              <Textarea
-                ref={inputRef as any}
-                value={currentMessage}
-                onChange={e => setCurrentMessage(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Ask me anything about your studies..."
-                className="resize-none pr-20"
-                rows={1}
-                style={{ minHeight: '40px', maxHeight: '120px' }}
+              <Input
+                ref={inputRef}
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask me anything..."
+                disabled={isSendingMessage}
+                className="pr-20"
               />
 
-              {/* Input actions */}
-              <div className="absolute bottom-2 right-2 flex items-center gap-1">
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                 {showVoiceControls && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          'h-6 w-6 p-0',
-                          isListening && 'animate-pulse text-red-600'
-                        )}
-                        onClick={handleVoiceInput}
-                      >
-                        {isListening ? (
-                          <MicOff className="h-3 w-3" />
-                        ) : (
-                          <Mic className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isListening ? 'Stop listening' : 'Voice input'}
-                    </TooltipContent>
-                  </Tooltip>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleVoiceInput}
+                          className={cn(
+                            'h-6 w-6 p-0',
+                            isListening && 'text-red-500'
+                          )}
+                        >
+                          {isListening ? (
+                            <MicOff className="h-3 w-3" />
+                          ) : (
+                            <Mic className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isListening ? 'Stop listening' : 'Voice input'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={() => setShowEmoji(!showEmoji)}
-                    >
-                      <Smile className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Add emoji</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <Paperclip className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Attach file</TooltipContent>
-                </Tooltip>
+                {isSpeaking && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={stopSpeaking}
+                          className="h-6 w-6 p-0 text-blue-500"
+                        >
+                          <VolumeX className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Stop speaking</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             </div>
 
             <Button
               onClick={handleSendMessage}
-              disabled={!currentMessage.trim()}
-              className="h-10 px-4"
+              disabled={!inputValue.trim() || isSendingMessage}
+              size="sm"
             >
-              <Send className="h-4 w-4" />
+              {isSendingMessage ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
 
-          {/* Status indicators */}
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-4">
-              {isListening && (
-                <div className="flex items-center gap-1 text-red-600">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-red-600" />
-                  Listening...
-                </div>
-              )}
-
-              {isSpeaking && (
-                <div className="flex items-center gap-1 text-blue-600">
-                  <Volume2 className="h-3 w-3" />
-                  Speaking...
-                </div>
-              )}
-
-              {currentSession?.status === 'active' && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <div className="h-2 w-2 rounded-full bg-green-600" />
-                  AI Tutor online
-                </div>
-              )}
-            </div>
-
-            <div>Press Enter to send, Shift+Enter for new line</div>
+          {/* Quick Actions */}
+          <div className="mt-2 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRequestHint}
+              className="text-xs"
+            >
+              <Lightbulb className="mr-1 h-3 w-3" />
+              Hint
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInputValue('Can you explain this concept?')}
+              className="text-xs"
+            >
+              <MessageSquare className="mr-1 h-3 w-3" />
+              Explain
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setInputValue('Can you give me practice problems?')
+              }
+              className="text-xs"
+            >
+              <Target className="mr-1 h-3 w-3" />
+              Practice
+            </Button>
           </div>
         </div>
       </Card>
-    </TooltipProvider>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>AI Tutor Settings</DialogTitle>
+            <DialogDescription>
+              Customize your tutoring experience
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="auto-speak">Auto-speak responses</Label>
+              <Switch
+                id="auto-speak"
+                checked={tutorSettings.autoSpeak}
+                onCheckedChange={checked =>
+                  setTutorSettings(prev => ({ ...prev, autoSpeak: checked }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Voice Speed</Label>
+              <Select
+                value={tutorSettings.voiceSpeed.toString()}
+                onValueChange={value =>
+                  setTutorSettings(prev => ({
+                    ...prev,
+                    voiceSpeed: parseFloat(value),
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.5">Slow</SelectItem>
+                  <SelectItem value="1">Normal</SelectItem>
+                  <SelectItem value="1.5">Fast</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Difficulty Level</Label>
+              <Select
+                value={tutorSettings.difficulty}
+                onValueChange={value =>
+                  setTutorSettings(prev => ({ ...prev, difficulty: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tutoring Style</Label>
+              <Select
+                value={tutorSettings.helpfulness}
+                onValueChange={value =>
+                  setTutorSettings(prev => ({ ...prev, helpfulness: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gentle">Gentle & Encouraging</SelectItem>
+                  <SelectItem value="balanced">Balanced</SelectItem>
+                  <SelectItem value="direct">Direct & Efficient</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="enable-hints">Enable hints</Label>
+              <Switch
+                id="enable-hints"
+                checked={tutorSettings.enableHints}
+                onCheckedChange={checked =>
+                  setTutorSettings(prev => ({ ...prev, enableHints: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="context-aware">Context-aware responses</Label>
+              <Switch
+                id="context-aware"
+                checked={tutorSettings.contextAware}
+                onCheckedChange={checked =>
+                  setTutorSettings(prev => ({ ...prev, contextAware: checked }))
+                }
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </motion.div>
   );
-};
+}
