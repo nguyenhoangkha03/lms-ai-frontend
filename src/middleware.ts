@@ -128,11 +128,11 @@ const routeConfigs: RouteConfig[] = [
     allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
     requiresAuth: true,
   },
-  {
-    path: '/chat',
-    allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
-    requiresAuth: true,
-  },
+  //   {
+  //     path: '/chat',
+  //     allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
+  //     requiresAuth: true,
+  //   },
   {
     path: '/video',
     allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
