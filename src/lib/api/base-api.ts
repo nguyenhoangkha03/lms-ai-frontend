@@ -149,6 +149,13 @@ export const baseApi = createApi({
     'LearningPath',
     'TutoringSession',
     'SmartSuggestion',
+    'DropoutRisk',
+    'PerformancePrediction',
+    'LearningPattern',
+    'Intervention',
+    'LearningOutcome',
+    'ResourceOptimization',
+    'Dashboard',
   ],
   endpoints: () => ({}),
 });
