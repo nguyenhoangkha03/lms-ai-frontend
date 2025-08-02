@@ -169,6 +169,11 @@ export const baseApi = createApi({
     'ContentTag',
     'GeneratedQuiz',
     'ContentAnalytics',
+    'MLModel',
+    'ModelVersion',
+    'ABTest',
+    'Prediction',
+    'SystemHealth',
   ],
   endpoints: () => ({}),
 });
