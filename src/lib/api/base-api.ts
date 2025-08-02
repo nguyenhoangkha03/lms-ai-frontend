@@ -163,6 +163,12 @@ export const baseApi = createApi({
     'KnowledgeGraph',
     'LearningStyle',
     'ContentRecommendation',
+    'ContentQuality',
+    'PlagiarismCheck',
+    'SimilarityAnalysis',
+    'ContentTag',
+    'GeneratedQuiz',
+    'ContentAnalytics',
   ],
   endpoints: () => ({}),
 });
