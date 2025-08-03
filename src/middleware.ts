@@ -96,32 +96,32 @@ const routeConfigs: RouteConfig[] = [
   //     requiresAuth: true,
   //   },
 
-  { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
-  {
-    path: '/admin/dashboard',
-    allowedRoles: [USER_ROLES.ADMIN],
-    requiresAuth: true,
-  },
-  {
-    path: '/admin/users',
-    allowedRoles: [USER_ROLES.ADMIN],
-    requiresAuth: true,
-  },
-  {
-    path: '/admin/courses',
-    allowedRoles: [USER_ROLES.ADMIN],
-    requiresAuth: true,
-  },
-  {
-    path: '/admin/analytics',
-    allowedRoles: [USER_ROLES.ADMIN],
-    requiresAuth: true,
-  },
-  {
-    path: '/admin/settings',
-    allowedRoles: [USER_ROLES.ADMIN],
-    requiresAuth: true,
-  },
+  //   { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
+  //   {
+  //     path: '/admin/dashboard',
+  //     allowedRoles: [USER_ROLES.ADMIN],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/admin/users',
+  //     allowedRoles: [USER_ROLES.ADMIN],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/admin/courses',
+  //     allowedRoles: [USER_ROLES.ADMIN],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/admin/analytics',
+  //     allowedRoles: [USER_ROLES.ADMIN],
+  //     requiresAuth: true,
+  //   },
+  //   {
+  //     path: '/admin/settings',
+  //     allowedRoles: [USER_ROLES.ADMIN],
+  //     requiresAuth: true,
+  //   },
 
   {
     path: '/learn',
