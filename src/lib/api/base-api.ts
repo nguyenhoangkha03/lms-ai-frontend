@@ -191,6 +191,13 @@ export const baseApi = createApi({
     'ChatThread',
     'ChatSearch',
     'ChatAnalytics',
+    'ForumCategory',
+    'ForumThread',
+    'ForumPost',
+    'ForumTag',
+    'ForumStats',
+    'UserReputation',
+    'ModerationReport',
   ],
   endpoints: () => ({}),
 });
