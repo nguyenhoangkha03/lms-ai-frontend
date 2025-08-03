@@ -198,6 +198,12 @@ export const baseApi = createApi({
     'ForumStats',
     'UserReputation',
     'ModerationReport',
+    'StudyGroup',
+    'CollaborativeNote',
+    'GroupProject',
+    'SharedWhiteboard',
+    'PeerReview',
+    'GroupMember',
   ],
   endpoints: () => ({}),
 });
