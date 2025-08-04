@@ -2,6 +2,14 @@
 
 import React from 'react';
 import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  RowSelectionState,
+  PaginationState,
+} from '@tanstack/react-table';
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,48 +29,83 @@ import {
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Column<T> {
-  key: keyof T | string;
-  label: string;
-  render?: (value: any, row: T) => React.ReactNode;
-  sortable?: boolean;
-  className?: string;
-}
-
-interface DataTableProps<T> {
-  data: T[];
-  columns: Column<T>[];
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
   searchable?: boolean;
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   pagination?: {
-    page: number;
+    pageIndex: number;
     pageSize: number;
-    total: number;
+    pageCount: number;
     onPageChange: (page: number) => void;
-    onPageSizeChange: (pageSize: number) => void;
+    onPageSizeChange?: (pageSize: number) => void;
   };
+  onRowSelectionChange?: (selectedRows: string[]) => void;
   loading?: boolean;
   emptyState?: React.ReactNode;
   className?: string;
 }
 
-export function DataTable<T>({
-  data,
+export function DataTable<TData, TValue>({
   columns,
+  data,
   searchable = false,
   searchPlaceholder = 'Search...',
   searchValue = '',
   onSearchChange,
   pagination,
+  onRowSelectionChange,
   loading = false,
   emptyState,
   className,
-}: DataTableProps<T>) {
-  const totalPages = pagination
-    ? Math.ceil(pagination.total / pagination.pageSize)
-    : 1;
+}: DataTableProps<TData, TValue>) {
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  // Handle pagination state
+  const paginationState: PaginationState = React.useMemo(
+    () => ({
+      pageIndex: pagination?.pageIndex ?? 0,
+      pageSize: pagination?.pageSize ?? 10,
+    }),
+    [pagination?.pageIndex, pagination?.pageSize]
+  );
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    onRowSelectionChange: setRowSelection,
+    state: {
+      rowSelection,
+      pagination: paginationState,
+    },
+    manualPagination: true,
+    pageCount: pagination?.pageCount ?? -1,
+  });
+
+  // Handle row selection change
+  React.useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedRowIds = Object.keys(rowSelection).filter(
+        key => rowSelection[key]
+      );
+      onRowSelectionChange(selectedRowIds);
+    }
+  }, [rowSelection, onRowSelectionChange]);
+
+  const totalItems = pagination
+    ? pagination.pageCount * pagination.pageSize
+    : data.length;
+  const currentPage = (pagination?.pageIndex ?? 0) + 1;
+  const startItem =
+    (pagination?.pageIndex ?? 0) * (pagination?.pageSize ?? 10) + 1;
+  const endItem = Math.min(
+    ((pagination?.pageIndex ?? 0) + 1) * (pagination?.pageSize ?? 10),
+    totalItems
+  );
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -83,29 +126,52 @@ export function DataTable<T>({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              {columns.map(column => (
-                <TableHead
-                  key={String(column.key)}
-                  className={column.className}
-                >
-                  {column.label}
-                </TableHead>
-              ))}
-            </TableRow>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
+
           <TableBody>
             {loading ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  {columns.map(column => (
-                    <TableCell key={String(column.key)}>
-                      <div className="h-4 animate-pulse rounded bg-muted" />
+              Array.from({ length: pagination?.pageSize ?? 5 }).map(
+                (_, index) => (
+                  <TableRow key={index}>
+                    {columns.map((_, cellIndex) => (
+                      <TableCell key={cellIndex}>
+                        <div className="h-4 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              )
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                >
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : data.length === 0 ? (
+            ) : (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -118,21 +184,6 @@ export function DataTable<T>({
                   )}
                 </TableCell>
               </TableRow>
-            ) : (
-              data.map((row, index) => (
-                <TableRow key={index}>
-                  {columns.map(column => (
-                    <TableCell
-                      key={String(column.key)}
-                      className={column.className}
-                    >
-                      {column.render
-                        ? column.render((row as any)[column.key], row)
-                        : String((row as any)[column.key] || '-')}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
             )}
           </TableBody>
         </Table>
@@ -142,21 +193,17 @@ export function DataTable<T>({
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center space-x-2">
             <p className="text-sm text-muted-foreground">
-              Showing {(pagination.page - 1) * pagination.pageSize + 1} to{' '}
-              {Math.min(
-                pagination.page * pagination.pageSize,
-                pagination.total
-              )}{' '}
-              of {pagination.total} entries
+              Showing {startItem} to {endItem} of {totalItems} entries
             </p>
           </div>
+
           <div className="flex items-center space-x-2">
             <div className="flex items-center space-x-2">
               <p className="text-sm font-medium">Rows per page</p>
               <Select
                 value={String(pagination.pageSize)}
                 onValueChange={value =>
-                  pagination.onPageSizeChange(Number(value))
+                  pagination.onPageSizeChange?.(Number(value))
                 }
               >
                 <SelectTrigger className="h-8 w-[70px]">
@@ -171,23 +218,28 @@ export function DataTable<T>({
                 </SelectContent>
               </Select>
             </div>
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => pagination.onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
+                onClick={() => pagination.onPageChange(pagination.pageIndex)}
+                disabled={pagination.pageIndex <= 0}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
+
               <div className="flex w-12 items-center justify-center text-sm font-medium">
-                {pagination.page}
+                {currentPage}
               </div>
+
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => pagination.onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= totalPages}
+                onClick={() =>
+                  pagination.onPageChange(pagination.pageIndex + 2)
+                }
+                disabled={pagination.pageIndex >= pagination.pageCount - 1}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
