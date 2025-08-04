@@ -54,7 +54,6 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
 }) => {
   const { toast } = useToast();
 
-  // State management
   const [selectedAction, setSelectedAction] = useState<
     'approve' | 'reject' | 'flag' | ''
   >('');
@@ -63,7 +62,6 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
   const [isExecuting, setIsExecuting] = useState(false);
   const [operationProgress, setOperationProgress] = useState(0);
 
-  // Available bulk operations
   const bulkOperations: BulkOperationConfig[] = [
     {
       id: 'approve',
@@ -94,7 +92,6 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
     },
   ];
 
-  // Handlers
   const handleActionSelect = (actionId: 'approve' | 'reject' | 'flag') => {
     setSelectedAction(actionId);
     setReason('');
