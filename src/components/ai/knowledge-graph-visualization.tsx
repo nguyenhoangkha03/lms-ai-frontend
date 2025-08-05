@@ -863,3 +863,5 @@ export function KnowledgeGraphVisualization({
     </Card>
   );
 }
+
+export default KnowledgeGraphVisualization;

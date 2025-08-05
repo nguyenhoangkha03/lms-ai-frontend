@@ -602,3 +602,5 @@ function ParticipantVideo({
     </div>
   );
 }
+
+export default VideoSessionInterface;

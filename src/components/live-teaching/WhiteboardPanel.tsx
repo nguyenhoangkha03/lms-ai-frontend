@@ -912,3 +912,5 @@ export function WhiteboardPanel({ sessionId, onClose }: WhiteboardPanelProps) {
     </div>
   );
 }
+
+export default WhiteboardPanel;

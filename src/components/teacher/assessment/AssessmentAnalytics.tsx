@@ -621,3 +621,5 @@ export const AssessmentAnalytics: React.FC<AssessmentAnalyticsProps> = ({
     </div>
   );
 };
+
+export default AssessmentAnalytics;

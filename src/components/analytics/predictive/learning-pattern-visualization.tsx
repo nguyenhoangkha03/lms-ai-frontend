@@ -753,3 +753,5 @@ export function LearningPatternVisualization({
     </Card>
   );
 }
+
+export default LearningPatternVisualization;

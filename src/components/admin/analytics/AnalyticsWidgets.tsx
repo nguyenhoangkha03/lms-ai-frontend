@@ -869,3 +869,5 @@ export const AnalyticsWidgets: React.FC<AnalyticsWidgetsProps> = ({
     </div>
   );
 };
+
+export default AnalyticsWidgets;

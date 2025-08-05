@@ -912,3 +912,5 @@ export function AITutorInterface({
     </motion.div>
   );
 }
+
+export default AITutorInterface;

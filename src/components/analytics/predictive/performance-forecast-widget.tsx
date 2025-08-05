@@ -592,3 +592,5 @@ export function PerformanceForecastWidget({
     </Card>
   );
 }
+
+export default PerformanceForecastWidget;

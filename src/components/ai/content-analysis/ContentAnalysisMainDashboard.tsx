@@ -831,3 +831,5 @@ export const ContentAnalysisMainDashboard: React.FC = () => {
     </div>
   );
 };
+
+export default ContentAnalysisMainDashboard;

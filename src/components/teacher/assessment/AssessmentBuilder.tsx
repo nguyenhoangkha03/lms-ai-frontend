@@ -901,3 +901,5 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
     </div>
   );
 };
+
+export default AssessmentBuilder;

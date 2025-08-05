@@ -1196,3 +1196,5 @@ function CDNSecurityPanel({ config, onUpdate }: CDNSecurityPanelProps) {
     </div>
   );
 }
+
+export default CDNManagementPanel;

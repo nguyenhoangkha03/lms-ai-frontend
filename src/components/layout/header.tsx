@@ -209,3 +209,5 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
     </header>
   );
 };
+
+export default Header;

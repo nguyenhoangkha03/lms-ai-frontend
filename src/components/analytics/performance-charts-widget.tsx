@@ -396,3 +396,5 @@ export const PerformanceChartsWidget: React.FC<
     </div>
   );
 };
+
+export default PerformanceChartsWidget;

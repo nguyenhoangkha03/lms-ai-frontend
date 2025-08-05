@@ -25,8 +25,8 @@ export default function FileManagementPage() {
   );
 }
 
-export const metadata = {
-  title: 'File Management | LMS AI Platform',
-  description:
-    'Advanced file management with media processing, CDN integration, and security scanning',
-};
+// export const metadata = {
+//   title: 'File Management | LMS AI Platform',
+//   description:
+//     'Advanced file management with media processing, CDN integration, and security scanning',
+// };

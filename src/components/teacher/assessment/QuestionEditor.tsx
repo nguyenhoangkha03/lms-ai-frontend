@@ -882,3 +882,5 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
     </div>
   );
 };
+
+export default QuestionEditor;

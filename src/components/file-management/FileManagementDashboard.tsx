@@ -977,3 +977,5 @@ function getStatusBadge(file: FileUpload) {
   }
   return <Badge variant="outline">Pending</Badge>;
 }
+
+export default FileManagementDashboard;

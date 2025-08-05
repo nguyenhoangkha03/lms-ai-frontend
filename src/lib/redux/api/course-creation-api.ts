@@ -101,6 +101,7 @@ export interface CourseLessonDraft {
   isPreview: boolean;
   isMandatory: boolean;
   objectives?: string[];
+  type?: string;
   hasQuiz: boolean;
   hasAssignment: boolean;
 }
