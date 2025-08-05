@@ -235,6 +235,12 @@ export const baseApi = createApi({
     'PurchaseStats',
     'Purchase',
     'SubscriptionStats',
+    'File',
+    'FileStatistics',
+    'ProcessingStatus',
+    'FileVersion',
+    'SecurityScan',
+    'CDNConfig',
   ],
   endpoints: () => ({}),
 });
