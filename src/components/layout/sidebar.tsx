@@ -32,6 +32,8 @@ import { setSidebarCollapsed } from '@/lib/redux/slices/ui-slice';
 
 interface SidebarProps {
   className?: string;
+  collapsed?: boolean;
+  variant?: 'default' | 'compact';
 }
 
 interface NavItem {

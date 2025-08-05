@@ -32,6 +32,9 @@ import { logout } from '@/lib/redux/slices/auth-slice';
 
 interface HeaderProps {
   className?: string;
+  showMenuButton?: boolean;
+  onMenuClick?: () => void;
+  variant?: 'default' | 'compact' | 'mobile';
 }
 
 export const Header: React.FC<HeaderProps> = ({ className }) => {
