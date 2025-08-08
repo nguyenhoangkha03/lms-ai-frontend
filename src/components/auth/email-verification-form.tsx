@@ -15,29 +15,110 @@ import {
   RefreshCw,
   Clock,
 } from 'lucide-react';
+import {
+  useLazyVerifyEmailQuery,
+  useResendVerificationMutation,
+} from '@/lib/redux/api/auth-api';
+import { Suspense } from 'react';
 
-export const EmailVerificationForm: React.FC = () => {
+const EmailVerificationContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [isMounted, setIsMounted] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [canResend, setCanResend] = useState(true);
   const [countdown, setCountdown] = useState(0);
+  const [redirectCountdown, setRedirectCountdown] = useState(0);
 
   const email = searchParams.get('email');
   const token = searchParams.get('token');
+  const error = searchParams.get('error');
+
+  const [
+    triggerVerify,
+    { data: verifyData, error: verifyError, isLoading: isVerifying },
+  ] = useLazyVerifyEmailQuery();
+
+  const [resendVerification, { isLoading: isResending, error: resendError }] =
+    useResendVerificationMutation();
 
   useEffect(() => {
-    // Auto-verify if token is present
-    if (token) {
-      verifyEmail(token);
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && token && !isVerified) {
+      // Use browser redirect instead of API call to ensure cookies are set
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
+      window.location.href = `${backendUrl}/api/v1/auth/verify-email?token=${token}`;
     }
-  }, [token]);
+  }, [isMounted, token, isVerified]);
 
   useEffect(() => {
-    // Countdown for resend button
+    if (verifyData && !isVerified) {
+      setIsVerified(true);
+      setRedirectCountdown(3); // Start countdown from 3
+      toast({
+        title: 'Email verified successfully!',
+        description: verifyData.message || 'Your account is now active.',
+      });
+
+      // Determine redirect URL based on user type or use student dashboard as default
+      let redirectUrl: string = ROUTES.STUDENT_DASHBOARD;
+      
+      // If verifyData contains user info, redirect based on userType
+      if (verifyData.user?.userType) {
+        switch (verifyData.user.userType) {
+          case 'student':
+            redirectUrl = ROUTES.STUDENT_DASHBOARD;
+            break;
+          case 'teacher':
+            redirectUrl = ROUTES.TEACHER_DASHBOARD;
+            break;
+          case 'admin':
+            redirectUrl = ROUTES.ADMIN_DASHBOARD;
+            break;
+          default:
+            redirectUrl = ROUTES.STUDENT_DASHBOARD;
+        }
+      }
+
+      const timer = setTimeout(() => {
+        router.push(redirectUrl);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [verifyData, isVerified, router, toast]);
+
+  useEffect(() => {
+    if (error && isMounted) {
+      toast({
+        title: 'Verification Failed',
+        description: error,
+        variant: 'destructive',
+      });
+    }
+  }, [error, isMounted, toast]);
+
+  useEffect(() => {
+    if (verifyError) {
+      const errorMessage =
+        (verifyError as any)?.data?.message ||
+        (verifyError as any)?.message ||
+        'Verification failed';
+
+      toast({
+        title: 'Verification Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  }, [verifyError, toast]);
+
+  useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
@@ -46,76 +127,64 @@ export const EmailVerificationForm: React.FC = () => {
     }
   }, [countdown]);
 
-  const verifyEmail = async (verificationToken: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/auth/verify-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: verificationToken }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Verification failed');
-      }
-
-      setIsVerified(true);
-      toast({
-        title: 'Email verified successfully!',
-        description: 'Your account is now active. You can start learning.',
-      });
-
-      // Redirect to dashboard after 3 seconds
-      setTimeout(() => {
-        router.push(ROUTES.LOGIN);
-      }, 3000);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Verification failed');
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (redirectCountdown > 0) {
+      const timer = setTimeout(
+        () => setRedirectCountdown(redirectCountdown - 1),
+        1000
+      );
+      return () => clearTimeout(timer);
     }
-  };
+  }, [redirectCountdown]);
 
-  const resendVerification = async () => {
+  const handleResendVerification = async () => {
     if (!email || !canResend) return;
 
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to resend verification');
-      }
+      const result = await resendVerification({ email }).unwrap();
 
       toast({
         title: 'Verification email sent!',
-        description: 'Please check your email for the new verification link.',
+        description:
+          result.message ||
+          'Please check your email for the new verification link.',
       });
 
       setCanResend(false);
-      setCountdown(60); // 60 seconds cooldown
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to resend email'
-      );
-    } finally {
-      setIsLoading(false);
+      setCountdown(60);
+    } catch (error: any) {
+      const errorMessage =
+        error?.data?.message || error?.message || 'Failed to resend email';
+
+      toast({
+        title: 'Resend Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
-  if (isVerified) {
+  // ✅ Show loading state until mounted để avoid hydration mismatch
+  if (!isMounted) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-900/20">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-400" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">Loading...</h3>
+          <p className="text-muted-foreground">
+            Please wait while we load the verification page.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state
+  if (isVerified || verifyData) {
     return (
       <div className="space-y-6 text-center">
         <div className="flex justify-center">
@@ -127,18 +196,125 @@ export const EmailVerificationForm: React.FC = () => {
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Email Verified!</h3>
           <p className="text-muted-foreground">
-            Your account has been successfully verified. You can now access all
-            platform features.
+            {verifyData?.message ||
+              'Your account has been successfully verified.'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {redirectCountdown > 0
+              ? `Redirecting to dashboard in ${redirectCountdown} seconds...`
+              : 'Redirecting to dashboard...'}
           </p>
         </div>
 
-        <Button className="w-full" asChild>
-          <Link href={ROUTES.LOGIN}>Continue to Login</Link>
+        <Button 
+          className="w-full" 
+          onClick={() => {
+            // Determine redirect URL based on user type or use student dashboard as default
+            let redirectUrl: string = ROUTES.STUDENT_DASHBOARD;
+            
+            if (verifyData?.user?.userType) {
+              switch (verifyData.user.userType) {
+                case 'student':
+                  redirectUrl = ROUTES.STUDENT_DASHBOARD;
+                  break;
+                case 'teacher':
+                  redirectUrl = ROUTES.TEACHER_DASHBOARD;
+                  break;
+                case 'admin':
+                  redirectUrl = ROUTES.ADMIN_DASHBOARD;
+                  break;
+                default:
+                  redirectUrl = ROUTES.STUDENT_DASHBOARD;
+              }
+            }
+            
+            router.push(redirectUrl);
+          }}
+        >
+          Continue to Dashboard
         </Button>
       </div>
     );
   }
 
+  // Loading state during verification
+  if (token && isVerifying) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">Verifying Email...</h3>
+          <p className="text-muted-foreground">
+            Please wait while we verify your email address.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if ((token && verifyError) || error) {
+    const errorMessage = error || 
+      (verifyError as any)?.data?.message ||
+      (verifyError as any)?.message ||
+      'Verification failed';
+
+    return (
+      <div className="space-y-6 text-center">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+            <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">Verification Failed</h3>
+          <p className="text-muted-foreground">{errorMessage}</p>
+        </div>
+
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            The verification link may be invalid or expired. Please request a
+            new verification email.
+          </AlertDescription>
+        </Alert>
+
+        <div className="space-y-4">
+          {email && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleResendVerification}
+              disabled={isResending || !canResend}
+            >
+              {isResending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : countdown > 0 ? (
+                <Clock className="mr-2 h-4 w-4" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              {countdown > 0
+                ? `Resend in ${countdown}s`
+                : 'Resend Verification Email'}
+            </Button>
+          )}
+
+          <Button variant="link" asChild>
+            <Link href={ROUTES.LOGIN}>Back to Login</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Default state - waiting for verification (no token in URL)
   return (
     <div className="space-y-6 text-center">
       <div className="flex justify-center">
@@ -160,10 +336,13 @@ export const EmailVerificationForm: React.FC = () => {
         </p>
       </div>
 
-      {error && (
+      {resendError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {(resendError as any)?.data?.message ||
+              'Failed to resend verification email'}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -176,23 +355,25 @@ export const EmailVerificationForm: React.FC = () => {
           </AlertDescription>
         </Alert>
 
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={resendVerification}
-          disabled={isLoading || !canResend}
-        >
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : countdown > 0 ? (
-            <Clock className="mr-2 h-4 w-4" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          {countdown > 0
-            ? `Resend in ${countdown}s`
-            : 'Resend Verification Email'}
-        </Button>
+        {email && (
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleResendVerification}
+            disabled={isResending || !canResend}
+          >
+            {isResending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : countdown > 0 ? (
+              <Clock className="mr-2 h-4 w-4" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {countdown > 0
+              ? `Resend in ${countdown}s`
+              : 'Resend Verification Email'}
+          </Button>
+        )}
       </div>
 
       <div className="text-center">
@@ -201,5 +382,30 @@ export const EmailVerificationForm: React.FC = () => {
         </Button>
       </div>
     </div>
+  );
+};
+
+// ✅ Simplified fallback component
+const EmailVerificationFallback: React.FC = () => (
+  <div className="space-y-6 text-center">
+    <div className="flex justify-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-900/20">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-400" />
+      </div>
+    </div>
+    <div className="space-y-2">
+      <h3 className="text-lg font-semibold">Loading...</h3>
+      <p className="text-muted-foreground">
+        Please wait while we load the verification page.
+      </p>
+    </div>
+  </div>
+);
+
+export const EmailVerificationForm: React.FC = () => {
+  return (
+    <Suspense fallback={<EmailVerificationFallback />}>
+      <EmailVerificationContent />
+    </Suspense>
   );
 };

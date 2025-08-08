@@ -537,7 +537,7 @@ export interface RegisterFormData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  userType: 'student' | 'teacher';
+  userType: 'student' | 'teacher' | 'admin';
   agreedToTerms: boolean;
 }
 
@@ -549,4 +549,170 @@ export interface ResetPasswordFormData {
   token: string;
   password: string;
   confirmPassword: string;
+}
+
+// Teacher Registration Types
+export enum DegreeLevel {
+  BACHELOR = 'bachelor',
+  MASTER = 'master',
+  PHD = 'phd',
+  ASSOCIATE = 'associate',
+  DIPLOMA = 'diploma',
+  OTHER = 'other',
+}
+
+export enum ExperienceLevel {
+  ENTRY = 'entry',
+  INTERMEDIATE = 'intermediate',
+  EXPERIENCED = 'experienced',
+  EXPERT = 'expert',
+}
+
+export interface PersonalInfoFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  country?: string;
+  timezone?: string;
+}
+
+export interface EducationFormData {
+  highestDegree: DegreeLevel;
+  fieldOfStudy: string;
+  institution: string;
+  graduationYear: number;
+  additionalCertifications?: string;
+}
+
+export interface ExperienceFormData {
+  teachingExperience: ExperienceLevel;
+  subjectAreas: string[];
+  previousInstitutions?: string;
+  onlineTeachingExperience: boolean;
+  totalStudentsTaught?: string;
+}
+
+export interface MotivationFormData {
+  whyTeach: string;
+  teachingPhilosophy: string;
+  specialSkills?: string;
+  courseIdeas?: string;
+}
+
+export interface AvailabilityFormData {
+  hoursPerWeek?: string;
+  preferredSchedule?: string[];
+  startDate?: string;
+}
+
+export interface DocumentsFormData {
+  resumeUploaded: boolean;
+  degreeUploaded: boolean;
+  certificationUploaded?: boolean;
+  idUploaded: boolean;
+}
+
+export interface AgreementsFormData {
+  termsAccepted: boolean;
+  backgroundCheckConsent: boolean;
+  communicationConsent: boolean;
+}
+
+export interface TeacherRegistrationFormData {
+  personalInfo: PersonalInfoFormData;
+  education: EducationFormData;
+  experience: ExperienceFormData;
+  motivation: MotivationFormData;
+  availability?: AvailabilityFormData;
+  documents: DocumentsFormData;
+  agreements: AgreementsFormData;
+  password: string;
+}
+
+export interface TeacherApplicationResponse {
+  success: boolean;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    userType: string;
+  };
+  message: string;
+  applicationId: string;
+}
+
+// Document Upload Types
+export enum DocumentType {
+  RESUME = 'resume',
+  DEGREE_CERTIFICATE = 'degree_certificate',
+  CERTIFICATION = 'certification',
+  IDENTITY_DOCUMENT = 'identity_document',
+  TEACHING_PORTFOLIO = 'teaching_portfolio',
+  REFERENCE_LETTER = 'reference_letter',
+  OTHER = 'other',
+}
+
+export interface UploadedDocument {
+  id: string;
+  originalName: string;
+  documentType: DocumentType;
+  size: number;
+  uploadedAt: string;
+  isVerified: boolean;
+  verifiedAt?: string;
+}
+
+export interface DocumentUploadResponse {
+  success: boolean;
+  message: string;
+  document: UploadedDocument;
+}
+
+// Admin Types
+export interface TeacherApplication {
+  id: string;
+  userId: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    createdAt: string;
+  };
+  teacherProfile: {
+    id: string;
+    teacherCode: string;
+    specializations: string;
+    qualifications: string;
+    yearsExperience: number;
+    teachingStyle: string;
+    subjects: string[];
+    isApproved: boolean;
+    isActive: boolean;
+    applicationData: any;
+    submittedAt: string;
+  };
+  status: 'pending' | 'approved' | 'rejected' | 'under_review';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+}
+
+export interface ApprovalDecision {
+  isApproved: boolean;
+  notes?: string;
+  conditions?: string[];
+  nextReviewDate?: Date;
+}
+
+export interface TeacherApplicationQuery {
+  status?: 'pending' | 'approved' | 'rejected' | 'under_review';
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: 'submittedAt' | 'reviewedAt' | 'email' | 'firstName';
+  sortOrder?: 'ASC' | 'DESC';
 }

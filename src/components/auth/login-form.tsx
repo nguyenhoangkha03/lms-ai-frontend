@@ -26,16 +26,19 @@ import {
 import { ROUTES } from '@/lib/constants/constants';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { SocialLoginButtons } from './social-login-buttons';
+import { useLoginMutation } from '@/lib/redux/api/auth-api';
+import { tokenManager } from '@/lib/api/client';
 
 export const LoginForm: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const redirectUrl = searchParams.get('redirect') || ROUTES.STUDENT_DASHBOARD;
+
+  const [login, { isLoading, error: apiError }] = useLoginMutation();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -48,49 +51,58 @@ export const LoginForm: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      setIsLoading(true);
       setError(null);
+      const result = await login(data).unwrap();
+      console.log('✅ Login successful:', result);
+      console.log('🔍 Processing login result...');
 
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Login failed');
-      }
-
-      // Check if 2FA is required
       if (result.requires2FA) {
+        console.log('🔐 2FA required, redirecting...');
         router.push(`/login/2fa?token=${result.tempToken}`);
         return;
       }
 
-      // Successful login
+      console.log('💭 No 2FA required, continuing...');
+
+      // Skip token saving - backend uses cookies
+      console.log('⏭️ Using cookies for auth - no token saving needed');
+
+      console.log('📢 Showing success toast...');
       toast({
         title: 'Welcome back!',
-        description: 'You have been successfully logged in.',
+        description: result.message || 'You have been successfully logged in.',
       });
 
-      router.push(redirectUrl);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
+      console.log('🚀 Preparing redirect...');
+      console.log('🚀 Redirecting to:', redirectUrl);
+      console.log('🚀 Router object:', router);
+      
+      // Check cookies and redirect properly
+      console.log('🍪 Cookies set successfully:', document.cookie);
+      
+      setTimeout(() => {
+        console.log('🚀 Redirecting to student dashboard:', redirectUrl);
+        try {
+          router.push(redirectUrl);
+          console.log('✅ Router.push successful');
+        } catch (routerError) {
+          console.log('❌ Router.push failed, using window.location:', routerError);
+          window.location.href = redirectUrl;
+        }
+      }, 100);
+
+    } catch (error: any) {
+      console.log('❌ Login failed:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Login failed. Please try again.';
+      setError(errorMessage);
     }
   };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
-      setIsLoading(true);
-      // Redirect to OAuth provider
       window.location.href = `/api/auth/${provider}?redirect=${encodeURIComponent(redirectUrl)}`;
     } catch (error) {
       setError(`Failed to login with ${provider}`);
-      setIsLoading(false);
     }
   };
 
@@ -209,7 +221,11 @@ export const LoginForm: React.FC = () => {
             </Button>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading}
+          >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In
           </Button>

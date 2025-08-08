@@ -1,5 +1,6 @@
-import { ProtectedRoute } from '@/components/auth/protected-route';
-import { USER_ROLES } from '@/lib/constants/constants';
+// Temporarily bypass ProtectedRoute - middleware handles auth
+// import { ProtectedRoute } from '@/components/auth/protected-route';
+// import { USER_ROLES } from '@/lib/constants/constants';
 
 export default function StudentLayout({
   children,
@@ -7,11 +8,11 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute allowedRoles={[USER_ROLES.STUDENT]} requireMfa={false}>
+    // <ProtectedRoute allowedRoles={[USER_ROLES.STUDENT]} requireMfa={false}>
       <div className="min-h-screen bg-background">
         {/* Student layout content */}
         {children}
       </div>
-    </ProtectedRoute>
+    // </ProtectedRoute>
   );
 }

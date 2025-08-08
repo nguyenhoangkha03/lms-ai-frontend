@@ -213,7 +213,7 @@ export default function RootLayout({
         />
 
         {/* Service Worker registration */}
-        <script
+        {/* <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
@@ -229,7 +229,7 @@ export default function RootLayout({
               }
             `,
           }}
-        />
+        /> */}
 
         {/* Performance monitoring script */}
         <script

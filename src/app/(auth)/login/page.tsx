@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { generateSEO } from '@/lib/seo';
 import { LoginForm } from '@/components/auth/login-form';
 import { AuthLayout } from '@/components/auth/auth-layout';
+import { LoginPageContent } from '@/components/auth/login-page-content';
 
 export const metadata: Metadata = generateSEO({
   title: 'Login - Access Your Learning Dashboard',
@@ -23,7 +24,9 @@ export default function LoginPage() {
       title="Welcome Back"
       description="Sign in to your account to continue your learning journey"
     >
-      <LoginForm />
+      <Suspense fallback={<LoginForm />}>
+        <LoginPageContent />
+      </Suspense>
     </AuthLayout>
   );
 }

@@ -39,8 +39,8 @@ export const registerSchema = z
     email: emailValidation,
     password: passwordValidation,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
-    role: z.enum(['student', 'teacher', 'admin'], {
-      message: 'Please select a role',
+    userType: z.enum(['student', 'teacher', 'admin'], {
+      message: 'Please select a user type',
     }),
     acceptTerms: z
       .boolean()

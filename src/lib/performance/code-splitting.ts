@@ -53,12 +53,14 @@ export const LazyPages = {
   StudentAchievements: createLazyComponent(
     () => import('@/app/(protected)/student/achievements/page')
   ),
-  AITutor: createLazyComponent(() => import('@/app/student/ai-tutor/page')),
+  AITutor: createLazyComponent(
+    () => import('@/app/(dashboard)/student/ai-tutor/page')
+  ),
   LearningPath: createLazyComponent(
-    () => import('@/app/student/learning-path/page')
+    () => import('@/app/(dashboard)/student/learning-path/page')
   ),
   PredictiveAnalytics: createLazyComponent(
-    () => import('@/app/student/predictive-analytics/page')
+    () => import('@/app/(dashboard)/student/predictive-analytics/page')
   ),
 
   TeacherDashboard: createLazyComponent(
@@ -97,14 +99,21 @@ export const LazyPages = {
   CourseList: createLazyComponent(() => import('@/app/courses/page')),
   CourseDetail: createLazyComponent(() => import('@/app/courses/[slug]/page')),
   LessonPage: createLazyComponent(
-    () => import('@/app/student/courses/[courseId]/lessons/[lessonId]/page')
+    () =>
+      import(
+        '@/app/(dashboard)/student/courses/[courseId]/lessons/[lessonId]/page'
+      )
   ),
 
   AssessmentTake: createLazyComponent(
-    () => import('@/app/student/assessments/[assessmentId]/take/page')
+    () =>
+      import('@/app/(dashboard)/student/assessments/[assessmentId]/take/page')
   ),
   AssessmentResults: createLazyComponent(
-    () => import('@/app/student/assessments/[assessmentId]/results/page')
+    () =>
+      import(
+        '@/app/(dashboard)/student/assessments/[assessmentId]/results/page'
+      )
   ),
 
   Forum: createLazyComponent(() => import('@/app/forum/page')),

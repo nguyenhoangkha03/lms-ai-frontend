@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { ROUTES, USER_ROLES } from '@/lib/constants/constants';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'my-secret-key'
-);
+const JWT_SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
 
 interface RouteConfig {
   path: string;
@@ -38,112 +36,112 @@ const routeConfigs: RouteConfig[] = [
   { path: '/reset-password', allowedRoles: [], requiresAuth: false },
   { path: '/verify-email', allowedRoles: [], requiresAuth: false },
 
-  //   { path: '/student', allowedRoles: [USER_ROLES.STUDENT], requiresAuth: true },
-  //   {
-  //     path: '/student/dashboard',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/student/courses',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/student/assignments',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/student/grades',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/student/progress',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/student/ai-tutor',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/student/recommendations',
-  //     allowedRoles: [USER_ROLES.STUDENT],
-  //     requiresAuth: true,
-  //   },
+  { path: '/student', allowedRoles: [USER_ROLES.STUDENT], requiresAuth: true },
+  {
+    path: '/student/dashboard',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
+  {
+    path: '/student/courses',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
+  {
+    path: '/student/assignments',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
+  {
+    path: '/student/grades',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
+  {
+    path: '/student/progress',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
+  {
+    path: '/student/ai-tutor',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
+  {
+    path: '/student/recommendations',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
 
-  //   { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
-  //   {
-  //     path: '/teacher/dashboard',
-  //     allowedRoles: [USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/teacher/courses',
-  //     allowedRoles: [USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/teacher/students',
-  //     allowedRoles: [USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/teacher/assessments',
-  //     allowedRoles: [USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/teacher/grading',
-  //     allowedRoles: [USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/teacher/analytics',
-  //     allowedRoles: [USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
+  { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
+  {
+    path: '/teacher/dashboard',
+    allowedRoles: [USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
+  {
+    path: '/teacher/courses',
+    allowedRoles: [USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
+  {
+    path: '/teacher/students',
+    allowedRoles: [USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
+  {
+    path: '/teacher/assessments',
+    allowedRoles: [USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
+  {
+    path: '/teacher/grading',
+    allowedRoles: [USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
+  {
+    path: '/teacher/analytics',
+    allowedRoles: [USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
 
-  //   { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
-  //   {
-  //     path: '/admin/dashboard',
-  //     allowedRoles: [USER_ROLES.ADMIN],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/admin/users',
-  //     allowedRoles: [USER_ROLES.ADMIN],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/admin/courses',
-  //     allowedRoles: [USER_ROLES.ADMIN],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/admin/analytics',
-  //     allowedRoles: [USER_ROLES.ADMIN],
-  //     requiresAuth: true,
-  //   },
-  //   {
-  //     path: '/admin/settings',
-  //     allowedRoles: [USER_ROLES.ADMIN],
-  //     requiresAuth: true,
-  //   },
+  { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
+  {
+    path: '/admin/dashboard',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/users',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/courses',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/analytics',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/settings',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
 
   {
     path: '/learn',
     allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
     requiresAuth: true,
   },
-  //   {
-  //     path: '/chat',
-  //     allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
-  //     requiresAuth: true,
-  //   },
+  {
+    path: '/chat',
+    allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
+    requiresAuth: true,
+  },
   {
     path: '/video',
     allowedRoles: [USER_ROLES.STUDENT, USER_ROLES.TEACHER],
@@ -335,6 +333,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const authToken =
+    request.cookies.get('access-token')?.value ||
     request.cookies.get('auth_token')?.value ||
     request.headers.get('authorization')?.replace('Bearer ', '');
 

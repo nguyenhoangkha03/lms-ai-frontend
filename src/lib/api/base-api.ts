@@ -5,23 +5,32 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseURL,
-  prepareHeaders: (headers, { getState: _ }) => {
+  credentials: 'include', // CRITICAL: Enable cookies
+  prepareHeaders: (headers, { getState: _, endpoint, extra }) => {
+    console.log('🌐 API Base URL:', API_CONFIG.baseURL);
     const token = tokenManager.getToken();
 
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    headers.set('Content-Type', 'application/json');
+    // Don't set Content-Type for FormData uploads - browser will set it with boundary
+    if (!(extra as any)?.body instanceof FormData && !headers.get('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
     headers.set('X-Request-ID', crypto.randomUUID());
     headers.set('X-Timestamp', new Date().toISOString());
 
+    console.log('📤 Request headers:', Object.fromEntries(headers.entries()));
     return headers;
   },
 });
 
 const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
+  console.log('🚀 Making API request:', args);
   let result = await baseQuery(args, api, extraOptions);
+  console.log('📥 API Response:', result);
   if (result.error && result.error.status === 401) {
     const refreshToken = tokenManager.getRefreshToken();
 
@@ -255,6 +264,11 @@ export const baseApi = createApi({
     'SearchBoostRules',
     'SearchOptimization',
     'SearchIndexStatus',
+    // Teacher Registration & Admin
+    'TeacherDocuments',
+    'ApprovalStats',
+    'DashboardOverview',
+    'PendingDocuments',
   ],
   endpoints: () => ({}),
 });

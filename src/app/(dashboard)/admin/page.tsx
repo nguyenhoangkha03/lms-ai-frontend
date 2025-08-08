@@ -41,10 +41,13 @@ import {
   HardDrive,
   Wifi,
   Globe,
+  UserCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useGetApprovalStatsQuery } from '@/lib/redux/api/admin-api';
+import Link from 'next/link';
 
 interface SystemHealth {
   overall: 'healthy' | 'warning' | 'critical';
@@ -146,6 +149,9 @@ export default function AdminOverviewDashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Teacher application stats
+  const { data: teacherStats } = useGetApprovalStatsQuery();
 
   // Real-time updates
   useEffect(() => {
@@ -374,6 +380,12 @@ export default function AdminOverviewDashboard() {
           trend: 'up',
         },
         {
+          label: 'Pending Teachers',
+          value: teacherStats?.stats?.pending || 0,
+          icon: UserCheck,
+          color: 'text-orange-600',
+        },
+        {
           label: 'Total Courses',
           value: businessMetrics.courses.total,
           change: 5.2,
@@ -386,14 +398,8 @@ export default function AdminOverviewDashboard() {
           value: `$${businessMetrics.revenue.thisMonth.toLocaleString()}`,
           change: businessMetrics.revenue.monthlyGrowth,
           icon: DollarSign,
-          color: 'text-orange-600',
+          color: 'text-green-600',
           trend: 'up',
-        },
-        {
-          label: 'System Uptime',
-          value: `${systemHealth?.uptime}%`,
-          icon: Server,
-          color: 'text-indigo-600',
         },
         {
           label: 'Response Time',
@@ -1111,16 +1117,30 @@ export default function AdminOverviewDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-auto justify-start p-4">
-              <Users className="mr-3 h-5 w-5" />
-              <div className="text-left">
-                <div className="font-medium">User Management</div>
-                <div className="text-xs text-muted-foreground">
-                  Manage users and roles
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+            <Link href="/dashboard/admin/teacher-applications">
+              <Button variant="outline" className="h-auto justify-start p-4 w-full">
+                <UserCheck className="mr-3 h-5 w-5" />
+                <div className="text-left">
+                  <div className="font-medium">Teacher Applications</div>
+                  <div className="text-xs text-muted-foreground">
+                    {teacherStats?.stats?.pending || 0} pending reviews
+                  </div>
                 </div>
-              </div>
-            </Button>
+              </Button>
+            </Link>
+
+            <Link href="/dashboard/admin/users">
+              <Button variant="outline" className="h-auto justify-start p-4 w-full">
+                <Users className="mr-3 h-5 w-5" />
+                <div className="text-left">
+                  <div className="font-medium">User Management</div>
+                  <div className="text-xs text-muted-foreground">
+                    Manage users and roles
+                  </div>
+                </div>
+              </Button>
+            </Link>
 
             <Button variant="outline" className="h-auto justify-start p-4">
               <BookOpen className="mr-3 h-5 w-5" />

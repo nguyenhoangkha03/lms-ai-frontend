@@ -2,12 +2,12 @@ export const APP_CONFIG = {
   name: 'Learnary',
   version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
   description: 'AI-Powered Learning Management System',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+  url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 } as const;
 
 export const API_CONFIG = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
-  socketURL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
+  socketURL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001',
   timeout: 30000,
 } as const;
 
@@ -34,7 +34,7 @@ export const ROUTES = {
   COURSE_SEARCH: '/courses/search',
 
   // Student routes
-  STUDENT_DASHBOARD: '/student/dashboard',
+  STUDENT_DASHBOARD: '/student',
   STUDENT_COURSES: '/student/courses',
   STUDENT_MY_COURSES: '/student/my-courses',
   STUDENT_WISHLIST: '/student/wishlist',
@@ -43,6 +43,7 @@ export const ROUTES = {
   STUDENT_PROGRESS: '/student/progress',
   STUDENT_AI_TUTOR: '/student/ai-tutor',
   STUDENT_RECOMMENDATIONS: '/student/recommendations',
+  STUDENT_ANALYTICS: '/student/analytics',
 
   // Learning experience routes
   STUDENT_COURSE_LEARN: (courseId: string, lessonId?: string) =>

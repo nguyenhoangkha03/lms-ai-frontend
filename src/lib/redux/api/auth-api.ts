@@ -6,15 +6,19 @@ import {
   RegisterFormData,
   ResetPasswordFormData,
   User,
+  TeacherRegistrationFormData,
+  TeacherApplicationResponse,
 } from '@/lib/types';
 
 interface AuthResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
-  expiresIn: number;
-  twoFactorRequired?: boolean;
-  twoFactorToken?: string | null;
+  message: string;
+  user?: User;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  requires2FA?: boolean;
+  tempToken?: string;
+  sessionId?: string;
 }
 
 interface TwoFactorResponse {
@@ -39,8 +43,10 @@ export const authApi = baseApi.injectEndpoints({
         method: 'POST',
         body: credentials,
       }),
-      transformResponse: (response: ApiResponse<AuthResponse>) =>
-        response.data!,
+      transformResponse: (response: any) => {
+        console.log('🔍 Raw API Response:', response);
+        return response;
+      },
       invalidatesTags: ['User'],
     }),
 
@@ -134,14 +140,11 @@ export const authApi = baseApi.injectEndpoints({
         response.data!,
     }),
 
-    verifyEmail: builder.mutation<{ message: string }, { token: string }>({
+    verifyEmail: builder.query<{ message: string; user?: User }, { token: string }>({
       query: ({ token }) => ({
-        url: `/auth/verify-email/${token}`,
-        method: 'POST',
+        url: `/auth/verify-email?token=${token}`,
+        method: 'GET',
       }),
-      transformResponse: (response: ApiResponse<{ message: string }>) =>
-        response.data!,
-      invalidatesTags: ['User'],
     }),
 
     generate2FA: builder.mutation<TwoFactorResponse, void>({
@@ -241,6 +244,16 @@ export const authApi = baseApi.injectEndpoints({
       ) => response.data!,
       providesTags: ['User'],
     }),
+
+    // Teacher Registration
+    applyAsTeacher: builder.mutation<TeacherApplicationResponse, TeacherRegistrationFormData>({
+      query: teacherData => ({
+        url: '/auth/teacher/apply',
+        method: 'POST',
+        body: teacherData,
+      }),
+      transformResponse: (response: TeacherApplicationResponse) => response,
+    }),
   }),
 });
 
@@ -256,7 +269,7 @@ export const {
   useChangePasswordMutation,
 
   useResendVerificationMutation,
-  useVerifyEmailMutation,
+  useLazyVerifyEmailQuery,
 
   useGenerate2FAMutation,
   useEnable2FAMutation,
@@ -270,4 +283,7 @@ export const {
   useUpdateProfileMutation,
 
   useCheckAuthQuery,
+
+  // Teacher Registration
+  useApplyAsTeacherMutation,
 } = authApi;

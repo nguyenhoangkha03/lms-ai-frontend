@@ -143,7 +143,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
               "media-src 'self' blob: https:",
-              "connect-src 'self' https: wss:",
+              "connect-src 'self' http://localhost:3001 https: wss:",
               "worker-src 'self' blob:",
             ].join('; '),
           },
@@ -168,7 +168,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
+            value: 'Content-Type, Authorization, x-request-id',
           },
         ],
       },
@@ -178,7 +178,9 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: process.env.NODE_ENV === 'development' 
+              ? 'no-cache' 
+              : 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -187,7 +189,9 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: process.env.NODE_ENV === 'development' 
+              ? 'no-cache' 
+              : 'public, max-age=31536000, immutable',
           },
         ],
       },

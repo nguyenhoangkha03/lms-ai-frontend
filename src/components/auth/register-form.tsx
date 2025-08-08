@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,6 +47,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { SocialLoginButtons } from './social-login-buttons';
+import { useRegisterMutation } from '@/lib/redux/api/auth-api';
 
 const roleOptions = [
   {
@@ -98,11 +99,11 @@ export const RegisterForm: React.FC = () => {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<
+  const [selectedUserType, setSelectedUserType] = useState<
     'student' | 'teacher' | 'admin'
   >('student');
+
+  const [register, { isLoading, error: apiError }] = useRegisterMutation();
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -112,53 +113,59 @@ export const RegisterForm: React.FC = () => {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'student',
+      userType: selectedUserType,
       acceptTerms: false,
     },
   });
 
+  useEffect(() => {
+    form.setValue('userType', selectedUserType);
+  }, [selectedUserType, form]);
+
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      setIsLoading(true);
-      setError(null);
+      console.log('🔍 Submitting form with data:', data);
 
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const result = await register({
+        ...data,
+        agreedToTerms: data.acceptTerms,
+      }).unwrap();
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Registration failed');
-      }
+      console.log('✅ Registration successful:', result);
 
       toast({
         title: 'Account created successfully!',
         description: 'Please check your email to verify your account.',
       });
 
-      // Redirect based on role
-      if (data.role === 'teacher') {
+      if (data.userType === 'teacher') {
         router.push('/teacher-register/success');
       } else {
         router.push('/verify-email?email=' + encodeURIComponent(data.email));
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      console.error('❌ Registration failed:', error);
+
+      const errorMessage =
+        error?.data?.message || error?.message || 'Registration failed';
+
+      toast({
+        title: 'Registration Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
-      setIsLoading(true);
       window.location.href = `/api/auth/${provider}?action=register`;
     } catch (error) {
-      setError(`Failed to register with ${provider}`);
-      setIsLoading(false);
+      toast({
+        title: 'Social Login Failed',
+        description: `Failed to register with ${provider}`,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -194,7 +201,7 @@ export const RegisterForm: React.FC = () => {
         <div className="grid gap-3">
           {roleOptions.map(role => {
             const Icon = role.icon;
-            const isSelected = selectedRole === role.value;
+            const isSelected = selectedUserType === role.value;
             const isDisabled = role.disabled;
 
             return (
@@ -209,7 +216,7 @@ export const RegisterForm: React.FC = () => {
                       ? `ring-2 ring-${role.color}-500 border-${role.color}-200 dark:border-${role.color}-800`
                       : 'hover:border-gray-300 dark:hover:border-gray-600'
                   } ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
-                  onClick={() => !isDisabled && setSelectedRole(role.value)}
+                  onClick={() => !isDisabled && setSelectedUserType(role.value)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -265,21 +272,47 @@ export const RegisterForm: React.FC = () => {
       {/* Registration Form */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {error && (
+          {/* 🔥 ENHANCED ERROR DISPLAY */}
+          {apiError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {(apiError as any)?.data?.message ||
+                  'Registration failed. Please try again.'}
+              </AlertDescription>
             </Alert>
           )}
+
+          {/* Form Validation Errors */}
+          {form.formState.errors &&
+            Object.keys(form.formState.errors).length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-1">
+                    <div className="font-medium">
+                      Please fix the following errors:
+                    </div>
+                    {Object.entries(form.formState.errors).map(
+                      ([field, error]) => (
+                        <div key={field} className="text-sm">
+                          • {field}: {error?.message}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
           {/* Hidden role field */}
           <FormField
             control={form.control}
-            name="role"
+            name="userType"
             render={({ field }) => (
               <FormItem className="hidden">
                 <FormControl>
-                  <Input {...field} value={selectedRole} />
+                  <Input {...field} value={selectedUserType} />
                 </FormControl>
               </FormItem>
             )}
@@ -432,7 +465,7 @@ export const RegisterForm: React.FC = () => {
             control={form.control}
             name="acceptTerms"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
@@ -466,6 +499,21 @@ export const RegisterForm: React.FC = () => {
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Account
           </Button>
+
+          {/* 🔧 DEBUG BUTTON (Remove in production) */}
+          {/* {process.env.NODE_ENV === 'development' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                console.log('Form values:', form.getValues());
+                console.log('Form errors:', form.formState.errors);
+                console.log('Form valid:', form.formState.isValid);
+              }}
+            >
+              Debug Form
+            </Button>
+          )} */}
         </form>
       </Form>
 
