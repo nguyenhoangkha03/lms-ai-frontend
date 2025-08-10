@@ -44,12 +44,13 @@ import { VideoSessionInterface } from '@/components/live-teaching/VideoSessionIn
 import { CreateSessionDialog } from '@/components/live-teaching/CreateSessionDialog';
 
 import {
-  useGetVideoSessionsQuery,
-  useStartVideoSessionMutation,
-  useEndVideoSessionMutation,
-  useDeleteVideoSessionMutation,
-  useGetUpcomingSessionsQuery,
-} from '@/lib/redux/api/live-teaching-api';
+  useGetLiveSessionsQuery,
+  useGetLiveSessionStatisticsQuery,
+  useDeleteLiveSessionMutation,
+  useStartLiveSessionMutation,
+  useEndLiveSessionMutation,
+  LiveSession,
+} from '@/lib/redux/api/teacher-live-sessions-api';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -78,19 +79,16 @@ export default function LiveSessionsPage() {
   const [activeSession, setActiveSession] = useState<string | null>(null);
 
   //// API hooks
-  const { data: sessionsData, isLoading } = useGetVideoSessionsQuery({
-    page: 1,
-    limit: 20,
-    search: searchTerm,
+  const { data: sessionsData, isLoading } = useGetLiveSessionsQuery({
     status: statusFilter === 'all' ? undefined : statusFilter,
-    sessionType: sessionTypeFilter === 'all' ? undefined : sessionTypeFilter,
   });
-  const { data: upcomingSessions } = useGetUpcomingSessionsQuery({ limit: 5 });
-  const [startSession] = useStartVideoSessionMutation();
-  const [endSession] = useEndVideoSessionMutation();
-  const [deleteSession] = useDeleteVideoSessionMutation();
+  const { data: statistics } = useGetLiveSessionStatisticsQuery();
+  const [startSession] = useStartLiveSessionMutation();
+  const [endSession] = useEndLiveSessionMutation();
+  const [deleteSession] = useDeleteLiveSessionMutation();
 
   const sessions = sessionsData?.sessions || [];
+  const upcomingSessions = statistics?.upcomingSessions || [];
 
   // Handle session actions
   const handleStartSession = async (sessionId: string) => {
@@ -256,12 +254,12 @@ export default function LiveSessionsPage() {
                       <div>
                         <p className="font-medium">{session.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {formatDate(session.scheduledStart)}
+                          {formatDate(session.scheduledAt)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant="outline">{session.sessionType}</Badge>
+                      <Badge variant="outline">{session.courseName}</Badge>
                       <Button
                         size="sm"
                         onClick={() => handleJoinSession(session.id)}
@@ -339,7 +337,7 @@ export default function LiveSessionsPage() {
                       <Badge className={getStatusColor(session.status)}>
                         {session.status}
                       </Badge>
-                      <Badge variant="outline">{session.sessionType}</Badge>
+                      <Badge variant="outline">{session.courseName}</Badge>
                     </div>
                   </div>
 
@@ -418,11 +416,11 @@ export default function LiveSessionsPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center text-muted-foreground">
                       <Calendar className="mr-2 h-4 w-4" />
-                      <span>Start: {formatDate(session.scheduledStart)}</span>
+                      <span>Start: {formatDate(session.scheduledAt)}</span>
                     </div>
                     <div className="flex items-center text-muted-foreground">
                       <Clock className="mr-2 h-4 w-4" />
-                      <span>End: {formatDate(session.scheduledEnd)}</span>
+                      <span>Duration: {session.duration} minutes</span>
                     </div>
                     <div className="flex items-center text-muted-foreground">
                       <Users className="mr-2 h-4 w-4" />

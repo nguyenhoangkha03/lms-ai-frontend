@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  teacherProfile?: TeacherProfile;
   email: string;
   username: string;
   firstName: string;
@@ -586,7 +587,7 @@ export interface EducationFormData {
 }
 
 export interface ExperienceFormData {
-  teachingExperience: ExperienceLevel;
+  teachingExperience: number;
   subjectAreas: string[];
   previousInstitutions?: string;
   onlineTeachingExperience: boolean;

@@ -27,7 +27,6 @@ import {
   BookOpen,
   DollarSign,
   Activity,
-  Server,
   Database,
   Zap,
   Shield,
@@ -150,10 +149,8 @@ export default function AdminOverviewDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Teacher application stats
   const { data: teacherStats } = useGetApprovalStatsQuery();
 
-  // Real-time updates
   useEffect(() => {
     if (!socket) return;
 
@@ -184,10 +181,9 @@ export default function AdminOverviewDashboard() {
     };
   }, [socket]);
 
-  // Load initial data
   useEffect(() => {
     loadDashboardData();
-    const interval = setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+    const interval = setInterval(loadDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -195,7 +191,6 @@ export default function AdminOverviewDashboard() {
     try {
       setIsLoading(true);
 
-      // Simulate API calls - replace with actual API endpoints
       const [
         healthResponse,
         metricsResponse,
@@ -1119,7 +1114,10 @@ export default function AdminOverviewDashboard() {
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
             <Link href="/dashboard/admin/teacher-applications">
-              <Button variant="outline" className="h-auto justify-start p-4 w-full">
+              <Button
+                variant="outline"
+                className="h-auto w-full justify-start p-4"
+              >
                 <UserCheck className="mr-3 h-5 w-5" />
                 <div className="text-left">
                   <div className="font-medium">Teacher Applications</div>
@@ -1131,7 +1129,10 @@ export default function AdminOverviewDashboard() {
             </Link>
 
             <Link href="/dashboard/admin/users">
-              <Button variant="outline" className="h-auto justify-start p-4 w-full">
+              <Button
+                variant="outline"
+                className="h-auto w-full justify-start p-4"
+              >
                 <Users className="mr-3 h-5 w-5" />
                 <div className="text-left">
                   <div className="font-medium">User Management</div>

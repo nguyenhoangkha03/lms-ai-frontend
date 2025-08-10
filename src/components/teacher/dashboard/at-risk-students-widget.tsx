@@ -461,7 +461,7 @@ export function AtRiskStudentsWidget({
                               ? formatLastActivity(student.lastContactDate)
                               : 'Never'}
                           </div>
-                          {student.interventionHistory.length > 0 && (
+                          {student.interventionHistory?.length > 0 && (
                             <Badge variant="outline" className="text-xs">
                               {student.interventionHistory.length} interventions
                             </Badge>

@@ -38,7 +38,7 @@ const routeConfigs: RouteConfig[] = [
 
   { path: '/student', allowedRoles: [USER_ROLES.STUDENT], requiresAuth: true },
   {
-    path: '/student/dashboard',
+    path: '/student',
     allowedRoles: [USER_ROLES.STUDENT],
     requiresAuth: true,
   },
@@ -75,7 +75,7 @@ const routeConfigs: RouteConfig[] = [
 
   { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
   {
-    path: '/teacher/dashboard',
+    path: '/teacher',
     allowedRoles: [USER_ROLES.TEACHER],
     requiresAuth: true,
   },
@@ -107,7 +107,7 @@ const routeConfigs: RouteConfig[] = [
 
   { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
   {
-    path: '/admin/dashboard',
+    path: '/admin',
     allowedRoles: [USER_ROLES.ADMIN],
     requiresAuth: true,
   },

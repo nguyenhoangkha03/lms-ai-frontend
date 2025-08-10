@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Brain, ArrowLeft } from 'lucide-react';
 import { APP_CONFIG, ROUTES } from '@/lib/constants/constants';
+import Image from 'next/image';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -50,6 +51,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             transition={{ duration: 0.6 }}
             className="w-full max-w-sm text-center"
           >
+            {/* <Image
+              className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-white backdrop-blur-sm"
+              src="/logoAI.png"
+              alt="Logo"
+              width={32}
+              height={32}
+            /> */}
             <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
               <Brain className="h-10 w-10 text-white" />
             </div>
@@ -105,6 +113,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-purple-600">
                 <Brain className="h-5 w-5 text-white" />
               </div>
+
               <span className="text-xl font-bold">{APP_CONFIG.name}</span>
             </Link>
           </div>

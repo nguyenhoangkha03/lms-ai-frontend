@@ -19,8 +19,7 @@ export const LoginPageContent: React.FC = () => {
         title: 'Email Verified Successfully!',
         description: decodeURIComponent(message),
       });
-      
-      // Clean up URL after showing toast
+
       if (window.history.replaceState) {
         const url = new URL(window.location.href);
         url.searchParams.delete('verified');
@@ -37,7 +36,8 @@ export const LoginPageContent: React.FC = () => {
         <Alert className="border-green-200 bg-green-50 text-green-800">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription>
-            <strong>Email Verified!</strong> {decodeURIComponent(message)}. You can now login to access your account.
+            <strong>Email Verified!</strong> {decodeURIComponent(message)}. You
+            can now login to access your account.
           </AlertDescription>
         </Alert>
       )}

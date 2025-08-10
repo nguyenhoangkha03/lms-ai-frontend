@@ -88,8 +88,8 @@ export const HeroSection: React.FC = () => {
             {/* CTAs */}
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
               <Button asChild size="lg" className="h-12 px-8">
-                <Link href={ROUTES.REGISTER}>
-                  Start Learning Today
+                <Link href="/get-started">
+                  Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

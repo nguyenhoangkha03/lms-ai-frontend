@@ -50,8 +50,9 @@ const EmailVerificationContent: React.FC = () => {
 
   useEffect(() => {
     if (isMounted && token && !isVerified) {
-      // Use browser redirect instead of API call to ensure cookies are set
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
+      const backendUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
+        'http://localhost:3001';
       window.location.href = `${backendUrl}/api/v1/auth/verify-email?token=${token}`;
     }
   }, [isMounted, token, isVerified]);
@@ -59,23 +60,28 @@ const EmailVerificationContent: React.FC = () => {
   useEffect(() => {
     if (verifyData && !isVerified) {
       setIsVerified(true);
-      setRedirectCountdown(3); // Start countdown from 3
+      setRedirectCountdown(3);
       toast({
         title: 'Email verified successfully!',
         description: verifyData.message || 'Your account is now active.',
       });
 
-      // Determine redirect URL based on user type or use student dashboard as default
       let redirectUrl: string = ROUTES.STUDENT_DASHBOARD;
-      
-      // If verifyData contains user info, redirect based on userType
+
       if (verifyData.user?.userType) {
         switch (verifyData.user.userType) {
           case 'student':
             redirectUrl = ROUTES.STUDENT_DASHBOARD;
             break;
           case 'teacher':
-            redirectUrl = ROUTES.TEACHER_DASHBOARD;
+            // Check teacher application status
+            if (verifyData.user.status === 'pending' || verifyData.user.applicationStatus === 'pending') {
+              redirectUrl = '/teacher-application-pending';
+            } else if (verifyData.user.status === 'approved' || verifyData.user.applicationStatus === 'approved') {
+              redirectUrl = ROUTES.TEACHER_DASHBOARD;
+            } else {
+              redirectUrl = '/teacher-application-pending';
+            }
             break;
           case 'admin':
             redirectUrl = ROUTES.ADMIN_DASHBOARD;
@@ -206,19 +212,25 @@ const EmailVerificationContent: React.FC = () => {
           </p>
         </div>
 
-        <Button 
-          className="w-full" 
+        <Button
+          className="w-full"
           onClick={() => {
-            // Determine redirect URL based on user type or use student dashboard as default
             let redirectUrl: string = ROUTES.STUDENT_DASHBOARD;
-            
+
             if (verifyData?.user?.userType) {
               switch (verifyData.user.userType) {
                 case 'student':
                   redirectUrl = ROUTES.STUDENT_DASHBOARD;
                   break;
                 case 'teacher':
-                  redirectUrl = ROUTES.TEACHER_DASHBOARD;
+                  // Check teacher application status
+                  if (verifyData.user.status === 'pending' || verifyData.user.applicationStatus === 'pending') {
+                    redirectUrl = '/teacher-application-pending';
+                  } else if (verifyData.user.status === 'approved' || verifyData.user.applicationStatus === 'approved') {
+                    redirectUrl = ROUTES.TEACHER_DASHBOARD;
+                  } else {
+                    redirectUrl = '/teacher-application-pending';
+                  }
                   break;
                 case 'admin':
                   redirectUrl = ROUTES.ADMIN_DASHBOARD;
@@ -227,11 +239,15 @@ const EmailVerificationContent: React.FC = () => {
                   redirectUrl = ROUTES.STUDENT_DASHBOARD;
               }
             }
-            
+
             router.push(redirectUrl);
           }}
         >
-          Continue to Dashboard
+          {verifyData?.user?.userType === 'teacher' && 
+           (verifyData.user.status === 'pending' || verifyData.user.applicationStatus === 'pending')
+            ? 'View Application Status'
+            : 'Continue to Dashboard'
+          }
         </Button>
       </div>
     );
@@ -259,7 +275,8 @@ const EmailVerificationContent: React.FC = () => {
 
   // Error state
   if ((token && verifyError) || error) {
-    const errorMessage = error || 
+    const errorMessage =
+      error ||
       (verifyError as any)?.data?.message ||
       (verifyError as any)?.message ||
       'Verification failed';

@@ -226,18 +226,21 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
     // Get teacher dashboard statistics
     getTeacherDashboardStats: builder.query<TeacherDashboardStats, void>({
       query: () => '/teacher/dashboard/stats',
+      transformResponse: (response: { success: boolean; message: string; data: TeacherDashboardStats }) => response.data,
       providesTags: ['TeacherDashboard'],
     }),
 
     // Get class overview for all courses
     getClassOverview: builder.query<ClassOverview[], void>({
       query: () => '/teacher/dashboard/classes',
+      transformResponse: (response: { success: boolean; message: string; data: ClassOverview[] }) => response.data,
       providesTags: ['ClassOverview'],
     }),
 
     // Get detailed class overview for specific course
     getDetailedClassOverview: builder.query<ClassOverview, string>({
       query: courseId => `/teacher/dashboard/classes/${courseId}`,
+      transformResponse: (response: { success: boolean; message: string; data: ClassOverview }) => response.data,
       providesTags: ['ClassOverview'],
     }),
 
@@ -250,12 +253,14 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
         url: '/teacher/dashboard/students',
         params: { courseId, status, limit, offset },
       }),
+      transformResponse: (response: { success: boolean; message: string; data: StudentOverview[] }) => response.data,
       providesTags: ['StudentOverview'],
     }),
 
     // Get detailed student information
     getDetailedStudentInfo: builder.query<StudentOverview, string>({
       query: studentId => `/teacher/dashboard/students/${studentId}`,
+      transformResponse: (response: { success: boolean; message: string; data: StudentOverview }) => response.data,
       providesTags: ['StudentOverview'],
     }),
 
@@ -268,12 +273,14 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
         url: '/teacher/dashboard/activity',
         params: { limit, offset, priority },
       }),
+      transformResponse: (response: { success: boolean; message: string; data: TeacherActivityFeedItem[] }) => response.data,
       providesTags: ['TeacherActivity'],
     }),
 
     // Get quick actions for teacher
     getTeacherQuickActions: builder.query<TeacherQuickAction[], void>({
       query: () => '/teacher/dashboard/quick-actions',
+      transformResponse: (response: { success: boolean; message: string; data: TeacherQuickAction[] }) => response.data,
       providesTags: ['TeacherQuickActions'],
     }),
 
@@ -286,10 +293,10 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
         url: '/teacher/dashboard/ai-insights',
         params: { courseId, type, limit },
       }),
+      transformResponse: (response: { success: boolean; message: string; data: TeachingInsight[] }) => response.data,
       providesTags: ['TeachingInsights'],
     }),
 
-    // Get performance analytics
     getTeacherPerformanceAnalytics: builder.query<
       PerformanceAnalytics,
       { period?: string; courseIds?: string[] }
@@ -298,10 +305,10 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
         url: '/teacher/dashboard/analytics',
         params: { period, courseIds: courseIds?.join(',') },
       }),
+      transformResponse: (response: { success: boolean; message: string; data: PerformanceAnalytics }) => response.data,
       providesTags: ['TeacherAnalytics'],
     }),
 
-    // Get at-risk students
     getAtRiskStudents: builder.query<
       AtRiskStudent[],
       { courseId?: string; riskLevel?: string; limit?: number }
@@ -310,10 +317,10 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
         url: '/teacher/dashboard/at-risk-students',
         params: { courseId, riskLevel, limit },
       }),
+      transformResponse: (response: { success: boolean; message: string; data: AtRiskStudent[] }) => response.data,
       providesTags: ['AtRiskStudents'],
     }),
 
-    // Get grading queue
     getGradingQueue: builder.query<
       GradingQueue[],
       { courseId?: string; type?: string; priority?: string; limit?: number }
@@ -322,10 +329,10 @@ export const teacherDashboardApi = baseApi.injectEndpoints({
         url: '/teacher/dashboard/grading-queue',
         params: { courseId, type, priority, limit },
       }),
+      transformResponse: (response: { success: boolean; message: string; data: GradingQueue[] }) => response.data,
       providesTags: ['GradingQueue'],
     }),
 
-    // Contact student action
     contactStudent: builder.mutation<
       void,
       { studentId: string; message: string; subject: string; courseId?: string }

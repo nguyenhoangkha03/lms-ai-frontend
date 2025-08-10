@@ -15,6 +15,13 @@ import {
   Zap,
   ArrowRight,
   CheckCircle,
+  BarChart3,
+  Download,
+  UserCircle,
+  Settings,
+  FolderOpen,
+  Award,
+  TrendingUp,
 } from 'lucide-react';
 import {
   Card,
@@ -251,7 +258,16 @@ export const TeacherQuickActionsWidget: React.FC<
               className="justify-start"
             >
               <ClipboardList className="mr-2 h-4 w-4" />
-              New Quiz
+              New Assessment
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/assignments/create')}
+              className="justify-start"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              New Assignment
             </Button>
             <Button
               variant="outline"
@@ -262,14 +278,122 @@ export const TeacherQuickActionsWidget: React.FC<
               <Video className="mr-2 h-4 w-4" />
               Live Session
             </Button>
+          </div>
+        </div>
+
+        {/* Teaching Management */}
+        <div className="border-t pt-4">
+          <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+            Teaching Management
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/teacher/announcements/create')}
+              onClick={() => router.push('/teacher/students')}
               className="justify-start"
             >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Announcement
+              <Users className="mr-2 h-4 w-4" />
+              Students
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/gradebook')}
+              className="justify-start"
+            >
+              <Award className="mr-2 h-4 w-4" />
+              Gradebook
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/files')}
+              className="justify-start"
+            >
+              <FolderOpen className="mr-2 h-4 w-4" />
+              Files
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/courses')}
+              className="justify-start"
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Courses
+            </Button>
+          </div>
+        </div>
+
+        {/* Analytics & Reports Quick Access */}
+        <div className="border-t pt-4">
+          <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+            Analytics & Reports
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/analytics')}
+              className="justify-start bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:from-blue-100 hover:to-purple-100"
+            >
+              <BarChart3 className="mr-2 h-4 w-4 text-blue-600" />
+              Analytics
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/reports')}
+              className="justify-start bg-gradient-to-r from-green-50 to-teal-50 border-green-200 hover:from-green-100 hover:to-teal-100"
+            >
+              <Download className="mr-2 h-4 w-4 text-green-600" />
+              Reports
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/predictive-analytics')}
+              className="justify-start bg-gradient-to-r from-orange-50 to-red-50 border-orange-200 hover:from-orange-100 hover:to-red-100"
+            >
+              <TrendingUp className="mr-2 h-4 w-4 text-orange-600" />
+              Predictive
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/assignments')}
+              className="justify-start"
+            >
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Assignments
+            </Button>
+          </div>
+        </div>
+
+        {/* Profile & Settings */}
+        <div className="border-t pt-4">
+          <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+            Profile & Settings
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/profile')}
+              className="justify-start bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200 hover:from-violet-100 hover:to-purple-100"
+            >
+              <UserCircle className="mr-2 h-4 w-4 text-violet-600" />
+              Profile
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/teacher/settings')}
+              className="justify-start bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200 hover:from-slate-100 hover:to-gray-100"
+            >
+              <Settings className="mr-2 h-4 w-4 text-slate-600" />
+              Settings
             </Button>
           </div>
         </div>

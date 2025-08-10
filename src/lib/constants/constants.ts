@@ -53,7 +53,7 @@ export const ROUTES = {
   STUDENT_COURSE_OVERVIEW: (courseId: string) => `/student/courses/${courseId}`,
 
   // Teacher routes
-  TEACHER_DASHBOARD: '/teacher/dashboard',
+  TEACHER_DASHBOARD: '/teacher',
   TEACHER_COURSES: '/teacher/courses',
   TEACHER_STUDENTS: '/teacher/students',
   TEACHER_ASSESSMENTS: '/teacher/assessments',
@@ -61,7 +61,7 @@ export const ROUTES = {
   TEACHER_ANALYTICS: '/teacher/analytics',
 
   // Admin routes
-  ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_DASHBOARD: '/admin',
   ADMIN_USERS: '/admin/users',
   ADMIN_COURSES: '/admin/courses',
   ADMIN_ANALYTICS: '/admin/analytics',

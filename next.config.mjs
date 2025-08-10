@@ -178,9 +178,10 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: process.env.NODE_ENV === 'development' 
-              ? 'no-cache' 
-              : 'public, max-age=31536000, immutable',
+            value:
+              process.env.NODE_ENV === 'development'
+                ? 'no-cache'
+                : 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -189,9 +190,10 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: process.env.NODE_ENV === 'development' 
-              ? 'no-cache' 
-              : 'public, max-age=31536000, immutable',
+            value:
+              process.env.NODE_ENV === 'development'
+                ? 'no-cache'
+                : 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -213,7 +215,7 @@ const nextConfig = {
     return [
       {
         source: '/dashboard',
-        destination: '/student/dashboard',
+        destination: '/student',
         permanent: false,
         has: [
           {
@@ -225,7 +227,7 @@ const nextConfig = {
       },
       {
         source: '/dashboard',
-        destination: '/teacher/dashboard',
+        destination: '/teacher',
         permanent: false,
         has: [
           {
@@ -237,7 +239,7 @@ const nextConfig = {
       },
       {
         source: '/dashboard',
-        destination: '/admin/dashboard',
+        destination: '/admin',
         permanent: false,
         has: [
           {

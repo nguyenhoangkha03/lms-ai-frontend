@@ -92,6 +92,11 @@ export const teacherApplicationSchema = z.object({
     phone: z.string().min(10, 'Phone number must be at least 10 digits'),
     country: z.string().min(1, 'Please select your country'),
     timezone: z.string().min(1, 'Please select your timezone'),
+    password: passwordValidation,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  }).refine(data => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   }),
   education: z.object({
     highestDegree: z.string().min(1, 'Please select your highest degree'),

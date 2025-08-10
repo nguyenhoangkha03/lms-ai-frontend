@@ -1,4 +1,4 @@
-import { tokenManager } from '@/lib/api/client';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 import { LOCAL_STORAGE_KEYS } from '@/lib/constants/constants';
 import { User } from '@/lib/types';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
@@ -13,7 +13,7 @@ interface AuthState {
   permissions: string[];
   lastActivity: string | null;
   sessionExpiry: string | null;
-  twoFactorRequired: boolean;
+  twoFactorEnabled: boolean;
   twoFactorToken: string | null;
 }
 
@@ -27,20 +27,27 @@ const initialState: AuthState = {
   permissions: [],
   lastActivity: null,
   sessionExpiry: null,
-  twoFactorRequired: false,
+  twoFactorEnabled: false,
   twoFactorToken: null,
 };
 
-// load from localstorage
 const loadInitialState = (): AuthState => {
   if (typeof window === 'undefined') return initialState;
 
   try {
-    const token = tokenManager.getToken();
-    const refreshToken = tokenManager.getRefreshToken();
+    const token = AdvancedTokenManager.getAccessToken();
+    const refreshToken = AdvancedTokenManager.getRefreshToken();
     const userData = localStorage.getItem(LOCAL_STORAGE_KEYS.USER_DATA);
 
+    console.log('🔄 Loading initial auth state...', {
+      hasToken: !!token,
+      hasRefreshToken: !!refreshToken,
+      hasUserData: !!userData,
+      token: token?.substring(0, 20) + '...' || 'none',
+    });
+
     if (token && userData) {
+      console.log('✅ Restoring auth state from localStorage');
       return {
         ...initialState,
         user: JSON.parse(userData),
@@ -49,12 +56,15 @@ const loadInitialState = (): AuthState => {
         isAuthenticated: true,
         lastActivity: new Date().toISOString(),
       };
+    } else {
+      console.log('❌ Cannot restore auth state - missing token or userData');
     }
   } catch (error) {
     console.error('Error loading auth state:', error);
-    tokenManager.clearTokens();
+    AdvancedTokenManager.clearTokens();
   }
 
+  console.log('🔄 Using initial auth state (not authenticated)');
   return initialState;
 };
 
@@ -65,7 +75,7 @@ const authSlice = createSlice({
     loginStart: state => {
       state.isLoading = true;
       state.error = null;
-      state.twoFactorRequired = false;
+      state.twoFactorEnabled = false;
     },
     loginSuccess: (
       state,
@@ -74,11 +84,13 @@ const authSlice = createSlice({
         token: string;
         refreshToken: string;
         expiresIn?: number;
-        twoFactorRequired?: boolean;
+        twoFactorEnabled?: boolean;
         twoFactorToken?: string | null;
       }>
     ) => {
-      const { user, token, refreshToken, expiresIn } = action.payload;
+      console.log('🚀 Redux loginSuccess action dispatched:', action.payload);
+      const { user, token, refreshToken, expiresIn, twoFactorEnabled } =
+        action.payload;
 
       state.user = user;
       state.token = token;
@@ -87,7 +99,7 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.error = null;
       state.lastActivity = new Date().toISOString();
-      state.twoFactorRequired = false;
+      state.twoFactorEnabled = twoFactorEnabled || false;
       state.twoFactorToken = null;
 
       if (expiresIn) {
@@ -96,8 +108,12 @@ const authSlice = createSlice({
         ).toISOString();
       }
 
-      tokenManager.setToken(token);
-      tokenManager.setRefreshToken(refreshToken);
+      AdvancedTokenManager.setTokens({
+        accessToken: token,
+        refreshToken: refreshToken,
+        expiresIn: expiresIn || 900,
+        tokenType: 'Bearer',
+      });
       localStorage.setItem(LOCAL_STORAGE_KEYS.USER_DATA, JSON.stringify(user));
     },
 
@@ -112,7 +128,7 @@ const authSlice = createSlice({
 
     login2FARequired: (state, action: PayloadAction<string>) => {
       state.isLoading = false;
-      state.twoFactorRequired = true;
+      state.twoFactorEnabled = true;
       state.twoFactorToken = action.payload;
       state.error = null;
     },
@@ -127,10 +143,10 @@ const authSlice = createSlice({
       state.permissions = [];
       state.lastActivity = null;
       state.sessionExpiry = null;
-      state.twoFactorRequired = false;
+      state.twoFactorEnabled = false;
       state.twoFactorToken = null;
 
-      tokenManager.clearTokens();
+      AdvancedTokenManager.clearTokens();
     },
 
     refreshTokenSuccess: (
@@ -138,9 +154,10 @@ const authSlice = createSlice({
       action: PayloadAction<{
         token: string;
         expiresIn?: number;
+        refreshToken: string;
       }>
     ) => {
-      const { token, expiresIn } = action.payload;
+      const { token, expiresIn, refreshToken } = action.payload;
 
       state.token = token;
       state.lastActivity = new Date().toISOString();
@@ -151,7 +168,12 @@ const authSlice = createSlice({
         ).toISOString();
       }
 
-      tokenManager.setToken(token);
+      AdvancedTokenManager.setTokens({
+        accessToken: token,
+        refreshToken: refreshToken,
+        expiresIn: expiresIn || 900,
+        tokenType: 'Bearer',
+      });
     },
 
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
@@ -210,7 +232,7 @@ const authSlice = createSlice({
       state.error = 'Session expired. Please login again.';
       state.sessionExpiry = null;
 
-      tokenManager.clearTokens();
+      AdvancedTokenManager.clearTokens();
     },
 
     registerStart: state => {
@@ -263,8 +285,8 @@ export const selectPermissions = (state: { auth: AuthState }) =>
 export const selectAuthLoading = (state: { auth: AuthState }) =>
   state.auth.isLoading;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
-export const selectTwoFactorRequired = (state: { auth: AuthState }) =>
-  state.auth.twoFactorRequired;
+export const selectTwoFactorEnabled = (state: { auth: AuthState }) =>
+  state.auth.twoFactorEnabled;
 export const selectSessionExpiry = (state: { auth: AuthState }) =>
   state.auth.sessionExpiry;
 

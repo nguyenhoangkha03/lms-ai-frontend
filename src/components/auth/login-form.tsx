@@ -27,12 +27,15 @@ import { ROUTES } from '@/lib/constants/constants';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { SocialLoginButtons } from './social-login-buttons';
 import { useLoginMutation } from '@/lib/redux/api/auth-api';
-import { tokenManager } from '@/lib/api/client';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
+import { useAppDispatch } from '@/lib/redux/hooks';
+import { loginSuccess } from '@/lib/redux/slices/auth-slice';
 
 export const LoginForm: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +59,7 @@ export const LoginForm: React.FC = () => {
       console.log('✅ Login successful:', result);
       console.log('🔍 Processing login result...');
 
-      if (result.requires2FA) {
+      if (result.twoFactorEnabled) {
         console.log('🔐 2FA required, redirecting...');
         router.push(`/login/2fa?token=${result.tempToken}`);
         return;
@@ -64,8 +67,36 @@ export const LoginForm: React.FC = () => {
 
       console.log('💭 No 2FA required, continuing...');
 
-      // Skip token saving - backend uses cookies
-      console.log('⏭️ Using cookies for auth - no token saving needed');
+      console.log('🔄 Saving tokens and updating auth state...');
+
+      if (result.accessToken) {
+        console.log('💾 Saving tokens to AdvancedTokenManager...');
+        AdvancedTokenManager.setTokens({
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken || '',
+          expiresIn: result.expiresIn || 900,
+          tokenType: 'Bearer' as const,
+        });
+        console.log('✅ Tokens saved successfully');
+      }
+
+      console.log('🚀 Dispatching loginSuccess to Redux...', {
+        user: result.user,
+        token: result.accessToken,
+        refreshToken: result.refreshToken || '',
+      });
+
+      dispatch(
+        loginSuccess({
+          user: result.user!,
+          expiresIn: result.expiresIn,
+          twoFactorEnabled: result.twoFactorEnabled,
+          token: result.accessToken!,
+          refreshToken: result.refreshToken!,
+        })
+      );
+
+      console.log('✅ loginSuccess dispatched to Redux');
 
       console.log('📢 Showing success toast...');
       toast({
@@ -74,26 +105,29 @@ export const LoginForm: React.FC = () => {
       });
 
       console.log('🚀 Preparing redirect...');
-      console.log('🚀 Redirecting to:', redirectUrl);
-      console.log('🚀 Router object:', router);
-      
-      // Check cookies and redirect properly
-      console.log('🍪 Cookies set successfully:', document.cookie);
-      
-      setTimeout(() => {
-        console.log('🚀 Redirecting to student dashboard:', redirectUrl);
-        try {
-          router.push(redirectUrl);
-          console.log('✅ Router.push successful');
-        } catch (routerError) {
-          console.log('❌ Router.push failed, using window.location:', routerError);
-          window.location.href = redirectUrl;
-        }
-      }, 100);
 
+      let finalRedirectUrl = redirectUrl;
+      if (result.user?.userType === 'teacher') {
+        const isApproved = result.user?.teacherProfile?.isApproved;
+        finalRedirectUrl = isApproved
+          ? '/teacher'
+          : '/teacher-application-pending';
+        console.log(
+          `🎓 Teacher login - Approved: ${isApproved}, redirecting to: ${finalRedirectUrl}`
+        );
+      }
+
+      console.log('🚀 Final redirect URL:', finalRedirectUrl);
+
+      console.log('🚀 Executing immediate redirect to:', finalRedirectUrl);
+
+      router.push(finalRedirectUrl);
     } catch (error: any) {
       console.log('❌ Login failed:', error);
-      const errorMessage = error?.data?.message || error?.message || 'Login failed. Please try again.';
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        'Login failed. Please try again.';
       setError(errorMessage);
     }
   };
@@ -221,11 +255,7 @@ export const LoginForm: React.FC = () => {
             </Button>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In
           </Button>

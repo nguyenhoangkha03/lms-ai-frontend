@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,7 +12,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { ROUTES } from '@/lib/constants/constants';
+import { useResendVerificationMutation } from '@/lib/redux/api/auth-api';
 import {
   CheckCircle,
   Clock,
@@ -22,35 +26,242 @@ import {
   BookOpen,
   MessageCircle,
   Star,
+  RefreshCw,
+  AlertCircle,
+  User,
+  FileCheck,
 } from 'lucide-react';
 
 export const TeacherApplicationSuccess: React.FC = () => {
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
+  const { toast } = useToast();
+  const [resendCount, setResendCount] = useState(0);
+
+  // RTK Query hook for resending verification email
+  const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation();
+
+  const handleResendEmail = async () => {
+    if (!email || resendCount >= 3) return;
+
+    try {
+      await resendVerification({ email }).unwrap();
+
+      toast({
+        title: 'Email sent!',
+        description: 'Please check your email inbox and spam folder.',
+      });
+      setResendCount(prev => prev + 1);
+    } catch (error: any) {
+      toast({
+        title: 'Failed to resend email',
+        description: error?.data?.message || error?.message || 'Please try again later',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const steps = [
+    {
+      id: 1,
+      title: 'Application Submitted',
+      description: 'Your teacher application has been received',
+      status: 'completed' as const,
+      icon: FileCheck,
+    },
+    {
+      id: 2,
+      title: 'Email Verification',
+      description: 'Verify your email address to continue',
+      status: 'current' as const,
+      icon: Mail,
+    },
+    {
+      id: 3,
+      title: 'Admin Review',
+      description: 'Our team will review your qualifications',
+      status: 'pending' as const,
+      icon: User,
+    },
+    {
+      id: 4,
+      title: 'Approval Decision',
+      description: 'You\'ll receive notification of our decision',
+      status: 'pending' as const,
+      icon: CheckCircle,
+    },
+  ];
   return (
     <div className="space-y-6">
       {/* Success Header */}
-      <div className="text-center">
-        <div className="mb-4 flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+      <Card className="border-green-200 bg-green-50">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-        </div>
-        <h3 className="mb-2 text-lg font-semibold">
-          Application Submitted Successfully!
-        </h3>
-        <p className="text-muted-foreground">
-          Your instructor application has been received and is under review.
-        </p>
-      </div>
+          <CardTitle className="text-green-800">Application Submitted Successfully!</CardTitle>
+          <CardDescription className="text-green-700">
+            Thank you for your interest in becoming an instructor on our platform
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      {/* Timeline Alert */}
-      <Alert>
-        <Clock className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Review Timeline:</strong> We typically review applications
-          within 3-5 business days. You'll receive an email update about your
-          application status.
-        </AlertDescription>
-      </Alert>
+      {/* Email Verification Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Verification Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Important:</strong> You must verify your email address before we can review your application.
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              We've sent a verification email to:
+            </p>
+            <div className="flex items-center gap-2 rounded-md bg-muted p-3">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{email}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Please check your email inbox (and spam folder) and click the verification link.
+            </p>
+          </div>
+
+          {/* Resend Email Button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Didn't receive the email?
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResendEmail}
+              disabled={isResending || resendCount >= 3}
+            >
+              {isResending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Resend Email {resendCount > 0 && `(${3 - resendCount} left)`}
+                </>
+              )}
+            </Button>
+          </div>
+
+          {resendCount >= 3 && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You've reached the maximum number of resend attempts. Please contact support if you continue having issues.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Application Process Steps */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Application Process</CardTitle>
+          <CardDescription>
+            Track the progress of your instructor application
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.id} className="flex items-start gap-4">
+                  <div className={`
+                    flex h-8 w-8 items-center justify-center rounded-full
+                    ${step.status === 'completed' ? 'bg-green-100 text-green-600' :
+                      step.status === 'current' ? 'bg-blue-100 text-blue-600' :
+                      'bg-muted text-muted-foreground'
+                    }
+                  `}>
+                    {step.status === 'completed' ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{step.title}</p>
+                      {step.status === 'completed' && (
+                        <Badge variant="secondary" className="text-xs">
+                          Complete
+                        </Badge>
+                      )}
+                      {step.status === 'current' && (
+                        <Badge className="text-xs">
+                          Current Step
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{step.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Timeline Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            What Happens Next?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <p className="font-medium">1. Email Verification (Required)</p>
+            <p className="text-sm text-muted-foreground">
+              Click the link in your email to verify your account. This step must be completed before review.
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <p className="font-medium">2. Application Review (3-5 business days)</p>
+            <p className="text-sm text-muted-foreground">
+              Our team will review your qualifications, experience, and submitted documents.
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <p className="font-medium">3. Decision Notification</p>
+            <p className="text-sm text-muted-foreground">
+              You'll receive an email with our decision. If approved, you can start creating courses immediately.
+            </p>
+          </div>
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Important:</strong> Keep this email address accessible as all communication will be sent here.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
 
       {/* What's Next Section */}
       <Card>

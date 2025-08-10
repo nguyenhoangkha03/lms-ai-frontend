@@ -31,6 +31,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { teacherApplicationSchema } from '@/lib/validations/auth-schemas';
+import { useApplyAsTeacherMutation } from '@/lib/redux/api/auth-api';
+import { DegreeLevel, ExperienceLevel } from '@/lib/types';
 import {
   User,
   Mail,
@@ -51,6 +53,8 @@ interface TeacherFormData extends FieldValues {
     phone: string;
     country: string;
     timezone: string;
+    password: string;
+    confirmPassword: string;
   };
   education: {
     highestDegree: string;
@@ -60,7 +64,7 @@ interface TeacherFormData extends FieldValues {
     additionalCertifications?: string;
   };
   experience: {
-    teachingExperience: string;
+    teachingExperience: number;
     subjectAreas: string[];
     previousInstitutions?: string;
     onlineTeachingExperience: boolean;
@@ -135,7 +139,6 @@ export const TeacherRegistrationForm: React.FC = () => {
   const router = useRouter();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File }>(
     {}
@@ -152,6 +155,8 @@ export const TeacherRegistrationForm: React.FC = () => {
         phone: '',
         country: '',
         timezone: '',
+        password: '',
+        confirmPassword: '',
       },
       education: {
         highestDegree: '',
@@ -161,7 +166,7 @@ export const TeacherRegistrationForm: React.FC = () => {
         additionalCertifications: '',
       },
       experience: {
-        teachingExperience: '',
+        teachingExperience: 0,
         subjectAreas: [],
         previousInstitutions: '',
         onlineTeachingExperience: false,
@@ -215,25 +220,90 @@ export const TeacherRegistrationForm: React.FC = () => {
     });
   };
 
+  const [applyAsTeacher, { isLoading: isSubmitting }] =
+    useApplyAsTeacherMutation();
+
   const onSubmit: SubmitHandler<TeacherFormData> = async data => {
     try {
-      setIsLoading(true);
       setError(null);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('🚀 Submitting teacher application:', data);
+      alert('🔍 DEBUG: About to call useApplyAsTeacherMutation');
+
+      const backendData = {
+        personalInfo: {
+          firstName: data.personalInfo.firstName,
+          lastName: data.personalInfo.lastName,
+          email: data.personalInfo.email,
+          phone: data.personalInfo.phone,
+          country: data.personalInfo.country,
+          timezone: data.personalInfo.timezone,
+        },
+        education: {
+          highestDegree: data.education.highestDegree as DegreeLevel,
+          fieldOfStudy: data.education.fieldOfStudy,
+          institution: data.education.institution,
+          graduationYear: parseInt(data.education.graduationYear, 10),
+          additionalCertifications: data.education.additionalCertifications,
+        },
+        experience: {
+          teachingExperience: data.experience.teachingExperience,
+          subjectAreas: data.experience.subjectAreas,
+          previousInstitutions: data.experience.previousInstitutions,
+          onlineTeachingExperience: data.experience.onlineTeachingExperience,
+          totalStudentsTaught: data.experience.totalStudentsTaught,
+        },
+        motivation: {
+          whyTeach: data.motivation.whyTeach,
+          teachingPhilosophy: data.motivation.teachingPhilosophy,
+          specialSkills: data.motivation.specialSkills,
+          courseIdeas: data.motivation.courseIdeas,
+        },
+        availability: data.availability || {
+          hoursPerWeek: '',
+          preferredSchedule: [],
+          startDate: '',
+        },
+        documents: {
+          resumeUploaded: data.documents.resumeUploaded,
+          degreeUploaded: data.documents.degreeUploaded,
+          certificationUploaded: data.documents.certificationUploaded || false,
+          idUploaded: data.documents.idUploaded,
+        },
+        agreements: {
+          termsAccepted: data.agreements.termsAccepted,
+          backgroundCheckConsent: data.agreements.backgroundCheckConsent,
+          communicationConsent: data.agreements.communicationConsent,
+        },
+        password: data.personalInfo.password,
+      };
+
+      console.log('📤 Transformed data for backend:', backendData);
+
+      const response = await applyAsTeacher(backendData).unwrap();
+
+      console.log('✅ Application submitted successfully:', response);
 
       toast({
         title: 'Application submitted!',
         description:
-          'We will review your application and get back to you within 3-5 business days.',
+          'Please check your email to verify your account before we can review your application.',
       });
 
-      router.push('/teacher-register/success');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Submission failed');
-    } finally {
-      setIsLoading(false);
+      const email = encodeURIComponent(data.personalInfo.email);
+      router.push(`/teacher-register/success?email=${email}`);
+    } catch (error: any) {
+      console.error('❌ Application submission failed:', error);
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        'Application submission failed';
+      setError(errorMessage);
+      toast({
+        title: 'Submission failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -372,6 +442,44 @@ export const TeacherRegistrationForm: React.FC = () => {
           )}
         />
       </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="personalInfo.password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalInfo.confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Confirm password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 
@@ -390,11 +498,12 @@ export const TeacherRegistrationForm: React.FC = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="high-school">High School</SelectItem>
                 <SelectItem value="associate">Associate Degree</SelectItem>
                 <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
                 <SelectItem value="master">Master's Degree</SelectItem>
                 <SelectItem value="phd">PhD/Doctorate</SelectItem>
+                <SelectItem value="diploma">Diploma</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
@@ -452,20 +561,9 @@ export const TeacherRegistrationForm: React.FC = () => {
         render={({ field }) => (
           <FormItem>
             <FormLabel>Teaching Experience</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your experience level" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {experienceLevels.map(level => (
-                  <SelectItem key={level.value} value={level.value}>
-                    {level.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <Input placeholder="e.g., 5" {...field} />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -770,8 +868,10 @@ export const TeacherRegistrationForm: React.FC = () => {
             </Button>
 
             {currentStep === steps.length - 1 ? (
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Submit Application
               </Button>
             ) : (

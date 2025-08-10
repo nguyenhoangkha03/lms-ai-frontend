@@ -45,13 +45,13 @@ export const LazyPages = {
     { delay: 100 }
   ),
   StudentAnalytics: createLazyComponent(
-    () => import('@/app/(protected)/student/analytics/page')
+    () => import('@/app/(dashboard)/student/analytics/page')
   ),
   StudentProgress: createLazyComponent(
-    () => import('@/app/(protected)/student/progress/page')
+    () => import('@/app/(dashboard)/student/progress/page')
   ),
   StudentAchievements: createLazyComponent(
-    () => import('@/app/(protected)/student/achievements/page')
+    () => import('@/app/(dashboard)/student/achievements/page')
   ),
   AITutor: createLazyComponent(
     () => import('@/app/(dashboard)/student/ai-tutor/page')
@@ -64,17 +64,19 @@ export const LazyPages = {
   ),
 
   TeacherDashboard: createLazyComponent(
-    () => import('@/app/(protected)/teacher/dashboard/page')
+    () => import('@/app/(dashboard)/teacher/page')
   ),
   CourseCreate: createLazyComponent(
-    () => import('@/app/(protected)/teacher/courses/create/page')
+    () => import('@/app/(dashboard)/teacher/courses/create/page')
   ),
   AssessmentCreate: createLazyComponent(
-    () => import('@/app/teacher/assessments/create/page')
+    () => import('@/app/(dashboard)/teacher/assessments/create/page')
   ),
-  Gradebook: createLazyComponent(() => import('@/app/teacher/gradebook/page')),
+  Gradebook: createLazyComponent(
+    () => import('@/app/(dashboard)/teacher/gradebook/page')
+  ),
   LiveSessions: createLazyComponent(
-    () => import('@/app/teacher/live-sessions/page')
+    () => import('@/app/(dashboard)/teacher/live-sessions/page')
   ),
 
   AdminDashboard: createLazyComponent(

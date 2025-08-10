@@ -21,10 +21,11 @@ import {
   useRefreshTokenMutation,
   useLogoutMutation,
 } from '@/lib/redux/api/auth-api';
-import { tokenManager } from '@/lib/api/client';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 import { useRBACSync } from '@/lib/auth/rbac-integration';
 import type { User } from '@/lib/types';
 import { toast } from 'sonner';
+import { clearAllAuthData } from '@/utils/clear-auth';
 
 interface AuthContextType {
   user: User | null;
@@ -73,8 +74,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [requiresReauth, setRequiresReauth] = useState(false);
 
   const { refetch: checkAuthQuery } = useCheckAuthQuery(undefined, {
-    skip: !auth.token,
+    skip: true, // Skip automatic execution, we'll manually trigger when needed
   });
+  
   const [refreshTokenMutation] = useRefreshTokenMutation();
   const [logoutMutation] = useLogoutMutation();
 
@@ -142,6 +144,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
+    // If we don't have any tokens, no point in checking auth
+    const hasToken = AdvancedTokenManager.getAccessToken();
+    if (!hasToken) {
+      dispatch(logout());
+      return false;
+    }
+
     try {
       dispatch(setLoading(true));
       const result = await checkAuthQuery();
@@ -150,8 +159,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         dispatch(
           loginSuccess({
             user: result.data.user,
-            token: tokenManager.getToken() || '',
-            refreshToken: tokenManager.getRefreshToken() || '',
+            token: AdvancedTokenManager.getAccessToken() || '',
+            refreshToken: AdvancedTokenManager.getRefreshToken() || '',
           })
         );
         return true;
@@ -169,7 +178,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [dispatch, checkAuthQuery]);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {
-    const refreshToken = tokenManager.getRefreshToken();
+    const refreshToken = AdvancedTokenManager.getRefreshToken();
     if (!refreshToken) {
       dispatch(sessionExpired());
       return false;
@@ -217,95 +226,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [dispatch, auth.isAuthenticated]);
 
+  // DISABLED: Session expiry check - can cause infinite loops
+  // useEffect(() => {
+  //   if (!auth.sessionExpiry || !auth.isAuthenticated) return;
+  //   ...
+  // }, [auth.sessionExpiry, auth.isAuthenticated, dispatch, refreshSession]);
+
+  // DISABLED: Activity tracking - can cause infinite loops
+  // useEffect(() => {
+  //   if (!auth.isAuthenticated) {
+  //     setIsActivityTracked(false);
+  //     return;
+  //   }
+  //   ...
+  // }, [auth.isAuthenticated, isActivityTracked, updateActivity]);
+
+  // DISABLED: Last activity check - can cause infinite loops
+  // useEffect(() => {
+  //   if (!auth.isAuthenticated || !auth.lastActivity) return;
+  //   ...
+  // }, [auth.isAuthenticated, auth.lastActivity]);
+
+  // Debug current auth state
   useEffect(() => {
-    if (!auth.sessionExpiry || !auth.isAuthenticated) return;
-
-    const checkSessionExpiry = () => {
-      const expiryTime = new Date(auth.sessionExpiry!).getTime();
-      const currentTime = Date.now();
-      const timeUntilExpiry = expiryTime - currentTime;
-
-      if (timeUntilExpiry <= 0) {
-        dispatch(sessionExpired());
-        return;
-      }
-
-      const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
-      if (refreshTime > 0 && refreshTime < 60000) {
-        refreshSession();
-      }
-    };
-
-    const interval = setInterval(checkSessionExpiry, 30000);
-    checkSessionExpiry();
-
-    return () => clearInterval(interval);
-  }, [auth.sessionExpiry, auth.isAuthenticated, dispatch, refreshSession]);
-
-  useEffect(() => {
-    if (!auth.isAuthenticated) {
-      setIsActivityTracked(false);
-      return;
-    }
-
-    if (isActivityTracked) return;
-
-    const handleActivity = () => updateActivity();
-
-    const events = [
-      'mousedown',
-      'mousemove',
-      'keypress',
-      'scroll',
-      'touchstart',
-      'click',
-      'focus',
-      'blur',
-    ];
-
-    events.forEach(event => {
-      document.addEventListener(event, handleActivity, { passive: true });
+    const token = AdvancedTokenManager.getAccessToken();
+    console.log('🔍 Auth Debug:', {
+      isAuthenticated: auth.isAuthenticated,
+      hasToken: !!token,
+      user: auth.user?.email,
+      token: token?.substring(0, 20) + '...' || 'none'
     });
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        updateActivity();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    const interval = setInterval(updateActivity, 5 * 60 * 1000);
-
-    setIsActivityTracked(true);
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleActivity);
-      });
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(interval);
-      setIsActivityTracked(false);
-    };
-  }, [auth.isAuthenticated, isActivityTracked, updateActivity]);
-
-  useEffect(() => {
-    if (!auth.isAuthenticated || !auth.lastActivity) return;
-
-    const lastActivityTime = new Date(auth.lastActivity).getTime();
-    const currentTime = Date.now();
-    const timeSinceActivity = currentTime - lastActivityTime;
-
-    const requiresReauthTime = 30 * 60 * 1000;
-    setRequiresReauth(timeSinceActivity > requiresReauthTime);
-  }, [auth.isAuthenticated, auth.lastActivity]);
-
-  useEffect(() => {
-    const token = tokenManager.getToken();
-    if (token && !auth.isAuthenticated) {
-      checkAuth();
+    
+    // If no token but still authenticated, force logout
+    if (!token && auth.isAuthenticated) {
+      console.log('❌ No token but authenticated, forcing logout');
+      dispatch(logout());
     }
-  }, [checkAuth, auth.isAuthenticated]);
+  }, [auth.isAuthenticated, auth.user, dispatch]);
+
 
   const contextValue: AuthContextType = {
     user: auth.user,

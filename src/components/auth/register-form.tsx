@@ -63,35 +63,6 @@ const roleOptions = [
       'Certificates',
     ],
   },
-  {
-    value: 'teacher' as const,
-    label: 'Teacher',
-    description: 'Create courses and teach with advanced analytics',
-    icon: Users,
-    color: 'green',
-    features: [
-      'Course creation tools',
-      'Student analytics',
-      'Assessment builder',
-      'Live classrooms',
-    ],
-    note: 'Requires approval',
-  },
-  {
-    value: 'admin' as const,
-    label: 'Administrator',
-    description: 'Manage platform and oversee all activities',
-    icon: Shield,
-    color: 'purple',
-    features: [
-      'User management',
-      'System analytics',
-      'Platform configuration',
-      'Security controls',
-    ],
-    disabled: true,
-    note: 'Contact sales',
-  },
 ];
 
 export const RegisterForm: React.FC = () => {
@@ -99,9 +70,8 @@ export const RegisterForm: React.FC = () => {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [selectedUserType, setSelectedUserType] = useState<
-    'student' | 'teacher' | 'admin'
-  >('student');
+  const [selectedUserType, setSelectedUserType] =
+    useState<'student'>('student');
 
   const [register, { isLoading, error: apiError }] = useRegisterMutation();
 
@@ -138,11 +108,7 @@ export const RegisterForm: React.FC = () => {
         description: 'Please check your email to verify your account.',
       });
 
-      if (data.userType === 'teacher') {
-        router.push('/teacher-register/success');
-      } else {
-        router.push('/verify-email?email=' + encodeURIComponent(data.email));
-      }
+      router.push('/verify-email?email=' + encodeURIComponent(data.email));
     } catch (error: any) {
       console.error('❌ Registration failed:', error);
 
@@ -192,9 +158,9 @@ export const RegisterForm: React.FC = () => {
       {/* Role Selection */}
       <div className="space-y-4">
         <div className="text-center">
-          <h3 className="mb-2 text-lg font-semibold">Choose Your Role</h3>
+          <h3 className="mb-2 text-lg font-semibold">Your Learning Journey</h3>
           <p className="text-sm text-muted-foreground">
-            Select how you plan to use our platform
+            Discover how you’ll use our platform as a student
           </p>
         </div>
 

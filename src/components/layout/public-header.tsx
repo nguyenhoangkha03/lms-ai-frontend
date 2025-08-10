@@ -52,7 +52,7 @@ export const PublicHeader: React.FC = () => {
               <Link href={ROUTES.LOGIN}>Sign In</Link>
             </Button>
             <Button asChild>
-              <Link href={ROUTES.REGISTER}>Get Started</Link>
+              <Link href="/get-started">Get Started</Link>
             </Button>
           </div>
 
@@ -91,7 +91,7 @@ export const PublicHeader: React.FC = () => {
                     </Button>
                     <Button className="w-full" asChild>
                       <Link
-                        href={ROUTES.REGISTER}
+                        href="/get-started"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Get Started

@@ -5,7 +5,7 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseURL,
-  credentials: 'include', // CRITICAL: Enable cookies
+  credentials: 'include',
   prepareHeaders: (headers, { getState: _, endpoint, extra }) => {
     console.log('🌐 API Base URL:', API_CONFIG.baseURL);
     const token = tokenManager.getToken();
@@ -14,8 +14,10 @@ const baseQuery = fetchBaseQuery({
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    // Don't set Content-Type for FormData uploads - browser will set it with boundary
-    if (!(extra as any)?.body instanceof FormData && !headers.get('Content-Type')) {
+    if (
+      !((extra as any)?.body instanceof FormData) &&
+      !headers.get('Content-Type')
+    ) {
       headers.set('Content-Type', 'application/json');
     }
 
@@ -269,6 +271,7 @@ export const baseApi = createApi({
     'ApprovalStats',
     'DashboardOverview',
     'PendingDocuments',
+    'UserStats',
   ],
   endpoints: () => ({}),
 });

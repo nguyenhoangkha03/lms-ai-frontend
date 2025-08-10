@@ -5,8 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Shield, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { ROUTES } from '@/lib/constants/constants';
 
 interface ProtectedRouteProps {
@@ -61,7 +60,6 @@ export function ProtectedRoute({
       return;
     }
 
-    // Check role authorization
     if (allowedRoles.length > 0) {
       const hasRequiredRole = allowedRoles.some(role => hasRole(role));
       if (!hasRequiredRole) {
@@ -74,7 +72,6 @@ export function ProtectedRoute({
       }
     }
 
-    // Check permission authorization
     if (requiredPermissions.length > 0) {
       const hasRequiredPermission = hasAnyPermission(requiredPermissions);
       if (!hasRequiredPermission) {
@@ -87,7 +84,6 @@ export function ProtectedRoute({
       }
     }
 
-    // Check MFA requirement
     if (requireMfa && !isMfaEnabled) {
       setAuthCheck({
         passed: false,
@@ -97,7 +93,6 @@ export function ProtectedRoute({
       return;
     }
 
-    // Check session freshness
     if (requireFreshSession && requiresReauth) {
       setAuthCheck({
         passed: false,
@@ -107,7 +102,6 @@ export function ProtectedRoute({
       return;
     }
 
-    // All checks passed
     setAuthCheck({ passed: true });
   }, [
     isLoading,
@@ -122,7 +116,6 @@ export function ProtectedRoute({
     requiresReauth,
   ]);
 
-  // Handle redirects
   useEffect(() => {
     if (authCheck.passed || isLoading) return;
 
@@ -135,7 +128,15 @@ export function ProtectedRoute({
           router.push(loginUrl);
           break;
         case 'unauthorized':
-          router.push('/unauthorized');
+          if (
+            user?.userType === 'teacher' &&
+            (user?.status === 'pending' ||
+              user?.teacherProfile?.isApproved === false)
+          ) {
+            router.push('/teacher-application-pending');
+          } else {
+            router.push('/unauthorized');
+          }
           break;
         case 'mfa':
           router.push(
@@ -150,12 +151,10 @@ export function ProtectedRoute({
       }
     };
 
-    // Small delay to prevent flashing
     const timer = setTimeout(handleRedirect, 100);
     return () => clearTimeout(timer);
   }, [authCheck, isLoading, router, pathname, redirectTo]);
 
-  // Show loading while checking auth
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -164,7 +163,6 @@ export function ProtectedRoute({
     );
   }
 
-  // Show fallback or error message while redirecting
   if (!authCheck.passed) {
     if (fallback) {
       return <>{fallback}</>;

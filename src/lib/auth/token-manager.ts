@@ -61,12 +61,33 @@ export class AdvancedTokenManager {
 
   static getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
+    
+    // Try reading from cookies first (set by backend during email verification)
+    const cookieToken = this.getCookie('access-token');
+    if (cookieToken) return cookieToken;
+    
+    // Fallback to localStorage (for manual login)
     return localStorage.getItem(this.ACCESS_TOKEN_KEY);
   }
 
   static getRefreshToken(): string | null {
     if (typeof window === 'undefined') return null;
+    
+    // Try reading from cookies first (set by backend during email verification)
+    const cookieToken = this.getCookie('refresh-token');
+    if (cookieToken) return cookieToken;
+    
+    // Fallback to localStorage (for manual login)
     return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
+  private static getCookie(name: string): string | null {
+    if (typeof document === 'undefined') return null;
+    
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+    return null;
   }
 
   static validateAccessToken(): TokenValidationResult {

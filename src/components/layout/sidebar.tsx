@@ -17,6 +17,13 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Download,
+  GraduationCap,
+  ClipboardList,
+  Video,
+  UserCircle,
+  FolderOpen,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, IconButton } from '@/components/ui/enhanced-button';
@@ -51,16 +58,19 @@ const navigation: NavItem[] = [
     href: '/dashboard',
     icon: <Home className="h-4 w-4" />,
   },
+  // Student Navigation
   {
     title: 'My Courses',
     href: '/courses',
     icon: <BookOpen className="h-4 w-4" />,
     badge: '3',
+    roles: ['student'],
   },
   {
     title: 'Learning Path',
     href: '/learning-path',
     icon: <Brain className="h-4 w-4" />,
+    roles: ['student'],
   },
   {
     title: 'Schedule',
@@ -73,9 +83,108 @@ const navigation: NavItem[] = [
     icon: <MessageSquare className="h-4 w-4" />,
     badge: '2',
   },
+  // Teacher Navigation
+  {
+    title: 'Teaching Hub',
+    href: '/teacher',
+    icon: <GraduationCap className="h-4 w-4" />,
+    roles: ['teacher'],
+  },
+  {
+    title: 'Courses',
+    icon: <BookOpen className="h-4 w-4" />,
+    roles: ['teacher'],
+    children: [
+      {
+        title: 'Course Management',
+        href: '/teacher/courses',
+        icon: <BookOpen className="h-4 w-4" />,
+      },
+      {
+        title: 'Assignments',
+        href: '/teacher/assignments',
+        icon: <ClipboardList className="h-4 w-4" />,
+      },
+      {
+        title: 'Assessments',
+        href: '/teacher/assessments',
+        icon: <FileText className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    title: 'Students',
+    icon: <Users className="h-4 w-4" />,
+    roles: ['teacher'],
+    children: [
+      {
+        title: 'Student Management',
+        href: '/teacher/students',
+        icon: <Users className="h-4 w-4" />,
+      },
+      {
+        title: 'Gradebook',
+        href: '/teacher/gradebook',
+        icon: <Award className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    title: 'Analytics & Reports',
+    icon: <BarChart3 className="h-4 w-4" />,
+    roles: ['teacher'],
+    children: [
+      {
+        title: 'Analytics Dashboard',
+        href: '/teacher/analytics',
+        icon: <BarChart3 className="h-4 w-4" />,
+      },
+      {
+        title: 'Generate Reports',
+        href: '/teacher/reports',
+        icon: <Download className="h-4 w-4" />,
+      },
+      {
+        title: 'Predictive Analytics',
+        href: '/teacher/predictive-analytics',
+        icon: <TrendingUp className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    title: 'Teaching Tools',
+    icon: <Video className="h-4 w-4" />,
+    roles: ['teacher'],
+    children: [
+      {
+        title: 'Live Sessions',
+        href: '/teacher/live-sessions',
+        icon: <Video className="h-4 w-4" />,
+      },
+      {
+        title: 'File Manager',
+        href: '/teacher/files',
+        icon: <FolderOpen className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    title: 'Teacher Profile',
+    href: '/teacher/profile',
+    icon: <UserCircle className="h-4 w-4" />,
+    roles: ['teacher'],
+  },
+  {
+    title: 'Teacher Settings',
+    href: '/teacher/settings',
+    icon: <Settings className="h-4 w-4" />,
+    roles: ['teacher'],
+  },
+  // Student-only sections
   {
     title: 'Assessments',
     icon: <FileText className="h-4 w-4" />,
+    roles: ['student'],
     children: [
       {
         title: 'Take Quiz',
@@ -94,6 +203,7 @@ const navigation: NavItem[] = [
     title: 'Achievements',
     href: '/achievements',
     icon: <Award className="h-4 w-4" />,
+    roles: ['student'],
   },
   {
     title: 'Community',
@@ -110,12 +220,6 @@ const navigation: NavItem[] = [
         icon: <Users className="h-4 w-4" />,
       },
     ],
-  },
-  {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: <BarChart3 className="h-4 w-4" />,
-    roles: ['teacher', 'admin'],
   },
   {
     title: 'Settings',

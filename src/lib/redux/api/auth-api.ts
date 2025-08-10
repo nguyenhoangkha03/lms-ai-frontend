@@ -16,7 +16,7 @@ interface AuthResponse {
   accessToken?: string;
   refreshToken?: string;
   expiresIn?: number;
-  requires2FA?: boolean;
+  twoFactorEnabled?: boolean;
   tempToken?: string;
   sessionId?: string;
 }
@@ -140,7 +140,10 @@ export const authApi = baseApi.injectEndpoints({
         response.data!,
     }),
 
-    verifyEmail: builder.query<{ message: string; user?: User }, { token: string }>({
+    verifyEmail: builder.query<
+      { message: string; user?: User },
+      { token: string }
+    >({
       query: ({ token }) => ({
         url: `/auth/verify-email?token=${token}`,
         method: 'GET',
@@ -245,14 +248,37 @@ export const authApi = baseApi.injectEndpoints({
       providesTags: ['User'],
     }),
 
-    // Teacher Registration
-    applyAsTeacher: builder.mutation<TeacherApplicationResponse, TeacherRegistrationFormData>({
-      query: teacherData => ({
-        url: '/auth/teacher/apply',
-        method: 'POST',
-        body: teacherData,
-      }),
-      transformResponse: (response: TeacherApplicationResponse) => response,
+    applyAsTeacher: builder.mutation<
+      TeacherApplicationResponse,
+      TeacherRegistrationFormData
+    >({
+      query: teacherData => {
+        console.log('🎯 RTK Query applyAsTeacher - URL: /auth/teacher/apply');
+        console.log('🎯 RTK Query applyAsTeacher - Data:', teacherData);
+        return {
+          url: '/auth/teacher/apply',
+          method: 'POST',
+          body: teacherData,
+        };
+      },
+      transformResponse: (response: TeacherApplicationResponse) => {
+        console.log('🎯 RTK Query applyAsTeacher - Response:', response);
+        return response;
+      },
+    }),
+
+    getTeacherApplicationStatus: builder.query<
+      {
+        status: 'pending' | 'under_review' | 'approved' | 'rejected';
+        message: string;
+        submittedAt: string;
+        reviewedAt?: string;
+        reviewNotes?: string;
+      },
+      void
+    >({
+      query: () => '/auth/teacher/application-status',
+      providesTags: ['TeacherApplications'],
     }),
   }),
 });
@@ -286,4 +312,5 @@ export const {
 
   // Teacher Registration
   useApplyAsTeacherMutation,
+  useGetTeacherApplicationStatusQuery,
 } = authApi;

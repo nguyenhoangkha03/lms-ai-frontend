@@ -20,8 +20,8 @@ export const metadata: Metadata = generateSEO({
 export default function RegisterPage() {
   return (
     <AuthLayout
-      title="Create Your Account"
-      description="Join thousands of learners and start your AI-powered educational journey"
+      title="Join as a Student"
+      description="Learn smarter with AI – personalized learning paths, progress tracking, and certificates"
     >
       <RegisterForm />
     </AuthLayout>
