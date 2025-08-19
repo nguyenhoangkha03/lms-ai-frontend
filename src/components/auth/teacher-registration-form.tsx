@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, type FieldValues, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
+import PhoneInput from 'react-phone-number-input';
+import ReactCountryFlag from 'react-country-flag';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,7 +34,9 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { teacherApplicationSchema } from '@/lib/validations/auth-schemas';
 import { useApplyAsTeacherMutation } from '@/lib/redux/api/auth-api';
-import { DegreeLevel, ExperienceLevel } from '@/lib/types';
+import { useUploadTeacherDocumentMutation } from '@/lib/redux/api/upload-api';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
+import { DegreeLevel, ExperienceLevel, DocumentType } from '@/lib/types';
 import {
   User,
   Mail,
@@ -43,6 +47,7 @@ import {
   CheckCircle,
   ArrowRight,
   ArrowLeft,
+  X,
 } from 'lucide-react';
 
 interface TeacherFormData extends FieldValues {
@@ -55,6 +60,11 @@ interface TeacherFormData extends FieldValues {
     timezone: string;
     password: string;
     confirmPassword: string;
+    bio?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    address?: string;
+    website?: string;
   };
   education: {
     highestDegree: string;
@@ -64,11 +74,27 @@ interface TeacherFormData extends FieldValues {
     additionalCertifications?: string;
   };
   experience: {
-    teachingExperience: number;
+    teachingExperience: string; // ExperienceLevel enum
     subjectAreas: string[];
     previousInstitutions?: string;
     onlineTeachingExperience: boolean;
     totalStudentsTaught?: string;
+  };
+  professional: {
+    teachingStyle?: string;
+    officeHours?: string;
+    teachingLanguages?: string[];
+    hourlyRate?: string;
+    currency?: string;
+    professionalSummary?: string;
+    portfolioUrl?: string;
+    licenseNumber?: string;
+    affiliations?: string;
+    maxStudentsPerClass?: string;
+    awards?: string[];
+    publications?: string[];
+    interests?: string[];
+    skills?: string[];
   };
   motivation: {
     whyTeach: string;
@@ -128,11 +154,149 @@ const subjectAreas = [
   'Other',
 ];
 
+// Top 20 countries covering 90%+ of users
+const topCountries = [
+  {
+    code: 'VN',
+    name: 'Vietnam',
+    timezone: 'Asia/Ho_Chi_Minh',
+    phoneCode: '+84',
+  },
+  {
+    code: 'US',
+    name: 'United States',
+    timezone: 'America/New_York',
+    phoneCode: '+1',
+  },
+  {
+    code: 'GB',
+    name: 'United Kingdom',
+    timezone: 'Europe/London',
+    phoneCode: '+44',
+  },
+  { code: 'CA', name: 'Canada', timezone: 'America/Toronto', phoneCode: '+1' },
+  {
+    code: 'AU',
+    name: 'Australia',
+    timezone: 'Australia/Sydney',
+    phoneCode: '+61',
+  },
+  { code: 'DE', name: 'Germany', timezone: 'Europe/Berlin', phoneCode: '+49' },
+  { code: 'FR', name: 'France', timezone: 'Europe/Paris', phoneCode: '+33' },
+  { code: 'JP', name: 'Japan', timezone: 'Asia/Tokyo', phoneCode: '+81' },
+  { code: 'KR', name: 'South Korea', timezone: 'Asia/Seoul', phoneCode: '+82' },
+  { code: 'CN', name: 'China', timezone: 'Asia/Shanghai', phoneCode: '+86' },
+  { code: 'IN', name: 'India', timezone: 'Asia/Kolkata', phoneCode: '+91' },
+  {
+    code: 'SG',
+    name: 'Singapore',
+    timezone: 'Asia/Singapore',
+    phoneCode: '+65',
+  },
+  { code: 'TH', name: 'Thailand', timezone: 'Asia/Bangkok', phoneCode: '+66' },
+  {
+    code: 'MY',
+    name: 'Malaysia',
+    timezone: 'Asia/Kuala_Lumpur',
+    phoneCode: '+60',
+  },
+  { code: 'ID', name: 'Indonesia', timezone: 'Asia/Jakarta', phoneCode: '+62' },
+  {
+    code: 'PH',
+    name: 'Philippines',
+    timezone: 'Asia/Manila',
+    phoneCode: '+63',
+  },
+  {
+    code: 'BR',
+    name: 'Brazil',
+    timezone: 'America/Sao_Paulo',
+    phoneCode: '+55',
+  },
+  {
+    code: 'MX',
+    name: 'Mexico',
+    timezone: 'America/Mexico_City',
+    phoneCode: '+52',
+  },
+  { code: 'IT', name: 'Italy', timezone: 'Europe/Rome', phoneCode: '+39' },
+  { code: 'ES', name: 'Spain', timezone: 'Europe/Madrid', phoneCode: '+34' },
+];
+
+// Common timezones with user-friendly labels
+const commonTimezones = [
+  { value: 'Asia/Ho_Chi_Minh', label: 'Vietnam (UTC+7)', region: 'Asia' },
+  { value: 'Asia/Bangkok', label: 'Thailand (UTC+7)', region: 'Asia' },
+  { value: 'Asia/Singapore', label: 'Singapore (UTC+8)', region: 'Asia' },
+  { value: 'Asia/Tokyo', label: 'Japan (UTC+9)', region: 'Asia' },
+  { value: 'Asia/Seoul', label: 'South Korea (UTC+9)', region: 'Asia' },
+  { value: 'Asia/Shanghai', label: 'China (UTC+8)', region: 'Asia' },
+  { value: 'Asia/Kolkata', label: 'India (UTC+5:30)', region: 'Asia' },
+  {
+    value: 'America/New_York',
+    label: 'Eastern Time (UTC-5)',
+    region: 'Americas',
+  },
+  {
+    value: 'America/Chicago',
+    label: 'Central Time (UTC-6)',
+    region: 'Americas',
+  },
+  {
+    value: 'America/Denver',
+    label: 'Mountain Time (UTC-7)',
+    region: 'Americas',
+  },
+  {
+    value: 'America/Los_Angeles',
+    label: 'Pacific Time (UTC-8)',
+    region: 'Americas',
+  },
+  {
+    value: 'America/Toronto',
+    label: 'Eastern Canada (UTC-5)',
+    region: 'Americas',
+  },
+  { value: 'Europe/London', label: 'London (UTC+0)', region: 'Europe' },
+  { value: 'Europe/Berlin', label: 'Berlin (UTC+1)', region: 'Europe' },
+  { value: 'Europe/Paris', label: 'Paris (UTC+1)', region: 'Europe' },
+  { value: 'Australia/Sydney', label: 'Sydney (UTC+10)', region: 'Oceania' },
+  { value: 'UTC', label: 'UTC (Coordinated Universal Time)', region: 'Other' },
+];
+
+// Auto-detect user timezone and country
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
+};
+
+const detectUserCountry = async () => {
+  try {
+    // Simple IP-based detection (fallback to VN)
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    return data.country_code || 'VN';
+  } catch {
+    return 'VN'; // Default to Vietnam
+  }
+};
+
 const experienceLevels = [
-  { value: 'entry', label: '0-2 years' },
-  { value: 'intermediate', label: '3-5 years' },
-  { value: 'experienced', label: '6-10 years' },
-  { value: 'expert', label: '10+ years' },
+  { value: '0', label: '0 years' },
+  { value: '1', label: '1 years' },
+  { value: '2', label: '2 years' },
+  { value: '3', label: '3 years' },
+  { value: '4', label: '4 years' },
+  { value: '5', label: '5 years' },
+  { value: '6', label: '6 years' },
+  { value: '7', label: '7 years' },
+  { value: '8', label: '8 years' },
+  { value: '9', label: '9 years' },
+  { value: '10', label: '10 years' },
+  { value: '10+', label: '10+ years' },
 ];
 
 export const TeacherRegistrationForm: React.FC = () => {
@@ -143,6 +307,10 @@ export const TeacherRegistrationForm: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File }>(
     {}
   );
+  const [detectedCountry, setDetectedCountry] = useState<string>('VN');
+  const [detectedTimezone] = useState<string>(getUserTimezone());
+  const [countrySearch, setCountrySearch] = useState<string>('');
+  const [localSubmitting, setLocalSubmitting] = useState(false);
 
   const form = useForm<TeacherFormData>({
     resolver: zodResolver(teacherApplicationSchema) as any,
@@ -153,8 +321,8 @@ export const TeacherRegistrationForm: React.FC = () => {
         lastName: '',
         email: '',
         phone: '',
-        country: '',
-        timezone: '',
+        country: 'VN',
+        timezone: getUserTimezone(),
         password: '',
         confirmPassword: '',
       },
@@ -166,11 +334,27 @@ export const TeacherRegistrationForm: React.FC = () => {
         additionalCertifications: '',
       },
       experience: {
-        teachingExperience: 0,
+        teachingExperience: '0',
         subjectAreas: [],
         previousInstitutions: '',
         onlineTeachingExperience: false,
         totalStudentsTaught: '',
+      },
+      professional: {
+        teachingStyle: '',
+        officeHours: '',
+        teachingLanguages: [],
+        hourlyRate: '',
+        currency: 'USD',
+        professionalSummary: '',
+        portfolioUrl: '',
+        licenseNumber: '',
+        affiliations: '',
+        maxStudentsPerClass: '',
+        awards: [],
+        publications: [],
+        interests: [],
+        skills: [],
       },
       motivation: {
         whyTeach: '',
@@ -199,6 +383,23 @@ export const TeacherRegistrationForm: React.FC = () => {
 
   const progress = ((currentStep + 1) / steps.length) * 100;
 
+  // Auto-detect user country on component mount
+  useEffect(() => {
+    const detectCountry = async () => {
+      const country = await detectUserCountry();
+      setDetectedCountry(country);
+
+      // Update form with detected country and its default timezone
+      const detectedCountryData = topCountries.find(c => c.code === country);
+      if (detectedCountryData) {
+        form.setValue('personalInfo.country', country);
+        form.setValue('personalInfo.timezone', detectedCountryData.timezone);
+      }
+    };
+
+    detectCountry();
+  }, [form]);
+
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -211,24 +412,95 @@ export const TeacherRegistrationForm: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (field: string, file: File) => {
-    setUploadedFiles(prev => ({ ...prev, [field]: file }));
-    form.setValue(`documents.${field}Uploaded` as any, true);
-    toast({
-      title: 'File uploaded successfully',
-      description: `${file.name} has been uploaded.`,
-    });
+  const getDocumentTypeForField = (field: string): DocumentType => {
+    const mapping: Record<string, DocumentType> = {
+      resume: DocumentType.RESUME,
+      degree: DocumentType.DEGREE_CERTIFICATE,
+      certification: DocumentType.CERTIFICATION,
+      id: DocumentType.IDENTITY_DOCUMENT,
+    };
+    return mapping[field] || DocumentType.OTHER;
+  };
+
+  const handleFileUpload = async (field: string, file: File) => {
+    try {
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+          'File type not supported. Please upload PDF, DOC, JPG, or PNG files only.'
+        );
+      }
+
+      if (file.size > maxSize) {
+        throw new Error('File size too large. Maximum size is 10MB.');
+      }
+
+      setUploadedFiles(prev => ({ ...prev, [field]: file }));
+
+      form.setValue(`documents.${field}Uploaded` as any, true);
+
+      toast({
+        title: 'File selected successfully',
+        description: `${file.name} will be uploaded during registration.`,
+      });
+    } catch (error: any) {
+      console.error('File validation error:', error);
+      toast({
+        title: 'File validation failed',
+        description: error.message || 'Failed to validate file',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const uploadAllDocuments = async (userId: string): Promise<void> => {
+    const uploadPromises = Object.entries(uploadedFiles).map(
+      async ([field, file]) => {
+        try {
+          const documentType = getDocumentTypeForField(field);
+          const metadata = {
+            uploadedDuringRegistration: true,
+            fieldName: field,
+            userId,
+          };
+
+          await uploadDocument({
+            file,
+            documentType,
+            userId,
+            metadata,
+          }).unwrap();
+
+          console.log(`✅ Successfully uploaded ${field}: ${file.name}`);
+        } catch (error) {
+          console.error(`❌ Failed to upload ${field}:`, error);
+        }
+      }
+    );
+
+    await Promise.allSettled(uploadPromises);
   };
 
   const [applyAsTeacher, { isLoading: isSubmitting }] =
     useApplyAsTeacherMutation();
+  const [uploadDocument, { isLoading: isUploading }] =
+    useUploadTeacherDocumentMutation();
 
   const onSubmit: SubmitHandler<TeacherFormData> = async data => {
     try {
       setError(null);
+      setLocalSubmitting(true);
 
       console.log('🚀 Submitting teacher application:', data);
-      alert('🔍 DEBUG: About to call useApplyAsTeacherMutation');
 
       const backendData = {
         personalInfo: {
@@ -247,7 +519,7 @@ export const TeacherRegistrationForm: React.FC = () => {
           additionalCertifications: data.education.additionalCertifications,
         },
         experience: {
-          teachingExperience: data.experience.teachingExperience,
+          teachingExperience: parseInt(data.experience.teachingExperience, 10),
           subjectAreas: data.experience.subjectAreas,
           previousInstitutions: data.experience.previousInstitutions,
           onlineTeachingExperience: data.experience.onlineTeachingExperience,
@@ -269,6 +541,20 @@ export const TeacherRegistrationForm: React.FC = () => {
           degreeUploaded: data.documents.degreeUploaded,
           certificationUploaded: data.documents.certificationUploaded || false,
           idUploaded: data.documents.idUploaded,
+          fileMetadata: Object.entries(uploadedFiles).reduce(
+            (acc, [key, file]) => {
+              acc[key] = {
+                originalName: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified,
+                documentType: getDocumentTypeForField(key),
+              };
+              return acc;
+            },
+            {} as Record<string, any>
+          ),
+          totalFiles: Object.keys(uploadedFiles).length,
         },
         agreements: {
           termsAccepted: data.agreements.termsAccepted,
@@ -284,15 +570,49 @@ export const TeacherRegistrationForm: React.FC = () => {
 
       console.log('✅ Application submitted successfully:', response);
 
-      toast({
-        title: 'Application submitted!',
-        description:
-          'Please check your email to verify your account before we can review your application.',
-      });
+      console.log('Id:', response.user.id);
+      if (response.accessToken) {
+        AdvancedTokenManager.setTokens({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken || '',
+          expiresIn: response.expiresIn || 900,
+          tokenType: 'Bearer' as const,
+        });
+        console.log('🔑 Tokens stored for file uploads');
+      }
+
+      if (Object.keys(uploadedFiles).length > 0) {
+        console.log('📤 Uploading documents...');
+        try {
+          await uploadAllDocuments(response.user.id);
+          console.log('✅ All documents uploaded successfully');
+
+          toast({
+            title: 'Application submitted with documents!',
+            description:
+              'Your application and documents have been submitted. Please check your email to verify your account.',
+          });
+        } catch (error) {
+          console.error('❌ Some documents failed to upload:', error);
+          toast({
+            title: 'Application submitted!',
+            description:
+              'Your application was submitted but some documents may have failed to upload. You can upload them later from your dashboard.',
+            variant: 'default',
+          });
+        }
+      } else {
+        toast({
+          title: 'Application submitted!',
+          description:
+            'Please check your email to verify your account before we can review your application.',
+        });
+      }
 
       const email = encodeURIComponent(data.personalInfo.email);
       router.push(`/teacher-register/success?email=${email}`);
     } catch (error: any) {
+      setLocalSubmitting(false);
       console.error('❌ Application submission failed:', error);
       const errorMessage =
         error?.data?.message ||
@@ -370,50 +690,217 @@ export const TeacherRegistrationForm: React.FC = () => {
       <FormField
         control={form.control}
         name="personalInfo.phone"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Phone Number</FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="+1 (555) 123-4567"
-                  className="pl-9"
-                  {...field}
-                />
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        render={({ field }) => {
+          const selectedCountryData = topCountries.find(
+            c => c.code === detectedCountry
+          );
+          const phoneCode = selectedCountryData?.phoneCode || '+84';
+          const phoneNumber = field.value.replace(/^\+\d+\s?/, '') || '';
+
+          return (
+            <FormItem>
+              <FormLabel>Phone Number</FormLabel>
+              <FormControl>
+                <div className="flex gap-2">
+                  <Select
+                    value={detectedCountry}
+                    onValueChange={value => {
+                      setDetectedCountry(value);
+                      // Update form country too
+                      form.setValue('personalInfo.country', value);
+                      const selectedCountry = topCountries.find(
+                        c => c.code === value
+                      );
+                      if (selectedCountry) {
+                        form.setValue(
+                          'personalInfo.timezone',
+                          selectedCountry.timezone
+                        );
+                        // Update phone with new country code, keep current number
+                        field.onChange(
+                          `${selectedCountry.phoneCode} ${phoneNumber}`
+                        );
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[110px] shrink-0">
+                      <SelectValue>
+                        {selectedCountryData && (
+                          <span className="flex items-center space-x-1">
+                            <ReactCountryFlag
+                              countryCode={selectedCountryData.code}
+                              svg
+                              style={{ width: '20px', height: '15px' }}
+                            />
+                            <span className="font-mono text-sm">
+                              {selectedCountryData.phoneCode}
+                            </span>
+                          </span>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-48">
+                      {topCountries.map(country => (
+                        <SelectItem key={country.code} value={country.code}>
+                          <span className="flex items-center space-x-2">
+                            <ReactCountryFlag
+                              countryCode={country.code}
+                              svg
+                              style={{ width: '20px', height: '15px' }}
+                            />
+                            <span className="font-mono text-sm">
+                              {country.phoneCode}
+                            </span>
+                            <span className="text-sm">{country.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="relative flex-1">
+                    <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 transform font-mono text-sm text-muted-foreground">
+                      {phoneCode}
+                    </div>
+                    <Input
+                      placeholder="123 456 789"
+                      value={phoneNumber}
+                      onChange={e => {
+                        const inputValue = e.target.value;
+                        const numbersOnly = inputValue.replace(/\D/g, '');
+
+                        let formattedNumber = numbersOnly;
+                        if (numbersOnly.length > 3) {
+                          formattedNumber = numbersOnly
+                            .replace(/(\d{3})(\d{3})(\d*)/, '$1 $2 $3')
+                            .trim();
+                        }
+
+                        field.onChange(`${phoneCode} ${formattedNumber}`);
+                      }}
+                      onKeyDown={e => {
+                        if (
+                          (e.key === 'Backspace' || e.key === 'Delete') &&
+                          e.currentTarget.selectionStart === 0
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className="flex-1 pl-16"
+                      style={{ paddingLeft: `${phoneCode.length * 8 + 12}px` }}
+                    />
+                  </div>
+                </div>
+              </FormControl>
+              <FormMessage />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Format: {phoneCode} 123 456 789
+              </p>
+            </FormItem>
+          );
+        }}
       />
 
       <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="personalInfo.country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="us">United States</SelectItem>
-                  <SelectItem value="ca">Canada</SelectItem>
-                  <SelectItem value="uk">United Kingdom</SelectItem>
-                  <SelectItem value="au">Australia</SelectItem>
-                  <SelectItem value="de">Germany</SelectItem>
-                  <SelectItem value="fr">France</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const filteredCountries = topCountries.filter(
+              country =>
+                country.name
+                  .toLowerCase()
+                  .includes(countrySearch.toLowerCase()) ||
+                country.code.toLowerCase().includes(countrySearch.toLowerCase())
+            );
+
+            return (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <Select
+                  onValueChange={value => {
+                    field.onChange(value);
+                    setDetectedCountry(value); // Update phone country
+
+                    // Auto-update timezone when country changes
+                    const selectedCountry = topCountries.find(
+                      c => c.code === value
+                    );
+                    if (selectedCountry) {
+                      form.setValue(
+                        'personalInfo.timezone',
+                        selectedCountry.timezone
+                      );
+                    }
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country">
+                        {field.value && (
+                          <span className="flex items-center space-x-2">
+                            {/* <span>
+                              {
+                                topCountries.find(c => c.code === field.value)
+                                  ?.flag
+                              }
+                            </span> */}
+                            <ReactCountryFlag
+                              countryCode={field.value}
+                              svg
+                              style={{ width: '20px', height: '15px' }}
+                            />
+                            <span>
+                              {
+                                topCountries.find(c => c.code === field.value)
+                                  ?.name
+                              }
+                            </span>
+                          </span>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="max-h-48">
+                    <div className="px-2 py-1.5">
+                      <Input
+                        placeholder="Search countries..."
+                        value={countrySearch}
+                        onChange={e => setCountrySearch(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="my-1 border-t border-border"></div>
+                    {filteredCountries.length > 0 ? (
+                      filteredCountries.map(country => (
+                        <SelectItem key={country.code} value={country.code}>
+                          <span className="flex items-center space-x-2">
+                            <ReactCountryFlag
+                              countryCode={country.code}
+                              svg
+                              style={{ width: '20px', height: '15px' }}
+                            />
+                            <span>{country.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        No countries found. Try a different search term.
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+                {!topCountries.find(c => c.code === detectedCountry) && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Don't see your country? Contact support for additional
+                    options.
+                  </p>
+                )}
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
@@ -422,22 +909,31 @@ export const TeacherRegistrationForm: React.FC = () => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Timezone</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="EST">Eastern (EST)</SelectItem>
-                  <SelectItem value="CST">Central (CST)</SelectItem>
-                  <SelectItem value="MST">Mountain (MST)</SelectItem>
-                  <SelectItem value="PST">Pacific (PST)</SelectItem>
-                  <SelectItem value="GMT">GMT</SelectItem>
-                  <SelectItem value="CET">Central European (CET)</SelectItem>
+                <SelectContent className="max-h-48">
+                  {commonTimezones.map((tz, index) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      <span className="flex w-full items-center justify-between">
+                        <span>{tz.label}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {tz.region}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Detected: {detectedTimezone}
+                {detectedTimezone !== field.value &&
+                  ' (Auto-updated based on country)'}
+              </p>
             </FormItem>
           )}
         />
@@ -560,10 +1056,21 @@ export const TeacherRegistrationForm: React.FC = () => {
         name="experience.teachingExperience"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Teaching Experience</FormLabel>
-            <FormControl>
-              <Input placeholder="e.g., 5" {...field} />
-            </FormControl>
+            <FormLabel>Teaching Experience Level</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your experience level" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {experienceLevels.map(level => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}
@@ -650,13 +1157,166 @@ export const TeacherRegistrationForm: React.FC = () => {
     </div>
   );
 
+  const renderProfessional = () => (
+    <div className="space-y-4">
+      <FormField
+        control={form.control}
+        name="professional.teachingStyle"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Teaching Style</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="Describe your teaching style and methodology..."
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="professional.hourlyRate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Hourly Rate</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., 25" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="professional.currency"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Currency</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="JPY">JPY</SelectItem>
+                  <SelectItem value="CAD">CAD</SelectItem>
+                  <SelectItem value="AUD">AUD</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="professional.officeHours"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Office Hours</FormLabel>
+            <FormControl>
+              <Input placeholder="e.g., Mon-Fri 9AM-5PM EST" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="professional.maxStudentsPerClass"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Maximum Students Per Class</FormLabel>
+            <FormControl>
+              <Input placeholder="e.g., 20" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="professional.professionalSummary"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Professional Summary</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="Brief summary of your professional background and expertise..."
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="professional.portfolioUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Portfolio/Website URL</FormLabel>
+            <FormControl>
+              <Input placeholder="https://yourportfolio.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="professional.licenseNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Teaching License Number (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="License number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="professional.affiliations"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Professional Affiliations</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., NEA, IEEE, ACM" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+  );
+
   const renderDocuments = () => (
     <div className="space-y-6">
       <Alert>
         <Upload className="h-4 w-4" />
         <AlertDescription>
-          Please upload the following documents. All files should be in PDF
-          format and under 5MB.
+          Please upload the following documents. All files should be in PDF,
+          DOC, JPG, or PNG format and under 10MB. Documents will be uploaded
+          automatically when you submit your application.
         </AlertDescription>
       </Alert>
 
@@ -685,7 +1345,7 @@ export const TeacherRegistrationForm: React.FC = () => {
                 onClick={() => {
                   const input = document.createElement('input');
                   input.type = 'file';
-                  input.accept = '.pdf,.doc,.docx';
+                  input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
                   input.onchange = e => {
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
@@ -694,14 +1354,34 @@ export const TeacherRegistrationForm: React.FC = () => {
                   };
                   input.click();
                 }}
+                disabled={isUploading || isSubmitting || localSubmitting}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Choose File
+                {uploadedFiles[doc.key] ? 'Change File' : 'Choose File'}
               </Button>
               {uploadedFiles[doc.key] && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  {uploadedFiles[doc.key].name}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>{uploadedFiles[doc.key].name}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newFiles = { ...uploadedFiles };
+                      delete newFiles[doc.key];
+                      setUploadedFiles(newFiles);
+                      form.setValue(
+                        `documents.${doc.key}Uploaded` as any,
+                        false
+                      );
+                    }}
+                    disabled={isUploading || isSubmitting || localSubmitting}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
@@ -836,6 +1516,23 @@ export const TeacherRegistrationForm: React.FC = () => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {(isSubmitting || localSubmitting) && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+              <div className="mx-4 w-full max-w-sm rounded-lg border bg-card p-6 shadow-lg">
+                <div className="flex items-center space-x-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <div>
+                    <h3 className="font-medium">Submitting Application</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {Object.keys(uploadedFiles).length > 0
+                        ? 'Processing application and uploading documents...'
+                        : 'Please wait while we process your application...'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -868,11 +1565,19 @@ export const TeacherRegistrationForm: React.FC = () => {
             </Button>
 
             {currentStep === steps.length - 1 ? (
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Button
+                type="submit"
+                disabled={isSubmitting || localSubmitting}
+                className="min-w-[160px]"
+              >
+                {isSubmitting || localSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Application'
                 )}
-                Submit Application
               </Button>
             ) : (
               <Button type="button" onClick={nextStep}>

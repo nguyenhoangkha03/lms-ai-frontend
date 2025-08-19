@@ -18,7 +18,7 @@ export interface CDNConfig {
 }
 
 export const cdnConfig: CDNConfig = {
-  baseUrl: process.env.NEXT_PUBLIC_CDN_URL || 'https://cdn.lms-ai.com',
+  baseUrl: process.env.NEXT_PUBLIC_CDN_URL || (process.env.NODE_ENV === 'development' ? '' : 'https://cdn.lms-ai.com'),
   regions: ['us-east-1', 'eu-west-1', 'ap-southeast-1'],
   optimizations: {
     images: true,
@@ -72,6 +72,11 @@ export class CDNManager {
   ): string {
     if (src.startsWith('http') && !src.includes(this.config.baseUrl)) {
       return src; // External URL, return as-is
+    }
+
+    // In development mode, return local paths
+    if (process.env.NODE_ENV === 'development' && !this.config.baseUrl) {
+      return src.startsWith('/') ? src : `/${src}`;
     }
 
     const {

@@ -11,6 +11,13 @@ export const API_CONFIG = {
   timeout: 30000,
 } as const;
 
+export const OAUTH_CONFIG = {
+  googleLoginUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/auth/google`,
+  facebookLoginUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/auth/facebook`,
+  successRedirect: '/oauth-success',
+  errorRedirect: '/oauth-error',
+} as const;
+
 export const ROUTES = {
   // Public routes
   HOME: '/',

@@ -1,3 +1,5 @@
+import { Role } from '../redux/api/role-api';
+
 export interface Permission {
   id: string;
   name: string;
@@ -20,15 +22,15 @@ export interface PermissionCondition {
   value: any;
 }
 
-export interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  hierarchy: number;
-  isSystem: boolean;
-  conditions?: RoleCondition[];
-}
+// export interface Role {
+//   id: string;
+//   name: string;
+//   description: string;
+//   permissions: string[];
+//   hierarchy: number;
+//   isSystem: boolean;
+//   conditions?: RoleCondition[];
+// }
 
 export interface RoleCondition {
   field: string;
@@ -297,7 +299,7 @@ class RBACSystem {
         description: 'Regular student with learning access',
         hierarchy: 1,
         isSystem: true,
-        permissions: [
+        permissionIds: [
           'course.view',
           'course.enroll',
           'assessment.view',

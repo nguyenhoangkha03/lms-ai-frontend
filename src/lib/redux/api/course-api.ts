@@ -55,6 +55,35 @@ export const courseApi = baseApi.injectEndpoints({
     getCategories: builder.query<Category[], void>({
       query: () => '/categories',
       providesTags: ['Category'],
+      transformResponse: (response: any) => {
+        console.log('Categories API response:', response);
+        
+        // Handle different response structures
+        if (response.data && Array.isArray(response.data)) {
+          // Pagination case: { success, message, data: categories[], meta }
+          return response.data;
+        } else if (Array.isArray(response)) {
+          // Direct array response
+          return response;
+        } else if (response && typeof response === 'object') {
+          // Check if response has numeric keys (spread array case)
+          const { success, message, meta, ...rest } = response;
+          const keys = Object.keys(rest);
+          const hasNumericKeys = keys.some(key => !isNaN(Number(key)));
+          
+          if (hasNumericKeys) {
+            // Convert back to array from spread object
+            const categoriesArray = Object.values(rest).filter(item => 
+              item && typeof item === 'object' && 'id' in item
+            );
+            return categoriesArray;
+          }
+        }
+        
+        // Fallback to empty array
+        console.warn('Unexpected categories response structure:', response);
+        return [];
+      },
     }),
 
     getCourseDetail: builder.query<CourseDetail, string>({

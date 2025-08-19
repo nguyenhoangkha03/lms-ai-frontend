@@ -1,4 +1,5 @@
 // Admin Dashboard Components
+export { AdminSidebar } from './admin-sidebar';
 export { AnalyticsWidgets } from './analytics/AnalyticsWidgets';
 export { SystemHealthMonitor } from './monitoring/SystemHealthMonitor';
 

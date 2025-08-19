@@ -20,12 +20,12 @@ export const LoginPageContent: React.FC = () => {
         description: decodeURIComponent(message),
       });
 
-      if (window.history.replaceState) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('verified');
-        url.searchParams.delete('message');
-        window.history.replaceState({}, '', url.toString());
-      }
+      //   if (window.history.replaceState) {
+      //     const url = new URL(window.location.href);
+      //     url.searchParams.delete('verified');
+      //     url.searchParams.delete('message');
+      //     window.history.replaceState({}, '', url.toString());
+      //   }
     }
   }, [verified, message, toast]);
 

@@ -12,11 +12,12 @@ import {
 
 interface AuthResponse {
   message: string;
-  user?: User;
-  accessToken?: string;
-  refreshToken?: string;
+  user: User | null;
+  accessToken: string;
+  refreshToken: string;
   expiresIn?: number;
   twoFactorEnabled?: boolean;
+  twoFactorToken?: string;
   tempToken?: string;
   sessionId?: string;
 }
@@ -77,7 +78,7 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     refreshToken: builder.mutation<
-      { accessToken: string },
+      { accessToken: string; expiresIn?: number; refreshToken: string },
       { refreshToken: string }
     >({
       query: ({ refreshToken }) => ({
@@ -85,8 +86,6 @@ export const authApi = baseApi.injectEndpoints({
         method: 'POST',
         body: { refreshToken },
       }),
-      transformResponse: (response: ApiResponse<{ accessToken: string }>) =>
-        response.data!,
     }),
 
     forgotPassword: builder.mutation<
@@ -226,7 +225,12 @@ export const authApi = baseApi.injectEndpoints({
 
     getProfile: builder.query<User, void>({
       query: () => '/auth/profile',
-      transformResponse: (response: ApiResponse<User>) => response.data!,
+      providesTags: ['User'],
+    }),
+
+    getUser: builder.query<User, void>({
+      query: () => '/auth/user',
+      //   transformResponse: (response: ApiResponse<User>) => response!,
       providesTags: ['User'],
     }),
 
@@ -242,9 +246,6 @@ export const authApi = baseApi.injectEndpoints({
 
     checkAuth: builder.query<{ isAuthenticated: boolean; user?: User }, void>({
       query: () => '/auth/check-auth',
-      transformResponse: (
-        response: ApiResponse<{ isAuthenticated: boolean; user?: User }>
-      ) => response.data!,
       providesTags: ['User'],
     }),
 

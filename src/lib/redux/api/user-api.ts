@@ -138,14 +138,14 @@ export const userApi = baseApi.injectEndpoints({
 
     uploadAvatar: builder.mutation<
       { avatarUrl: string },
-      { userId: string; file: File }
+      { file: File }
     >({
-      query: ({ userId, file }) => {
+      query: ({ file }) => {
         const formData = new FormData();
-        formData.append('avatar', file);
+        formData.append('file', file);
 
         return {
-          url: `/users/${userId}/avatar`,
+          url: `/users/me/avatar`,
           method: 'POST',
           body: formData,
           formData: true,
@@ -153,9 +153,27 @@ export const userApi = baseApi.injectEndpoints({
       },
       transformResponse: (response: ApiResponse<{ avatarUrl: string }>) =>
         response.data!,
-      invalidatesTags: (result, error, { userId }) => [
-        { type: 'User', id: userId },
-      ],
+      invalidatesTags: ['User'],
+    }),
+
+    uploadCover: builder.mutation<
+      { coverUrl: string },
+      { file: File }
+    >({
+      query: ({ file }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return {
+          url: `/users/me/cover`,
+          method: 'POST',
+          body: formData,
+          formData: true,
+        };
+      },
+      transformResponse: (response: ApiResponse<{ coverUrl: string }>) =>
+        response.data!,
+      invalidatesTags: ['User'],
     }),
   }),
 });
@@ -172,4 +190,5 @@ export const {
   useGetTeacherProfileQuery,
   useUpdateTeacherProfileMutation,
   useUploadAvatarMutation,
+  useUploadCoverMutation,
 } = userApi;

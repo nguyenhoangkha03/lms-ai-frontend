@@ -25,7 +25,6 @@ import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 import { useRBACSync } from '@/lib/auth/rbac-integration';
 import type { User } from '@/lib/types';
 import { toast } from 'sonner';
-import { clearAllAuthData } from '@/utils/clear-auth';
 
 interface AuthContextType {
   user: User | null;
@@ -76,7 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { refetch: checkAuthQuery } = useCheckAuthQuery(undefined, {
     skip: true, // Skip automatic execution, we'll manually trigger when needed
   });
-  
+
   const [refreshTokenMutation] = useRefreshTokenMutation();
   const [logoutMutation] = useLogoutMutation();
 
@@ -144,7 +143,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
-    // If we don't have any tokens, no point in checking auth
     const hasToken = AdvancedTokenManager.getAccessToken();
     if (!hasToken) {
       dispatch(logout());
@@ -159,7 +157,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         dispatch(
           loginSuccess({
             user: result.data.user,
-            token: AdvancedTokenManager.getAccessToken() || '',
+            accessToken: AdvancedTokenManager.getAccessToken() || '',
             refreshToken: AdvancedTokenManager.getRefreshToken() || '',
           })
         );
@@ -186,7 +184,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       const result = await refreshTokenMutation({ refreshToken }).unwrap();
-      dispatch(refreshTokenSuccess({ token: result.accessToken }));
+      dispatch(
+        refreshTokenSuccess({
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        })
+      );
       return true;
     } catch (error) {
       console.error('Token refresh failed:', error);
@@ -226,44 +229,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [dispatch, auth.isAuthenticated]);
 
-  // DISABLED: Session expiry check - can cause infinite loops
-  // useEffect(() => {
-  //   if (!auth.sessionExpiry || !auth.isAuthenticated) return;
-  //   ...
-  // }, [auth.sessionExpiry, auth.isAuthenticated, dispatch, refreshSession]);
-
-  // DISABLED: Activity tracking - can cause infinite loops
-  // useEffect(() => {
-  //   if (!auth.isAuthenticated) {
-  //     setIsActivityTracked(false);
-  //     return;
-  //   }
-  //   ...
-  // }, [auth.isAuthenticated, isActivityTracked, updateActivity]);
-
-  // DISABLED: Last activity check - can cause infinite loops
-  // useEffect(() => {
-  //   if (!auth.isAuthenticated || !auth.lastActivity) return;
-  //   ...
-  // }, [auth.isAuthenticated, auth.lastActivity]);
-
-  // Debug current auth state
   useEffect(() => {
     const token = AdvancedTokenManager.getAccessToken();
+    const refreshToken = AdvancedTokenManager.getRefreshToken();
+    const cookieToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('access-token='));
+    const cookieRefreshToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('refresh-token='));
+
     console.log('🔍 Auth Debug:', {
       isAuthenticated: auth.isAuthenticated,
       hasToken: !!token,
+      hasRefreshToken: !!refreshToken,
+      hasCookieToken: !!cookieToken,
+      hasCookieRefreshToken: !!cookieRefreshToken,
       user: auth.user?.email,
-      token: token?.substring(0, 20) + '...' || 'none'
+      token: token?.substring(0, 20) + '...' || 'none',
+      localStorageKeys: Object.keys(localStorage).filter(key =>
+        key.includes('auth')
+      ),
     });
-    
-    // If no token but still authenticated, force logout
-    if (!token && auth.isAuthenticated) {
-      console.log('❌ No token but authenticated, forcing logout');
-      dispatch(logout());
-    }
-  }, [auth.isAuthenticated, auth.user, dispatch]);
 
+    // If authenticated but no token available anywhere, logout
+    if (auth.isAuthenticated && !token && !refreshToken) {
+      console.log('❌ No token or refresh token available, forcing logout');
+      dispatch(logout());
+      return;
+    }
+
+    // If authenticated, has refresh token but no access token, try to refresh
+    if (auth.isAuthenticated && !token && refreshToken) {
+      console.log(
+        '🔄 No access token but has refresh token, attempting refresh'
+      );
+      refreshSession();
+    }
+  }, [auth.isAuthenticated, auth.user, dispatch, refreshSession]);
 
   const contextValue: AuthContextType = {
     user: auth.user,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -70,6 +70,8 @@ import {
   useGetAtRiskStudentsQuery,
   useGetGradingQueueQuery,
 } from '@/lib/redux/api/teacher-dashboard-api';
+import { updateUser } from '@/lib/redux/slices/auth-slice';
+import { useAppDispatch } from '@/lib/redux/hooks';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -94,7 +96,6 @@ export default function TeacherDashboardPage() {
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  // Debug auth state
   console.log('🔍 Auth Debug in Dashboard:', {
     user: user,
     isAuthenticated: isAuthenticated,
@@ -103,9 +104,28 @@ export default function TeacherDashboardPage() {
     teacherProfile: user?.teacherProfile,
   });
 
-  // Use auth context user directly
   const currentUser = user;
   const isApproved = currentUser?.teacherProfile?.isApproved;
+
+  // Only redirect if we have confirmed user data and teacher is not approved
+  // Prevent redirect during auth loading or token refresh
+  if (currentUser && !isLoading && isApproved === false) {
+    console.log('🚫 Teacher not approved, redirecting to pending page');
+    router.push('/teacher-application-pending');
+    return null;
+  }
+
+  // Show loading while checking approval status or during auth loading
+  if (isLoading || (currentUser && isApproved === undefined)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+          <p>Checking teacher approval status...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -154,7 +174,6 @@ export default function TeacherDashboardPage() {
     });
   };
 
-  // Loading state
   if (isLoadingStats || isLoadingClasses) {
     return (
       <div className="container mx-auto space-y-6 p-6">
@@ -211,81 +230,95 @@ export default function TeacherDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Modern Clean Header */}
+      {/* Improved Clean Header */}
       <div className="sticky top-0 z-40 border-b border-white/20 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80">
-        <div className="container mx-auto px-6 py-5">
-          <motion.div
-            variants={itemVariants}
-            className="flex min-h-[60px] items-center justify-between"
-          >
-            {/* Left side - Logo and Title with more space */}
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-5">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
-                  <GraduationCap className="h-7 w-7" />
-                </div>
-                <div className="flex flex-col">
-                  <h1 className="text-2xl font-bold leading-tight text-slate-800 dark:text-white">
-                    LMS Teacher Portal
-                  </h1>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Welcome back, {currentUser?.firstName || 'Teacher'}
-                  </p>
-                </div>
+        {/* Top Row - Logo and Welcome */}
+        <div className="container mx-auto border-b border-slate-200/50 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md">
+                <GraduationCap className="h-5 w-5" />
               </div>
-
-              {/* Quick Navigation with more space */}
-              <nav className="ml-12 hidden items-center space-x-1 xl:flex">
-                <Button
-                  onClick={() => router.push('/teacher/courses')}
-                  variant="ghost"
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Courses
-                </Button>
-                <Button
-                  onClick={() => router.push('/teacher/students')}
-                  variant="ghost"
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Students
-                </Button>
-                <Button
-                  onClick={() => router.push('/teacher/submissions')}
-                  variant="ghost"
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-                >
-                  <FileCheck className="mr-2 h-4 w-4" />
-                  Submissions
-                </Button>
-                <Button
-                  onClick={() => router.push('/teacher/analytics')}
-                  variant="ghost"
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-                >
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Analytics
-                </Button>
-              </nav>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800 dark:text-white">
+                  LMS Teacher Portal
+                </h1>
+              </div>
             </div>
 
-            {/* Right side - Search, Icons, Profile */}
-            <div className="flex items-center space-x-5">
+            <div className="flex items-center space-x-4">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Welcome back,{' '}
+                <span className="font-medium">
+                  {currentUser?.firstName || 'Teacher'}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Row - Navigation and Actions */}
+        <div className="container mx-auto px-6 py-3">
+          <div className="flex items-center justify-between">
+            {/* Main Navigation */}
+            <nav className="flex items-center space-x-1">
+              <Button
+                onClick={() => router.push('/teacher/courses')}
+                variant="ghost"
+                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                Courses
+              </Button>
+              <Button
+                onClick={() => router.push('/teacher/students')}
+                variant="ghost"
+                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Students
+              </Button>
+              <Button
+                onClick={() => router.push('/teacher/assignments')}
+                variant="ghost"
+                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+              >
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Assignments
+              </Button>
+              <Button
+                onClick={() => router.push('/teacher/submissions')}
+                variant="ghost"
+                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+              >
+                <FileCheck className="mr-2 h-4 w-4" />
+                Submissions
+              </Button>
+              <Button
+                onClick={() => router.push('/teacher/analytics')}
+                variant="ghost"
+                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
+              </Button>
+            </nav>
+
+            {/* Right side - Search, Time Filter, Actions */}
+            <div className="flex items-center space-x-3">
               {/* Search Bar */}
               <div className="relative hidden lg:flex">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search courses, students..."
-                  className="w-72 rounded-lg border border-slate-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm backdrop-blur-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-64 rounded-lg border border-slate-200 bg-white/80 py-2 pl-10 pr-4 text-sm backdrop-blur-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* Time Filter */}
               <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="h-10 w-36 border-slate-200 bg-white/80 text-sm shadow-sm backdrop-blur-sm">
+                <SelectTrigger className="h-9 w-32 border-slate-200 bg-white/80 text-sm shadow-sm backdrop-blur-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -296,53 +329,58 @@ export default function TeacherDashboardPage() {
                 </SelectContent>
               </Select>
 
-              {/* Icon Group */}
+              {/* Quick Actions */}
               <div className="flex items-center space-x-2">
-                {/* Notification Bell */}
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="relative p-2.5 hover:bg-slate-100/70"
-                  >
-                    <Bell className="h-5 w-5 text-slate-600" />
-                    <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center bg-red-500 p-0 text-xs text-white">
-                      3
-                    </Badge>
-                  </Button>
-                </div>
-
                 {/* Messages */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="relative p-2.5 hover:bg-slate-100/70"
+                  className="relative p-2 hover:bg-slate-100/70"
                   onClick={() => router.push('/teacher/messages')}
                 >
-                  <MessageSquare className="h-5 w-5 text-slate-600" />
-                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center bg-blue-500 p-0 text-xs text-white">
+                  <MessageSquare className="h-4 w-4 text-slate-600" />
+                  <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-blue-500 p-0 text-xs text-white">
                     2
                   </Badge>
                 </Button>
 
-                {/* More Actions Dropdown */}
+                {/* Notifications */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative p-2 hover:bg-slate-100/70"
+                >
+                  <Bell className="h-4 w-4 text-slate-600" />
+                  <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-red-500 p-0 text-xs text-white">
+                    3
+                  </Badge>
+                </Button>
+
+                {/* Settings Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="p-2.5 hover:bg-slate-100/70"
+                      className="p-2 hover:bg-slate-100/70"
                     >
-                      <Settings className="h-5 w-5 text-slate-600" />
+                      <Settings className="h-4 w-4 text-slate-600" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem
-                      onClick={() => router.push('/teacher/assignments')}
+                      onClick={() => router.push('/teacher/profile')}
                     >
-                      <ClipboardList className="mr-2 h-4 w-4" />
-                      <span>Assignments</span>
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      <span>Profile Settings</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push('/teacher/settings')}
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>App Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => router.push('/teacher/gradebook')}
                     >
@@ -355,22 +393,6 @@ export default function TeacherDashboardPage() {
                       <Video className="mr-2 h-4 w-4" />
                       <span>Live Sessions</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/reports')}
-                    >
-                      <BarChart3 className="mr-2 h-4 w-4" />
-                      <span>Reports</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        router.push('/teacher/predictive-analytics')
-                      }
-                    >
-                      <Brain className="mr-2 h-4 w-4" />
-                      <span>AI Analytics</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => router.push('/teacher/files')}
                     >
@@ -379,30 +401,24 @@ export default function TeacherDashboardPage() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
 
-              {/* Separator */}
-              <div className="h-8 w-px bg-slate-200"></div>
-
-              {/* Profile & Action Group */}
-              <div className="flex items-center space-x-3">
-                {/* Profile Dropdown */}
+                {/* Profile Avatar */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       className="relative p-1 hover:bg-slate-100/70"
                     >
-                      <Avatar className="h-9 w-9">
+                      <Avatar className="h-8 w-8">
                         <AvatarImage src={currentUser?.avatarUrl} />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-600 text-sm text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-600 text-xs text-white">
                           {currentUser?.firstName?.[0]}
                           {currentUser?.lastName?.[0]}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuContent align="end" className="w-56">
                     <div className="flex items-center justify-start gap-3 p-3">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={currentUser?.avatarUrl} />
@@ -425,13 +441,13 @@ export default function TeacherDashboardPage() {
                       onClick={() => router.push('/teacher/profile')}
                     >
                       <UserCircle className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>View Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => router.push('/teacher/settings')}
                     >
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <span>Account Settings</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
@@ -440,17 +456,17 @@ export default function TeacherDashboardPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Quick Action Button */}
+                {/* Primary Action Button */}
                 <Button
                   onClick={() => router.push('/teacher/live-sessions/create')}
-                  className="hidden bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-2 shadow-lg hover:from-blue-600 hover:to-indigo-700 xl:flex"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 px-3 py-2 text-sm shadow-md hover:from-blue-600 hover:to-indigo-700"
                 >
                   <Video className="mr-2 h-4 w-4" />
                   Start Live Class
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 

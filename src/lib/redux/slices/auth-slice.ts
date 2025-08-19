@@ -5,7 +5,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -19,7 +19,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  token: null,
+  accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
@@ -51,7 +51,7 @@ const loadInitialState = (): AuthState => {
       return {
         ...initialState,
         user: JSON.parse(userData),
-        token,
+        accessToken: token,
         refreshToken,
         isAuthenticated: true,
         lastActivity: new Date().toISOString(),
@@ -80,8 +80,8 @@ const authSlice = createSlice({
     loginSuccess: (
       state,
       action: PayloadAction<{
-        user: User;
-        token: string;
+        user: User | null;
+        accessToken: string;
         refreshToken: string;
         expiresIn?: number;
         twoFactorEnabled?: boolean;
@@ -89,11 +89,11 @@ const authSlice = createSlice({
       }>
     ) => {
       console.log('🚀 Redux loginSuccess action dispatched:', action.payload);
-      const { user, token, refreshToken, expiresIn, twoFactorEnabled } =
+      const { user, accessToken, refreshToken, expiresIn, twoFactorEnabled } =
         action.payload;
 
       state.user = user;
-      state.token = token;
+      state.accessToken = accessToken;
       state.refreshToken = refreshToken;
       state.isAuthenticated = true;
       state.isLoading = false;
@@ -109,7 +109,7 @@ const authSlice = createSlice({
       }
 
       AdvancedTokenManager.setTokens({
-        accessToken: token,
+        accessToken: accessToken,
         refreshToken: refreshToken,
         expiresIn: expiresIn || 900,
         tokenType: 'Bearer',
@@ -122,7 +122,7 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.isAuthenticated = false;
       state.user = null;
-      state.token = null;
+      state.accessToken = null;
       state.refreshToken = null;
     },
 
@@ -135,7 +135,7 @@ const authSlice = createSlice({
 
     logout: state => {
       state.user = null;
-      state.token = null;
+      state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.isLoading = false;
@@ -152,14 +152,14 @@ const authSlice = createSlice({
     refreshTokenSuccess: (
       state,
       action: PayloadAction<{
-        token: string;
+        accessToken: string;
         expiresIn?: number;
         refreshToken: string;
       }>
     ) => {
-      const { token, expiresIn, refreshToken } = action.payload;
+      const { accessToken, expiresIn, refreshToken } = action.payload;
 
-      state.token = token;
+      state.accessToken = accessToken;
       state.lastActivity = new Date().toISOString();
 
       if (expiresIn) {
@@ -169,7 +169,7 @@ const authSlice = createSlice({
       }
 
       AdvancedTokenManager.setTokens({
-        accessToken: token,
+        accessToken: accessToken,
         refreshToken: refreshToken,
         expiresIn: expiresIn || 900,
         tokenType: 'Bearer',
@@ -226,7 +226,7 @@ const authSlice = createSlice({
 
     sessionExpired: state => {
       state.user = null;
-      state.token = null;
+      state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = 'Session expired. Please login again.';

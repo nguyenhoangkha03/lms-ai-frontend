@@ -32,9 +32,15 @@ export const ResourcePreloader: React.FC<ResourcePreloaderProps> = ({
         cdnManager.preloadResource(optimizedUrl, 'image');
       });
 
-      // Preload routes
+      // Preload routes with error handling
       routes.forEach(route => {
-        preloadRoute(route);
+        try {
+          preloadRoute(route);
+        } catch (error) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Failed to preload route: ${route}`, error);
+          }
+        }
       });
 
       // Preload videos

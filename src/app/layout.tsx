@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 import { PerformanceProvider } from '@/components/performance/PerformanceProvider';
 import { ResourcePreloader } from '@/components/performance/ResourcePreloader';
+import TokenSyncComponent from '@/components/auth/token-sync';
 import './globals.css';
 import { generateSEO } from '@/lib/seo';
 
@@ -134,21 +135,15 @@ const criticalCSS = `
 
 // Resources to preload
 const criticalResources = {
-  images: [
+  images: process.env.NODE_ENV === 'development' ? [] : [
     '/images/logo.png',
     '/images/logo.webp',
     '/images/hero-bg.webp',
     '/icons/icon-192x192.png',
   ],
-  routes: ['/dashboard', '/courses', '/login', '/register'],
-  fonts: [
-    '/fonts/inter-var.woff2',
-    'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2',
-  ],
-  scripts: [
-    '/_next/static/chunks/main.js',
-    '/_next/static/chunks/polyfills.js',
-  ],
+  routes: [], // Temporarily disabled to prevent 404 errors on non-existent chunks
+  fonts: [], // Disabled to prevent 404 errors - fonts are loaded via Next.js font optimization
+  scripts: [], // Disabled to prevent 404 errors - scripts are loaded automatically by Next.js
 };
 
 export default function RootLayout({
@@ -275,6 +270,9 @@ export default function RootLayout({
       >
         <PerformanceProvider>
           <Providers>
+            {/* Authentication token sync component */}
+            <TokenSyncComponent />
+
             {children}
 
             {/* Resource preloader with critical resources */}
@@ -300,7 +298,7 @@ export default function RootLayout({
                         timestamp: Date.now()
                       });
                       
-                      navigator.sendBeacon('/api/v1/analytics/performance', perfData);
+                      // navigator.sendBeacon('/api/v1/analytics/performance', perfData); // Temporarily disabled
                     }
                   });
                 `,

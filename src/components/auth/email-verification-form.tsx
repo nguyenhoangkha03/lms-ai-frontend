@@ -75,9 +75,15 @@ const EmailVerificationContent: React.FC = () => {
             break;
           case 'teacher':
             // Check teacher application status
-            if (verifyData.user.status === 'pending' || verifyData.user.applicationStatus === 'pending') {
+            if (
+              verifyData.user.status === 'pending' ||
+              verifyData.user.teacherProfile?.isApproved === false
+            ) {
               redirectUrl = '/teacher-application-pending';
-            } else if (verifyData.user.status === 'approved' || verifyData.user.applicationStatus === 'approved') {
+            } else if (
+              verifyData.user.status === 'active' ||
+              verifyData.user.teacherProfile?.isApproved === true
+            ) {
               redirectUrl = ROUTES.TEACHER_DASHBOARD;
             } else {
               redirectUrl = '/teacher-application-pending';
@@ -224,9 +230,15 @@ const EmailVerificationContent: React.FC = () => {
                   break;
                 case 'teacher':
                   // Check teacher application status
-                  if (verifyData.user.status === 'pending' || verifyData.user.applicationStatus === 'pending') {
+                  if (
+                    verifyData.user.status === 'pending' ||
+                    verifyData.user.teacherProfile?.isApproved === false
+                  ) {
                     redirectUrl = '/teacher-application-pending';
-                  } else if (verifyData.user.status === 'approved' || verifyData.user.applicationStatus === 'approved') {
+                  } else if (
+                    verifyData.user.status === 'active' ||
+                    verifyData.user.teacherProfile?.isApproved === true
+                  ) {
                     redirectUrl = ROUTES.TEACHER_DASHBOARD;
                   } else {
                     redirectUrl = '/teacher-application-pending';
@@ -243,11 +255,11 @@ const EmailVerificationContent: React.FC = () => {
             router.push(redirectUrl);
           }}
         >
-          {verifyData?.user?.userType === 'teacher' && 
-           (verifyData.user.status === 'pending' || verifyData.user.applicationStatus === 'pending')
+          {verifyData?.user?.userType === 'teacher' &&
+          (verifyData.user.status === 'pending' ||
+            verifyData.user.teacherProfile?.isApproved === false)
             ? 'View Application Status'
-            : 'Continue to Dashboard'
-          }
+            : 'Continue to Dashboard'}
         </Button>
       </div>
     );

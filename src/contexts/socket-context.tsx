@@ -59,6 +59,12 @@ export function SocketProvider({
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
     if (!isAuthenticated || !user?.id) return;
+    
+    // Disable socket connection for admin and teacher users to prevent timeout issues
+    if (user?.userType === 'admin' || user?.userType === 'teacher') {
+      console.log(`Socket connection disabled for ${user.userType} users - using API polling instead`);
+      return;
+    }
 
     try {
       const socket = io(`${API_CONFIG.socketURL}${namespace}`, {

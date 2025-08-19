@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import {
   loginStart,
@@ -26,6 +26,13 @@ import { toast } from 'sonner';
 export const useAuth = () => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
+  
+  // Fix SSR/Client hydration mismatch
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [loginMutation, { isLoading: isLoggingIn }] = useLoginMutation();
   const [registerMutation, { isLoading: isRegistering }] =
@@ -34,7 +41,7 @@ export const useAuth = () => {
   const [refreshTokenMutation] = useRefreshTokenMutation();
 
   const { refetch: checkAuth } = useCheckAuthQuery(undefined, {
-    skip: !auth.token,
+    skip: !auth.accessToken,
   });
 
   const login = useCallback(
@@ -45,7 +52,10 @@ export const useAuth = () => {
 
         if ('twoFactorRequired' in result) {
           dispatch(login2FARequired(result.twoFactorToken!));
-          return { requiresTwoFactor: true, token: result.twoFactorToken };
+          return {
+            requiresTwoFactor: true,
+            twoFactorToken: result.twoFactorToken,
+          };
         }
 
         dispatch(loginSuccess(result));
@@ -80,14 +90,27 @@ export const useAuth = () => {
   const handleLogout = useCallback(
     async (logoutAll = false) => {
       try {
-        if (logoutAll) {
-          await logoutMutation().unwrap();
-        }
+        console.log('🚪 Starting logout process...');
+        
+        // Call backend logout API  
+        await logoutMutation().unwrap();
+        console.log('✅ Backend logout successful');
       } catch (error) {
-        console.error('Logout error:', error);
+        console.error('❌ Logout API error:', error);
+        // Continue with logout even if API fails
       } finally {
+        // Always clear local state and cookies
+        console.log('🧹 Clearing local auth state...');
         dispatch(logout());
+        
+        // Show success message
         toast.success('Logged out successfully');
+        
+        // Force redirect to login page
+        console.log('🔄 Redirecting to login...');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 100);
       }
     },
     [dispatch, logoutMutation]
@@ -105,7 +128,13 @@ export const useAuth = () => {
         refreshToken: refreshTokenValue,
       }).unwrap();
 
-      dispatch(refreshTokenSuccess({ token: result.accessToken }));
+      dispatch(
+        refreshTokenSuccess({
+          accessToken: result.accessToken,
+          expiresIn: result.expiresIn,
+          refreshToken: result.refreshToken,
+        })
+      );
       return true;
     } catch (error) {
       dispatch(sessionExpired());
@@ -172,39 +201,34 @@ export const useAuth = () => {
 
   useEffect(() => {
     if (!auth.sessionExpiry || !auth.isAuthenticated) return;
-
     const expiryTime = new Date(auth.sessionExpiry).getTime();
     const currentTime = Date.now();
     const timeUntilExpiry = expiryTime - currentTime;
-
+    console.log('jjjjj', timeUntilExpiry);
     if (timeUntilExpiry <= 0) {
       dispatch(sessionExpired());
       return;
     }
-
     const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
     if (refreshTime > 0) {
       const refreshTimeout = setTimeout(() => {
         refreshToken();
       }, refreshTime);
-
       return () => clearTimeout(refreshTimeout);
     }
-
     const refreshTimeout = setTimeout(() => {
       refreshToken();
     }, refreshTime);
-
     return () => clearTimeout(refreshTimeout);
   }, [auth.sessionExpiry, auth.isAuthenticated, refreshToken, dispatch]);
 
   return {
-    user: auth.user,
-    isAuthenticated: auth.isAuthenticated,
-    isLoading: auth.isLoading || isLoggingIn || isRegistering,
+    user: isClient ? auth.user : null, // Prevent SSR/hydration mismatch
+    isAuthenticated: isClient ? auth.isAuthenticated : false,
+    isLoading: auth.isLoading || isLoggingIn || isRegistering || !isClient,
     error: auth.error,
     permissions: auth.permissions,
-    twoFactorRequired: auth.twoFactorRequired,
+    twoFactorRequired: auth.twoFactorEnabled,
 
     login,
     register,

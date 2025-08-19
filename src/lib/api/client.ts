@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_CONFIG, LOCAL_STORAGE_KEYS } from '../constants/constants';
 import { toast } from 'react-hot-toast';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 
 interface ApiError {
   message: string;
@@ -55,7 +56,7 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config: any) => {
-    const token = tokenManager.getToken();
+    const token = AdvancedTokenManager.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -95,62 +96,16 @@ apiClient.interceptors.response.use(
   async error => {
     const originalRequest = error.config;
 
+    // Let AdvancedTokenManager handle all token refresh logic
+    // Don't duplicate refresh logic here to avoid conflicts
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return apiClient(originalRequest);
-          })
-          .catch(err => {
-            return Promise.reject(err);
-          });
-      }
-
+      console.log('🚫 401 error in axios interceptor, but TokenManager will handle refresh');
+      
+      // Just mark as retried to prevent infinite loops
       originalRequest._retry = true;
-      isRefreshing = true;
-
-      const refreshToken = tokenManager.getRefreshToken();
-
-      if (refreshToken) {
-        try {
-          const response = await axios.post(
-            `${API_CONFIG.baseURL}/auth/refresh`,
-            {
-              refreshToken,
-            }
-          );
-
-          const { accessToken } = response.data.data;
-          tokenManager.setToken(accessToken);
-
-          processQueue(null, accessToken);
-
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return apiClient(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          tokenManager.clearTokens();
-
-          if (typeof window !== undefined) {
-            window.location.href = '/login';
-          }
-
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
-      } else {
-        tokenManager.clearTokens();
-
-        if (typeof window !== undefined) {
-          window.location.href = '/login';
-        }
-
-        return Promise.reject(error);
-      }
+      
+      // Let the error bubble up so other handlers can deal with it
+      // The AdvancedTokenManager will handle refresh automatically via its intervals
     }
 
     if (error.response) {

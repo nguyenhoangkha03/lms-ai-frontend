@@ -6,18 +6,22 @@ import {
   sessionExpired,
   refreshTokenSuccess,
 } from '../slices/auth-slice';
-import { tokenManager } from '@/lib/api/client';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 
 export const authMiddleware = createListenerMiddleware();
 
 authMiddleware.startListening({
   actionCreator: loginSuccess,
   effect: async (action, listenerApi) => {
-    const { user, token, refreshToken } = action.payload;
+    const { user, accessToken, refreshToken, expiresIn } = action.payload;
 
-    // Store tokens
-    tokenManager.setToken(token);
-    tokenManager.setRefreshToken(refreshToken);
+    // Store tokens using AdvancedTokenManager
+    AdvancedTokenManager.setTokens({
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresIn: expiresIn || 900, // 15 minutes default
+      tokenType: 'Bearer',
+    });
 
     // Store user data
     localStorage.setItem('user_data', JSON.stringify(user));
@@ -25,8 +29,8 @@ authMiddleware.startListening({
     // Track login event
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'login', {
-        method: user.userType,
-        user_id: user.id,
+        method: user?.userType,
+        user_id: user?.id,
       });
     }
   },
@@ -36,7 +40,7 @@ authMiddleware.startListening({
   actionCreator: logout,
   effect: async (action, listenerApi) => {
     // Clear tokens and user data
-    tokenManager.clearTokens();
+    AdvancedTokenManager.clearTokens();
 
     // Clear any other stored data
     const keysToRemove = [
@@ -64,7 +68,7 @@ authMiddleware.startListening({
   actionCreator: sessionExpired,
   effect: async (action, listenerApi) => {
     // Clear all data
-    tokenManager.clearTokens();
+    AdvancedTokenManager.clearTokens();
 
     // Show session expired message
     toast.error('Your session has expired. Please login again.');
@@ -81,7 +85,13 @@ authMiddleware.startListening({
 authMiddleware.startListening({
   actionCreator: refreshTokenSuccess,
   effect: async (action, listenerApi) => {
-    const { token } = action.payload;
-    tokenManager.setToken(token);
+    const { accessToken, refreshToken, expiresIn } = action.payload;
+
+    AdvancedTokenManager.setTokens({
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresIn: expiresIn || 900, // 15 minutes default
+      tokenType: 'Bearer',
+    });
   },
 });

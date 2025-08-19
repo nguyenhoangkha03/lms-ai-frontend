@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ReduxProvider } from './redux-provider';
 import { AuthProvider } from '@/contexts/auth-context';
 import { NotificationProvider } from '@/contexts/notification-context';
@@ -10,6 +10,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/sonner';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { ThemeProvider } from './theme/theme-provider';
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,14 @@ interface ProvidersProps {
 }
 
 export function Providers({ children }: ProvidersProps) {
+  // Initialize Token Manager on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('🚀 Initializing TokenManager...');
+      AdvancedTokenManager.initialize();
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider

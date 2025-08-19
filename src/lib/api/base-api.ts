@@ -1,23 +1,37 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { API_CONFIG } from '../constants/constants';
-import { tokenManager } from './client';
+import { AdvancedTokenManager } from '../auth/token-manager';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseURL,
   credentials: 'include',
-  prepareHeaders: (headers, { getState: _, endpoint, extra }) => {
+  prepareHeaders: (headers, api) => {
     console.log('🌐 API Base URL:', API_CONFIG.baseURL);
-    const token = tokenManager.getToken();
+    console.log('🔍 API object:', api);
 
+    const token = AdvancedTokenManager.getAccessToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    if (
-      !((extra as any)?.body instanceof FormData) &&
-      !headers.get('Content-Type')
-    ) {
+    // Check if this is a FormData upload by examining the endpoint name
+    const isFileUpload =
+      api.endpoint &&
+      (api.endpoint.includes('upload') ||
+        api.endpoint.includes('avatar') ||
+        api.endpoint.includes('cover'));
+
+    console.log(
+      '📁 Is file upload endpoint:',
+      isFileUpload,
+      'Endpoint:',
+      api.endpoint
+    );
+
+    // For file uploads, don't set Content-Type header
+    // The browser will set the correct multipart/form-data with boundary
+    if (!isFileUpload && !headers.get('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
 
@@ -29,36 +43,82 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+// const baseQuery = fetchBaseQuery({
+//   baseUrl: API_CONFIG.baseURL,
+//   credentials: 'include',
+//   prepareHeaders: (headers, { getState: _, endpoint, extra }) => {
+//     console.log('🌐 API Base URL:', API_CONFIG.baseURL);
+//     const token = tokenManager.getToken();
+
+//     if (token) {
+//       headers.set('Authorization', `Bearer ${token}`);
+//     }
+
+//     if (
+//       !((extra as any)?.body instanceof FormData) &&
+//       !headers.get('Content-Type')
+//     ) {
+//       headers.set('Content-Type', 'application/json');
+//     }
+
+//     headers.set('X-Request-ID', crypto.randomUUID());
+//     headers.set('X-Timestamp', new Date().toISOString());
+
+//     console.log('📤 Request headers:', Object.fromEntries(headers.entries()));
+//     return headers;
+//   },
+// });
+
 const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
   console.log('🚀 Making API request:', args);
+
+  // For FormData uploads, we need to handle headers specially
+  if (args.body instanceof FormData) {
+    console.log('📁 FormData detected, ensuring no Content-Type header');
+
+    // Create a new args object with modified headers
+    args = {
+      ...args,
+      headers: {
+        ...args.headers,
+        // Explicitly remove Content-Type to let browser set multipart boundary
+        'Content-Type': undefined,
+      },
+    };
+
+    // Also remove undefined values from headers
+    Object.keys(args.headers).forEach(key => {
+      if (args.headers[key] === undefined) {
+        delete args.headers[key];
+      }
+    });
+
+    console.log('📁 Modified headers for FormData:', args.headers);
+  }
+
   let result = await baseQuery(args, api, extraOptions);
   console.log('📥 API Response:', result);
+
+  // If 401 error, let TokenManager handle the refresh instead of doing it here
   if (result.error && result.error.status === 401) {
-    const refreshToken = tokenManager.getRefreshToken();
+    console.log(
+      '🚫 401 error detected, delegating to TokenManager for refresh'
+    );
 
-    if (refreshToken) {
-      const refreshResult = await baseQuery(
-        {
-          url: '/auth/refresh',
-          method: 'POST',
-          body: { refreshToken },
-        },
-        api,
-        extraOptions
-      );
+    // Import AdvancedTokenManager here to avoid circular dependency
+    const { AdvancedTokenManager } = await import('@/lib/auth/token-manager');
 
-      if (refreshResult.data) {
-        const { accessToken } = (refreshResult.data as any).data;
-        tokenManager.setToken(accessToken);
+    // Try to refresh token using TokenManager
+    const refreshSuccess = await AdvancedTokenManager.refreshTokenSilently();
 
-        result = await baseQuery(args, api, extraOptions);
-      } else {
-        tokenManager.clearTokens();
-        window.location.href = '/login';
-      }
+    if (refreshSuccess) {
+      console.log('✅ Token refreshed successfully, retrying original request');
+      // Retry the original request with new token
+      result = await baseQuery(args, api, extraOptions);
     } else {
-      tokenManager.clearTokens();
-      window.location.href = '/login';
+      console.log('❌ Token refresh failed, clearing auth state');
+      // TokenManager will handle clearing tokens and redirect
+      // Don't do it here to avoid double action
     }
   }
 
@@ -272,6 +332,16 @@ export const baseApi = createApi({
     'DashboardOverview',
     'PendingDocuments',
     'UserStats',
+    'SystemMetrics',
+    'SystemAlerts',
+    'BusinessMetrics',
+    'Role',
+    'Roles',
+    'RolePermissions',
+    'Permission',
+    'Permissions',
+    'Section',
+    'CourseStats',
   ],
   endpoints: () => ({}),
 });

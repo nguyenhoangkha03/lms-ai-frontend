@@ -32,7 +32,7 @@ import {
   registerSchema,
   type RegisterFormData,
 } from '@/lib/validations/auth-schemas';
-import { ROUTES } from '@/lib/constants/constants';
+import { ROUTES, OAUTH_CONFIG } from '@/lib/constants/constants';
 import {
   Eye,
   EyeOff,
@@ -125,11 +125,25 @@ export const RegisterForm: React.FC = () => {
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
-      window.location.href = `/api/auth/${provider}?action=register`;
+      console.log(`🔄 Initiating ${provider} OAuth registration...`);
+      
+      // Get the correct OAuth URL from config
+      const oauthUrl = provider === 'google' 
+        ? OAUTH_CONFIG.googleLoginUrl 
+        : OAUTH_CONFIG.facebookLoginUrl;
+      
+      // Add register action parameter
+      const finalUrl = `${oauthUrl}?action=register`;
+      
+      console.log(`🚀 Redirecting to: ${finalUrl}`);
+      
+      // Redirect to backend OAuth endpoint
+      window.location.href = finalUrl;
     } catch (error) {
+      console.error(`❌ Failed to initiate ${provider} registration:`, error);
       toast({
-        title: 'Social Login Failed',
-        description: `Failed to register with ${provider}`,
+        title: 'Social Registration Failed',
+        description: `Failed to register with ${provider}. Please try again.`,
         variant: 'destructive',
       });
     }

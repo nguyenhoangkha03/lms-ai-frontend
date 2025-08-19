@@ -8,20 +8,23 @@ interface SocialLoginButtonsProps {
   onGoogleLogin: () => void;
   onFacebookLogin: () => void;
   isLoading: boolean;
+  disabled?: boolean;
 }
 
 export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
   onGoogleLogin,
   onFacebookLogin,
   isLoading,
+  disabled = false,
 }) => {
   return (
     <div className="grid grid-cols-2 gap-4">
       <Button
         variant="outline"
         onClick={onGoogleLogin}
-        disabled={isLoading}
+        disabled={isLoading || disabled}
         className="w-full"
+        type="button"
       >
         {isLoading ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -51,8 +54,9 @@ export const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
       <Button
         variant="outline"
         onClick={onFacebookLogin}
-        disabled={isLoading}
+        disabled={isLoading || disabled}
         className="w-full"
+        type="button"
       >
         {isLoading ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

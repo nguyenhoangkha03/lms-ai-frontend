@@ -36,7 +36,6 @@ const routeConfigs: RouteConfig[] = [
   { path: '/reset-password', allowedRoles: [], requiresAuth: false },
   { path: '/verify-email', allowedRoles: [], requiresAuth: false },
 
-  { path: '/student', allowedRoles: [USER_ROLES.STUDENT], requiresAuth: true },
   {
     path: '/student',
     allowedRoles: [USER_ROLES.STUDENT],
@@ -73,7 +72,6 @@ const routeConfigs: RouteConfig[] = [
     requiresAuth: true,
   },
 
-  { path: '/teacher', allowedRoles: [USER_ROLES.TEACHER], requiresAuth: true },
   {
     path: '/teacher',
     allowedRoles: [USER_ROLES.TEACHER],
@@ -107,11 +105,6 @@ const routeConfigs: RouteConfig[] = [
 
   { path: '/admin', allowedRoles: [USER_ROLES.ADMIN], requiresAuth: true },
   {
-    path: '/admin',
-    allowedRoles: [USER_ROLES.ADMIN],
-    requiresAuth: true,
-  },
-  {
     path: '/admin/users',
     allowedRoles: [USER_ROLES.ADMIN],
     requiresAuth: true,
@@ -128,6 +121,86 @@ const routeConfigs: RouteConfig[] = [
   },
   {
     path: '/admin/settings',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/teacher-applications',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/security',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/ai-management',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/ml-management',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/content',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/communication',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/financial',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/system',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/monitoring',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/privacy-compliance',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/assessments',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/file-management',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/notification-management',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/system-configuration',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/cache-database-management',
+    allowedRoles: [USER_ROLES.ADMIN],
+    requiresAuth: true,
+  },
+  {
+    path: '/admin/backup-maintenance',
     allowedRoles: [USER_ROLES.ADMIN],
     requiresAuth: true,
   },
@@ -239,18 +312,26 @@ async function verifyToken(token: string): Promise<any> {
 }
 
 function findRouteConfig(pathname: string): RouteConfig | null {
+  // Exact match first
   let config = routeConfigs.find(route => route.path === pathname);
   if (config) return config;
 
+  // Find the most specific matching route (longest path that matches)
+  let bestMatch: RouteConfig | null = null;
+  let bestMatchLength = 0;
+
   for (const route of routeConfigs) {
+    // Convert route pattern to regex
     const pattern = route.path.replace(/\[.*?\]/g, '[^/]+');
     const regex = new RegExp(`^${pattern}(/.*)?$`);
-    if (regex.test(pathname)) {
-      return route;
+
+    if (regex.test(pathname) && route.path.length > bestMatchLength) {
+      bestMatch = route;
+      bestMatchLength = route.path.length;
     }
   }
 
-  return null;
+  return bestMatch;
 }
 
 function getRedirectUrl(
@@ -332,10 +413,14 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const authToken =
-    request.cookies.get('access-token')?.value ||
-    request.cookies.get('auth_token')?.value ||
-    request.headers.get('authorization')?.replace('Bearer ', '');
+  // Try multiple sources for token (cookies first, then headers)
+  const cookieToken = request.cookies.get('access-token')?.value;
+  const legacyCookieToken = request.cookies.get('auth_token')?.value;
+  const headerToken = request.headers
+    .get('authorization')
+    ?.replace('Bearer ', '');
+
+  const authToken = cookieToken || legacyCookieToken || headerToken;
 
   let userPayload: any = null;
 
@@ -383,6 +468,15 @@ export async function middleware(request: NextRequest) {
       response.headers.set('x-user-id', userId);
       response.headers.set('x-user-role', userRole);
       response.headers.set('x-user-authenticated', 'true');
+
+      // If token found in cookies but potentially not in localStorage, hint client to sync
+      if (cookieToken && !headerToken) {
+        response.headers.set(
+          'x-token-sync',
+          cookieToken.substring(0, 20) + '...'
+        );
+        response.headers.set('x-refresh-token-available', 'true');
+      }
     }
   } else {
     response = NextResponse.next();

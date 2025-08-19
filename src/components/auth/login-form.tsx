@@ -23,7 +23,7 @@ import {
   loginSchema,
   type LoginFormData,
 } from '@/lib/validations/auth-schemas';
-import { ROUTES } from '@/lib/constants/constants';
+import { ROUTES, OAUTH_CONFIG } from '@/lib/constants/constants';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { SocialLoginButtons } from './social-login-buttons';
 import { useLoginMutation } from '@/lib/redux/api/auth-api';
@@ -39,7 +39,7 @@ export const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const redirectUrl = searchParams.get('redirect') || ROUTES.STUDENT_DASHBOARD;
+  const redirectUrl = searchParams.get('redirect');
 
   const [login, { isLoading, error: apiError }] = useLoginMutation();
 
@@ -91,7 +91,7 @@ export const LoginForm: React.FC = () => {
           user: result.user!,
           expiresIn: result.expiresIn,
           twoFactorEnabled: result.twoFactorEnabled,
-          token: result.accessToken!,
+          accessToken: result.accessToken!,
           refreshToken: result.refreshToken!,
         })
       );
@@ -107,14 +107,38 @@ export const LoginForm: React.FC = () => {
       console.log('🚀 Preparing redirect...');
 
       let finalRedirectUrl = redirectUrl;
-      if (result.user?.userType === 'teacher') {
+
+      // If no redirect URL specified, determine based on user role
+      if (!finalRedirectUrl) {
+        switch (result.user?.userType) {
+          case 'admin':
+            finalRedirectUrl = ROUTES.ADMIN_DASHBOARD;
+            console.log('👑 Admin login - redirecting to admin dashboard');
+            break;
+          case 'teacher':
+            const isApproved = result.user?.teacherProfile?.isApproved;
+            finalRedirectUrl = isApproved
+              ? ROUTES.TEACHER_DASHBOARD
+              : '/teacher-application-pending';
+            console.log(
+              `🎓 Teacher login - Approved: ${isApproved}, redirecting to: ${finalRedirectUrl}`
+            );
+            break;
+          case 'student':
+          default:
+            finalRedirectUrl = ROUTES.STUDENT_DASHBOARD;
+            console.log('🎓 Student login - redirecting to student dashboard');
+            break;
+        }
+      } else if (result.user?.userType === 'teacher') {
+        // Special case: if redirect URL is specified but user is teacher, check approval
         const isApproved = result.user?.teacherProfile?.isApproved;
-        finalRedirectUrl = isApproved
-          ? '/teacher'
-          : '/teacher-application-pending';
-        console.log(
-          `🎓 Teacher login - Approved: ${isApproved}, redirecting to: ${finalRedirectUrl}`
-        );
+        if (!isApproved) {
+          finalRedirectUrl = '/teacher-application-pending';
+          console.log(
+            `🎓 Teacher login - Not approved, overriding redirect to: ${finalRedirectUrl}`
+          );
+        }
       }
 
       console.log('🚀 Final redirect URL:', finalRedirectUrl);
@@ -134,9 +158,26 @@ export const LoginForm: React.FC = () => {
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
-      window.location.href = `/api/auth/${provider}?redirect=${encodeURIComponent(redirectUrl)}`;
+      console.log(`🔄 Initiating ${provider} OAuth login...`);
+
+      // Get the correct OAuth URL from config
+      const oauthUrl =
+        provider === 'google'
+          ? OAUTH_CONFIG.googleLoginUrl
+          : OAUTH_CONFIG.facebookLoginUrl;
+
+      // Add redirect parameter if specified
+      const finalUrl = redirectUrl
+        ? `${oauthUrl}?redirect=${encodeURIComponent(redirectUrl)}`
+        : oauthUrl;
+
+      console.log(`🚀 Redirecting to: ${finalUrl}`);
+
+      // Redirect to backend OAuth endpoint
+      window.location.href = finalUrl;
     } catch (error) {
-      setError(`Failed to login with ${provider}`);
+      console.error(`❌ Failed to initiate ${provider} login:`, error);
+      setError(`Failed to login with ${provider}. Please try again.`);
     }
   };
 

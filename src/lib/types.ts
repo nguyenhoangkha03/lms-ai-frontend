@@ -640,6 +640,12 @@ export interface TeacherApplicationResponse {
     lastName: string;
     userType: string;
   };
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: string;
+
+  sessionId?: string;
   message: string;
   applicationId: string;
 }

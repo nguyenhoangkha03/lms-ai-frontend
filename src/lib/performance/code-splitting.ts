@@ -98,8 +98,12 @@ export const LazyPages = {
     () => import('@/app/(dashboard)/admin/content/moderation/page')
   ),
 
-  CourseList: createLazyComponent(() => import('@/app/courses/page')),
-  CourseDetail: createLazyComponent(() => import('@/app/courses/[slug]/page')),
+  CourseList: createLazyComponent(
+    () => import('@/app/(marketplace)/courses/page')
+  ),
+  CourseDetail: createLazyComponent(
+    () => import('@/app/(marketplace)/courses/[slug]/page')
+  ),
   LessonPage: createLazyComponent(
     () =>
       import(
@@ -118,10 +122,14 @@ export const LazyPages = {
       )
   ),
 
-  Forum: createLazyComponent(() => import('@/app/forum/page')),
-  StudyGroups: createLazyComponent(() => import('@/app/study-groups/page')),
-  Chat: createLazyComponent(() => import('@/app/chat/page')),
-  Search: createLazyComponent(() => import('@/app/(dashboard)/search/page')),
+  Forum: createLazyComponent(() => import('@/app/(community)/forum/page')),
+  StudyGroups: createLazyComponent(
+    () => import('@/app/(community)/study-groups/page')
+  ),
+  Chat: createLazyComponent(() => import('@/app/(community)/chat/page')),
+  Search: createLazyComponent(
+    () => import('@/app/(dashboard)/shared/search/page')
+  ),
 };
 
 export const LazyComponents = {
@@ -190,7 +198,7 @@ export const getRouteBundle = (pathname: string) => {
     '/student': ['student', 'analytics', 'learning'],
     '/teacher': ['teacher', 'assessment', 'gradebook'],
     '/admin': ['admin', 'management', 'analytics'],
-    '/courses': ['course', 'learning', 'video'],
+    '/courses': ['course', 'learning'],
     '/chat': ['chat', 'communication'],
     '/forum': ['forum', 'discussion'],
     '/study-groups': ['collaboration', 'whiteboard'],
@@ -205,17 +213,40 @@ export const getRouteBundle = (pathname: string) => {
   return ['core'];
 };
 
-// Preload function for route anticipation
+// Preload function for route anticipation - temporarily disabled to prevent 404 errors
 export const preloadRoute = (route: string) => {
+  if (typeof window === 'undefined') return;
+  
+  // Disable preloading for now to prevent 404 errors on non-existent chunks
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Route preloading disabled for: ${route} (prevents 404 errors)`);
+  }
+  
+  return; // Early return to disable preloading
+  
+  /* Commented out until chunk structure is properly configured
   const bundles = getRouteBundle(route);
 
   bundles.forEach(bundle => {
+    // Check if the link already exists to avoid duplicates
+    const existingLink = document.querySelector(`link[href*="${bundle}.js"]`);
+    if (existingLink) return;
+
     const link = document.createElement('link');
     link.rel = 'prefetch';
     link.as = 'script';
     link.href = `/_next/static/chunks/${bundle}.js`;
+    
+    // Add error handling for failed preloads
+    link.onerror = () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Failed to preload bundle: ${bundle}.js`);
+      }
+    };
+    
     document.head.appendChild(link);
   });
+  */
 };
 
 // src/lib/performance/caching-strategies.ts
@@ -658,11 +689,13 @@ export class PerformanceMonitor {
 
   private async sendToAnalytics(type: string, data: any) {
     try {
-      await fetch('/api/analytics/performance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, data, timestamp: Date.now() }),
-      });
+      // Temporarily disabled - API endpoint not implemented
+      // await fetch('/api/analytics/performance', {
+      //   method: 'POST', 
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ type, data, timestamp: Date.now() }),
+      // });
+      console.log('Performance analytics:', { type, data }); // Debug log instead
     } catch (error) {
       console.error('Failed to send performance data:', error);
     }

@@ -10,6 +10,16 @@ errorMiddleware.startListening({
   effect: async (action, _listenerApi) => {
     const { type, payload, error } = action as any;
 
+    // Filter out ConditionError and other non-critical errors
+    const isConditionError = error?.name === 'ConditionError' || 
+                            error?.message?.includes('condition callback returning false') ||
+                            payload?.message?.includes('condition callback returning false');
+    
+    if (isConditionError) {
+      // Don't log or show ConditionErrors - they're internal RTK Query optimization
+      return;
+    }
+
     console.error('Redux Error:', {
       type,
       payload,
@@ -36,8 +46,15 @@ errorMiddleware.startListening({
     const errorMessage =
       payload?.message || error?.message || 'An error occurred';
 
-    if (!errorMessage.includes('Network Error')) {
-      toast.error(errorMessage);
+    if (!errorMessage.includes('Network Error') && errorMessage !== 'An error occurred') {
+      try {
+        toast.error(errorMessage, {
+          duration: 4000,
+          id: `error-${Date.now()}`, // Unique ID to prevent duplicate toasts
+        });
+      } catch (toastError) {
+        console.warn('Toast error:', toastError);
+      }
     }
 
     if (typeof window !== 'undefined' && window.gtag) {

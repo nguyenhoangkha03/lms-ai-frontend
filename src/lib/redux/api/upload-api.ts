@@ -12,13 +12,15 @@ export const uploadApi = baseApi.injectEndpoints({
       {
         file: File;
         documentType: DocumentType;
+        userId: string;
         metadata?: Record<string, any>;
       }
     >({
-      query: ({ file, documentType, metadata }) => {
+      query: ({ file, documentType, userId, metadata }) => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('documentType', documentType);
+        formData.append('userId', userId);
         if (metadata) {
           formData.append('metadata', JSON.stringify(metadata));
         }
@@ -48,7 +50,7 @@ export const uploadApi = baseApi.injectEndpoints({
       query: documentId => ({
         url: `/upload/teacher/document/${documentId}/download`,
         method: 'GET',
-        responseHandler: (response) => response.blob(),
+        responseHandler: (response: any) => response.blob(),
       }),
     }),
 

@@ -61,29 +61,40 @@ export class AdvancedTokenManager {
 
   static getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
-    
-    // Try reading from cookies first (set by backend during email verification)
+
+    // Try localStorage first for consistency
+    const localToken = localStorage.getItem(this.ACCESS_TOKEN_KEY);
+    if (localToken) return localToken;
+
+    // Fallback to cookies (set by backend during email verification)
     const cookieToken = this.getCookie('access-token');
-    if (cookieToken) return cookieToken;
-    
-    // Fallback to localStorage (for manual login)
-    return localStorage.getItem(this.ACCESS_TOKEN_KEY);
+    if (cookieToken) {
+      // If found in cookies but not localStorage, sync it
+      localStorage.setItem(this.ACCESS_TOKEN_KEY, cookieToken);
+      return cookieToken;
+    }
+
+    return null;
   }
 
   static getRefreshToken(): string | null {
     if (typeof window === 'undefined') return null;
-    
-    // Try reading from cookies first (set by backend during email verification)
+
+    const localToken = localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    if (localToken) return localToken;
+
     const cookieToken = this.getCookie('refresh-token');
-    if (cookieToken) return cookieToken;
-    
-    // Fallback to localStorage (for manual login)
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    if (cookieToken) {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, cookieToken);
+      return cookieToken;
+    }
+
+    return null;
   }
 
   private static getCookie(name: string): string | null {
     if (typeof document === 'undefined') return null;
-    
+
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
@@ -202,38 +213,84 @@ export class AdvancedTokenManager {
     refreshToken: string
   ): Promise<boolean> {
     try {
+      console.log('🔄 Starting token refresh process...');
+      console.log(
+        '🔍 Refresh token preview:',
+        refreshToken.substring(0, 20) + '...'
+      );
+      console.log('🌐 API URL:', process.env.NEXT_PUBLIC_API_URL);
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${refreshToken}`,
           },
+          credentials: 'include',
           body: JSON.stringify({ refreshToken }),
         }
       );
 
+      console.log('📡 Refresh response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Refresh failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error(
+          '❌ Refresh failed with status:',
+          response.status,
+          'Body:',
+          errorText
+        );
+        throw new Error(`Refresh failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('📦 Refresh response data:', {
+        message: data.message,
+        hasAccessToken: !!data.accessToken,
+        hasRefreshToken: !!data.refreshToken,
+        expiresIn: data.expiresIn,
+        tokenType: data.tokenType,
+      });
 
-      if (data.success && data.data) {
+      if (data.accessToken) {
         this.setTokens({
-          accessToken: data.data.accessToken,
-          refreshToken: data.data.refreshToken || refreshToken,
-          expiresIn: data.data.expiresIn || 900, // 15 minutes default
-          tokenType: 'Bearer',
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken || refreshToken,
+          expiresIn: data.expiresIn || 900,
+          tokenType: data.tokenType || 'Bearer',
         });
 
+        console.log('✅ Token refresh successful');
         return true;
       }
 
       throw new Error('Invalid refresh response');
     } catch (error) {
       console.error('Token refresh failed:', error);
-      this.clearTokens();
+
+      if (
+        (error as Error).message?.includes('401') ||
+        (error as Error).message?.includes('403')
+      ) {
+        console.log('🚫 Refresh token is invalid, clearing all auth state');
+        this.clearTokens();
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('auth:session-expired', {
+              detail: { reason: 'refresh_token_invalid' },
+            })
+          );
+        }
+      } else {
+        console.warn(
+          '🔄 Token refresh failed due to network/server issue, retrying later'
+        );
+      }
+
       return false;
     }
   }
@@ -246,11 +303,41 @@ export class AdvancedTokenManager {
     localStorage.removeItem('token_expiry');
     localStorage.removeItem(LOCAL_STORAGE_KEYS.USER_DATA);
 
+    this.clearCookie('access-token');
+    this.clearCookie('refresh-token');
+    this.clearCookie('session-id');
+
     const timeout = (window as any).__tokenRefreshTimeout;
     if (timeout) {
       clearTimeout(timeout);
       (window as any).__tokenRefreshTimeout = null;
     }
+  }
+
+  private static clearCookie(name: string): void {
+    if (typeof document === 'undefined') return;
+
+    // Clear cookie with various combinations to ensure removal
+    const expiry = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
+    // Clear without domain
+    document.cookie = `${name}=; ${expiry}; path=/;`;
+    
+    // Clear with current hostname
+    document.cookie = `${name}=; ${expiry}; path=/; domain=${window.location.hostname};`;
+    
+    // Clear with dot-prefixed domain (for subdomain cookies)
+    if (window.location.hostname !== 'localhost') {
+      const domain = window.location.hostname.split('.').slice(-2).join('.');
+      document.cookie = `${name}=; ${expiry}; path=/; domain=.${domain};`;
+    }
+    
+    // Additional clearing for localhost
+    if (window.location.hostname === 'localhost') {
+      document.cookie = `${name}=; ${expiry}; path=/; domain=localhost;`;
+    }
+    
+    console.log(`🍪 Cleared cookie: ${name}`);
   }
 
   static getUserPermissions(): string[] {
@@ -313,6 +400,28 @@ export class AdvancedTokenManager {
       this.refreshTokenSilently();
     }
 
+    const validationInterval = setInterval(
+      () => {
+        const currentValidation = this.validateAccessToken();
+        const refreshToken = this.getRefreshToken();
+
+        if (currentValidation.isExpired && refreshToken) {
+          console.log('🔄 Token expired, attempting automatic refresh...');
+          this.refreshTokenSilently().catch(error => {
+            console.error('Automatic token refresh failed:', error);
+          });
+        } else if (currentValidation.needsRefresh && refreshToken) {
+          console.log('🔄 Token needs refresh, refreshing proactively...');
+          this.refreshTokenSilently().catch(error => {
+            console.warn('Proactive token refresh failed:', error);
+          });
+        }
+      },
+      3 * 60 * 1000
+    );
+
+    (window as any).__tokenValidationInterval = validationInterval;
+
     window.addEventListener('storage', event => {
       if (
         event.key === this.ACCESS_TOKEN_KEY ||
@@ -321,6 +430,12 @@ export class AdvancedTokenManager {
         window.location.reload();
       }
     });
-    window.addEventListener('beforeunload', () => {});
+
+    window.addEventListener('beforeunload', () => {
+      const interval = (window as any).__tokenValidationInterval;
+      if (interval) {
+        clearInterval(interval);
+      }
+    });
   }
 }
