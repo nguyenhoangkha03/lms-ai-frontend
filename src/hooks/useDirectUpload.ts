@@ -1,12 +1,25 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  useGenerateUploadUrlMutation,
+  useConfirmUploadMutation,
+  type GenerateUploadUrlRequest,
+  type ConfirmUploadRequest,
+} from '@/lib/redux/api/teacher-courses-api';
 
 interface UploadOptions {
   onProgress?: (progress: number) => void;
   onStatusChange?: (status: UploadStatus) => void;
+  metadata?: Record<string, any>;
 }
 
-export type UploadStatus = 'idle' | 'generating-url' | 'uploading' | 'confirming' | 'success' | 'error';
+export type UploadStatus =
+  | 'idle'
+  | 'generating-url'
+  | 'uploading'
+  | 'confirming'
+  | 'success'
+  | 'error';
 
 interface UploadResult {
   success: boolean;
@@ -14,17 +27,7 @@ interface UploadResult {
   error?: string;
 }
 
-interface GenerateUrlResponse {
-  uploadId: string;
-  presignedUrl: string;
-  s3Key: string;
-  expiresIn: number;
-}
-
-interface ConfirmUploadResponse {
-  success: boolean;
-  fileRecord: any;
-}
+// Interfaces are now imported from RTK Query API
 
 export const useDirectUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -32,6 +35,10 @@ export const useDirectUpload = () => {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+
+  // RTK Query mutations
+  const [generateUploadUrl] = useGenerateUploadUrlMutation();
+  const [confirmUpload] = useConfirmUploadMutation();
 
   const updateProgress = useCallback((progress: number) => {
     setUploadProgress(progress);
@@ -41,81 +48,92 @@ export const useDirectUpload = () => {
     setUploadStatus(status);
   }, []);
 
-  const uploadToS3 = useCallback(async (
-    file: File,
-    presignedUrl: string,
-    options: UploadOptions = {}
-  ): Promise<{ etag: string }> => {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
+  const uploadToS3 = useCallback(
+    async (
+      file: File,
+      presignedUrl: string,
+      options: UploadOptions = {}
+    ): Promise<{ etag: string }> => {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
 
-      // Track upload progress
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          updateProgress(progress);
-          options.onProgress?.(progress);
-        }
-      });
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-          const etag = xhr.getResponseHeader('ETag')?.replace(/"/g, '') || '';
-          if (!etag) {
-            reject(new Error('No ETag received from S3'));
-            return;
+        // Track upload progress
+        xhr.upload.addEventListener('progress', event => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            updateProgress(progress);
+            options.onProgress?.(progress);
           }
-          resolve({ etag });
-        } else {
-          reject(new Error(`Upload failed with status: ${xhr.status} - ${xhr.statusText}`));
-        }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status === 200) {
+            const etag = xhr.getResponseHeader('ETag')?.replace(/"/g, '') || '';
+            if (!etag) {
+              reject(new Error('No ETag received from S3'));
+              return;
+            }
+            resolve({ etag });
+          } else {
+            // Log detailed S3 error for debugging
+            console.error('❌ S3 Upload failed:', {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              responseText: xhr.responseText,
+              responseHeaders: xhr.getAllResponseHeaders()
+            });
+            reject(
+              new Error(
+                `S3 Upload failed: ${xhr.status} - ${xhr.statusText}\nResponse: ${xhr.responseText}`
+              )
+            );
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload was aborted'));
+        });
+
+        xhr.addEventListener('timeout', () => {
+          reject(new Error('Upload timed out'));
+        });
+
+        // Configure request
+        xhr.open('PUT', presignedUrl);
+        // Don't set Content-Type - let S3 handle it from presigned URL
+        // xhr.setRequestHeader('Content-Type', file.type);
+        xhr.timeout = 30 * 60 * 1000; // 30 minutes timeout
+
+        // Send file
+        xhr.send(file);
       });
+    },
+    [updateProgress]
+  );
 
-      xhr.addEventListener('error', () => {
-        reject(new Error('Network error during upload'));
-      });
+  const uploadFile = useCallback(
+    async (
+      courseId: string,
+      file: File,
+      uploadType: 'trailer' | 'lesson' | 'promotional',
+      lessonId?: string,
+      options: UploadOptions = {}
+    ): Promise<UploadResult> => {
+      try {
+        setIsUploading(true);
+        setUploadProgress(0);
+        setError(null);
 
-      xhr.addEventListener('abort', () => {
-        reject(new Error('Upload was aborted'));
-      });
+        updateStatus('generating-url');
+        options.onStatusChange?.('generating-url');
 
-      xhr.addEventListener('timeout', () => {
-        reject(new Error('Upload timed out'));
-      });
-
-      // Configure request
-      xhr.open('PUT', presignedUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.timeout = 30 * 60 * 1000; // 30 minutes timeout
-      
-      // Send file
-      xhr.send(file);
-    });
-  }, [updateProgress]);
-
-  const uploadFile = useCallback(async (
-    courseId: string,
-    file: File,
-    uploadType: 'trailer' | 'lesson' | 'promotional',
-    lessonId?: string,
-    options: UploadOptions = {}
-  ): Promise<UploadResult> => {
-    try {
-      setIsUploading(true);
-      setUploadProgress(0);
-      setError(null);
-      
-      updateStatus('generating-url');
-      options.onStatusChange?.('generating-url');
-
-      // Step 1: Get presigned URL from backend
-      const generateUrlResponse = await fetch(`/api/course/${courseId}/generate-upload-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth
-        },
-        body: JSON.stringify({
+        // Step 1: Get presigned URL using RTK Query
+        const urlResult = await generateUploadUrl({
+          courseId,
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
@@ -125,93 +143,71 @@ export const useDirectUpload = () => {
             uploadedFrom: 'web-app',
             userAgent: navigator.userAgent,
             timestamp: new Date().toISOString(),
+            ...options.metadata,
           },
-        }),
-      });
+        }).unwrap();
 
-      if (!generateUrlResponse.ok) {
-        const errorData = await generateUrlResponse.json();
-        throw new Error(errorData.message || 'Failed to generate upload URL');
-      }
+        const urlData = urlResult;
 
-      const urlData: GenerateUrlResponse = await generateUrlResponse.json();
+        updateStatus('uploading');
+        options.onStatusChange?.('uploading');
 
-      updateStatus('uploading');
-      options.onStatusChange?.('uploading');
+        // Step 2: Upload directly to S3
+        const uploadResult = await uploadToS3(file, urlData.presignedUrl, {
+          onProgress: progress => {
+            updateProgress(progress);
+            options.onProgress?.(progress);
+          },
+        });
 
-      // Step 2: Upload directly to S3
-      const uploadResult = await uploadToS3(file, urlData.presignedUrl, {
-        onProgress: (progress) => {
-          updateProgress(progress);
-          options.onProgress?.(progress);
-        },
-      });
+        updateStatus('confirming');
+        options.onStatusChange?.('confirming');
 
-      updateStatus('confirming');
-      options.onStatusChange?.('confirming');
-
-      // Step 3: Confirm upload with backend
-      const confirmResponse = await fetch(`/api/course/${courseId}/confirm-upload`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
+        // Step 3: Confirm upload using RTK Query
+        const confirmResult = await confirmUpload({
+          courseId,
           uploadId: urlData.uploadId,
           s3Key: urlData.s3Key,
           etag: uploadResult.etag,
           actualFileSize: file.size,
-          uploadMetadata: {
-            uploadDuration: Date.now(), // You can calculate actual duration
-            browser: navigator.userAgent,
-            completedAt: new Date().toISOString(),
-          },
-        }),
-      });
+        }).unwrap();
 
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json();
-        throw new Error(errorData.message || 'Failed to confirm upload');
+        updateStatus('success');
+        options.onStatusChange?.('success');
+        setUploadProgress(100);
+
+        toast({
+          title: 'Upload Successful',
+          description: `${file.name} has been uploaded successfully.`,
+          variant: 'default',
+        });
+
+        return {
+          success: true,
+          fileRecord: confirmResult.fileRecord,
+        };
+      } catch (err: any) {
+        const errorMessage = err.message || 'Upload failed';
+        setError(errorMessage);
+        updateStatus('error');
+        options.onStatusChange?.('error');
+
+        toast({
+          title: 'Upload Failed',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
+      } finally {
+        setIsUploading(false);
       }
-
-      const confirmResult: ConfirmUploadResponse = await confirmResponse.json();
-
-      updateStatus('success');
-      options.onStatusChange?.('success');
-      setUploadProgress(100);
-
-      toast({
-        title: 'Upload Successful',
-        description: `${file.name} has been uploaded successfully.`,
-        variant: 'default',
-      });
-
-      return {
-        success: true,
-        fileRecord: confirmResult.fileRecord,
-      };
-
-    } catch (err: any) {
-      const errorMessage = err.message || 'Upload failed';
-      setError(errorMessage);
-      updateStatus('error');
-      options.onStatusChange?.('error');
-
-      toast({
-        title: 'Upload Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    } finally {
-      setIsUploading(false);
-    }
-  }, [uploadToS3, updateStatus, toast]);
+    },
+    [uploadToS3, updateStatus, toast, generateUploadUrl, confirmUpload]
+  );
 
   const reset = useCallback(() => {
     setUploadProgress(0);

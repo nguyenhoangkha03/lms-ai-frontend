@@ -66,7 +66,7 @@ import {
   CourseSection,
   Lesson,
 } from '@/lib/redux/api/teacher-lessons-api';
-import { useUploadFileMutation } from '@/lib/redux/api/teacher-files-api';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 interface CurriculumBuilderProps {
@@ -158,7 +158,7 @@ export default function CurriculumBuilder({
   const [deleteLesson] = useDeleteLessonMutation();
   const [reorderSections] = useReorderSectionsMutation();
   const [reorderLessons] = useReorderLessonsMutation();
-  const [uploadFile] = useUploadFileMutation();
+  const { uploadFile: directUpload } = useDirectUpload();
 
   // Form states
   const [sectionForm, setSectionForm] = useState<SectionFormData>({
@@ -307,52 +307,7 @@ export default function CurriculumBuilder({
 
   const handleCreateLesson = async (sectionId: string) => {
     try {
-      let videoUrl = undefined;
-      let thumbnailUrl = undefined;
-      let audioUrl = undefined;
-
-      // Upload video file if provided
-      if (lessonForm.uploadedVideoFile) {
-        toast({
-          title: 'Uploading video...',
-          description: 'Please wait while we upload your video file.',
-        });
-        const videoUploadResult = await uploadFile({
-          file: lessonForm.uploadedVideoFile,
-          folder: `courses/${courseId}/lessons`,
-          accessLevel: 'private',
-          metadata: { lessonTitle: lessonForm.title, type: 'lesson_video' },
-        }).unwrap();
-        videoUrl = videoUploadResult.cdnUrl || videoUploadResult.downloadUrl;
-      }
-
-      // Upload thumbnail file if provided
-      if (lessonForm.uploadedThumbnailFile) {
-        const thumbnailUploadResult = await uploadFile({
-          file: lessonForm.uploadedThumbnailFile,
-          folder: `courses/${courseId}/thumbnails`,
-          accessLevel: 'public',
-          metadata: { lessonTitle: lessonForm.title, type: 'lesson_thumbnail' },
-        }).unwrap();
-        thumbnailUrl =
-          thumbnailUploadResult.cdnUrl || thumbnailUploadResult.downloadUrl;
-      }
-
-      // Upload audio file if provided
-      if (lessonForm.uploadedAudioFile) {
-        toast({
-          title: 'Uploading audio...',
-          description: 'Please wait while we upload your audio file.',
-        });
-        const audioUploadResult = await uploadFile({
-          file: lessonForm.uploadedAudioFile,
-          folder: `courses/${courseId}/audio`,
-          accessLevel: 'private',
-          metadata: { lessonTitle: lessonForm.title, type: 'lesson_audio' },
-        }).unwrap();
-        audioUrl = audioUploadResult.cdnUrl || audioUploadResult.downloadUrl;
-      }
-
+      // First create the lesson without files
       const result = await createLesson({
         courseId,
         sectionId,
@@ -360,10 +315,6 @@ export default function CurriculumBuilder({
         description: lessonForm.description,
         content: lessonForm.content || undefined,
         lessonType: lessonForm.lessonType,
-        videoUrl: videoUrl,
-        videoDuration: lessonForm.duration,
-        thumbnailUrl: thumbnailUrl,
-        audioUrl: audioUrl,
         isPreview: lessonForm.isPreview,
         isMandatory: lessonForm.isMandatory,
         estimatedDuration: lessonForm.estimatedDuration,
@@ -380,6 +331,119 @@ export default function CurriculumBuilder({
         orderIndex:
           sections.find(s => s.id === sectionId)?.lessons?.length || 0,
       }).unwrap();
+
+      const createdLessonId = result.id;
+
+      // Now upload files if provided and update the lesson
+      let videoUrl = undefined;
+      let thumbnailUrl = undefined;
+      let audioUrl = undefined;
+
+      // Upload video file if provided
+      if (lessonForm.uploadedVideoFile) {
+        toast({
+          title: 'Uploading video...',
+          description: 'Please wait while we upload your video file.',
+        });
+        try {
+          const videoUploadResult = await directUpload(
+            courseId,
+            lessonForm.uploadedVideoFile,
+            'lesson',
+            createdLessonId,
+            {
+              onProgress: (progress) => {
+                // Handle progress if needed
+              },
+              metadata: { lessonTitle: lessonForm.title, type: 'lesson_video' }
+            }
+          );
+          videoUrl = videoUploadResult.success ? videoUploadResult.fileRecord?.fileUrl : undefined;
+        } catch (error: any) {
+          toast({
+            title: 'Video upload failed',
+            description: error?.message || 'Failed to upload video file',
+            variant: 'destructive',
+          });
+          // Don't return, continue with lesson creation
+        }
+      }
+
+      // Upload thumbnail file if provided
+      if (lessonForm.uploadedThumbnailFile) {
+        try {
+          const thumbnailUploadResult = await directUpload(
+            courseId,
+            lessonForm.uploadedThumbnailFile,
+            'lesson',
+            createdLessonId,
+            {
+              onProgress: (progress) => {
+                // Handle progress if needed
+              },
+              metadata: { lessonTitle: lessonForm.title, type: 'lesson_thumbnail' }
+            }
+          );
+          thumbnailUrl = thumbnailUploadResult.success ? thumbnailUploadResult.fileRecord?.fileUrl : undefined;
+        } catch (error: any) {
+          toast({
+            title: 'Thumbnail upload failed',
+            description: error?.message || 'Failed to upload thumbnail file',
+            variant: 'destructive',
+          });
+          // Don't return, continue
+        }
+      }
+
+      // Upload audio file if provided
+      if (lessonForm.uploadedAudioFile) {
+        toast({
+          title: 'Uploading audio...',
+          description: 'Please wait while we upload your audio file.',
+        });
+        try {
+          const audioUploadResult = await directUpload(
+            courseId,
+            lessonForm.uploadedAudioFile,
+            'lesson',
+            createdLessonId,
+            {
+              onProgress: (progress) => {
+                // Handle progress if needed
+              },
+              metadata: { lessonTitle: lessonForm.title, type: 'lesson_audio' }
+            }
+          );
+          audioUrl = audioUploadResult.success ? audioUploadResult.fileRecord?.fileUrl : undefined;
+        } catch (error: any) {
+          toast({
+            title: 'Audio upload failed',
+            description: error?.message || 'Failed to upload audio file',
+            variant: 'destructive',
+          });
+          // Don't return, continue
+        }
+      }
+
+      // Update lesson with file URLs if any were uploaded
+      if (videoUrl || thumbnailUrl || audioUrl) {
+        try {
+          await updateLesson({
+            id: createdLessonId,
+            data: {
+              videoUrl: videoUrl,
+              thumbnailUrl: thumbnailUrl,
+              audioUrl: audioUrl,
+            }
+          }).unwrap();
+        } catch (error: any) {
+          toast({
+            title: 'Failed to update lesson with file URLs',
+            description: error?.message || 'Lesson created but file URLs not saved',
+            variant: 'destructive',
+          });
+        }
+      }
 
       const newSections = sections.map(section =>
         section.id === sectionId

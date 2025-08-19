@@ -17,14 +17,14 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '../ui/sheet';
+} from '../../ui/sheet';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '../ui/dialog';
+} from '../../ui/dialog';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;

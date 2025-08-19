@@ -42,23 +42,16 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  useCreateTeacherCourseMutation,
-  useUploadCourseThumbnailMutation,
-  useUploadCourseTrailerVideoMutation,
-} from '@/lib/redux/api/teacher-courses-api';
+import { useCreateTeacherCourseMutation } from '@/lib/redux/api/teacher-courses-api';
+import useDirectUpload from '@/hooks/useDirectUpload';
 import { useGetCategoriesQuery } from '@/lib/redux/api/course-api';
 import {
   CourseLevel,
   CourseLanguage,
   CoursePricing,
 } from '@/lib/types/course-enums';
-import { 
-  CurriculumBuilder, 
-  ContentUploader,
-  DirectVideoUpload,
-  TrailerUploadExample 
-} from '@/components/teacher/course-creation';
+import CurriculumBuilder from '@/components/features/course/creation/builders/curriculum-builder';
+import ContentUploader from '@/components/features/course/creation/upload/content-uploader';
 import { CourseSection } from '@/lib/redux/api/teacher-lessons-api';
 
 interface CourseFormData {
@@ -178,10 +171,10 @@ export default function ModernCourseCreationPage() {
   // API mutations
   const [createCourse, { isLoading: isCreating }] =
     useCreateTeacherCourseMutation();
-  const [uploadThumbnail, { isLoading: isUploadingThumbnail }] = 
-    useUploadCourseThumbnailMutation();
-  const [uploadTrailerVideo, { isLoading: isUploadingTrailerVideo }] = 
-    useUploadCourseTrailerVideoMutation();
+
+  // Direct S3 Upload hook
+  const { uploadFile, uploadProgress, uploadStatus, isUploading } =
+    useDirectUpload();
 
   // Fetch categories from API
   const {
@@ -495,48 +488,60 @@ export default function ModernCourseCreationPage() {
       // Update form data with course ID
       updateFormData({ courseId });
 
-      // Upload files if they exist
+      // Upload files using Direct S3 Upload if they exist
       const uploadPromises = [];
 
       if (formData.thumbnailFile) {
-        const thumbnailPromise = uploadThumbnail({ 
-          courseId, 
-          file: formData.thumbnailFile 
-        }).unwrap().then((response) => {
-          updateFormData({ thumbnailUrl: response.thumbnailUrl });
-          toast({
-            title: 'Thumbnail uploaded',
-            description: 'Course thumbnail uploaded successfully',
+        const thumbnailPromise = uploadFile(
+          courseId,
+          formData.thumbnailFile,
+          'promotional'
+        )
+          .then(result => {
+            if (result.success && result.fileRecord) {
+              updateFormData({ thumbnailUrl: result.fileRecord.fileUrl });
+              toast({
+                title: 'Thumbnail uploaded',
+                description:
+                  'Course thumbnail uploaded successfully via Direct S3',
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Failed to upload thumbnail:', error);
+            toast({
+              title: 'Thumbnail upload failed',
+              description: 'Course saved but thumbnail upload failed',
+              variant: 'destructive',
+            });
           });
-        }).catch((error) => {
-          console.error('Failed to upload thumbnail:', error);
-          toast({
-            title: 'Thumbnail upload failed',
-            description: 'Course saved but thumbnail upload failed',
-            variant: 'destructive',
-          });
-        });
         uploadPromises.push(thumbnailPromise);
       }
 
       if (formData.trailerVideoFile) {
-        const trailerPromise = uploadTrailerVideo({ 
-          courseId, 
-          file: formData.trailerVideoFile 
-        }).unwrap().then((response) => {
-          updateFormData({ trailerVideoUrl: response.trailerVideoUrl });
-          toast({
-            title: 'Trailer video uploaded',
-            description: 'Course trailer video uploaded successfully',
+        const trailerPromise = uploadFile(
+          courseId,
+          formData.trailerVideoFile,
+          'trailer'
+        )
+          .then(result => {
+            if (result.success && result.fileRecord) {
+              updateFormData({ trailerVideoUrl: result.fileRecord.fileUrl });
+              toast({
+                title: 'Trailer video uploaded',
+                description:
+                  'Course trailer video uploaded successfully via Direct S3',
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Failed to upload trailer video:', error);
+            toast({
+              title: 'Trailer video upload failed',
+              description: 'Course saved but trailer video upload failed',
+              variant: 'destructive',
+            });
           });
-        }).catch((error) => {
-          console.error('Failed to upload trailer video:', error);
-          toast({
-            title: 'Trailer video upload failed',
-            description: 'Course saved but trailer video upload failed',
-            variant: 'destructive',
-          });
-        });
         uploadPromises.push(trailerPromise);
       }
 
@@ -572,25 +577,31 @@ export default function ModernCourseCreationPage() {
       // Update form data with course ID
       updateFormData({ courseId });
 
-      // Upload files if they exist
+      // Upload files using Direct S3 Upload if they exist
       const uploadPromises = [];
 
       if (formData.thumbnailFile) {
-        const thumbnailPromise = uploadThumbnail({ 
-          courseId, 
-          file: formData.thumbnailFile 
-        }).unwrap().then((response) => {
-          updateFormData({ thumbnailUrl: response.thumbnailUrl });
+        const thumbnailPromise = uploadFile(
+          courseId,
+          formData.thumbnailFile,
+          'promotional'
+        ).then(result => {
+          if (result.success && result.fileRecord) {
+            updateFormData({ thumbnailUrl: result.fileRecord.fileUrl });
+          }
         });
         uploadPromises.push(thumbnailPromise);
       }
 
       if (formData.trailerVideoFile) {
-        const trailerPromise = uploadTrailerVideo({ 
-          courseId, 
-          file: formData.trailerVideoFile 
-        }).unwrap().then((response) => {
-          updateFormData({ trailerVideoUrl: response.trailerVideoUrl });
+        const trailerPromise = uploadFile(
+          courseId,
+          formData.trailerVideoFile,
+          'trailer'
+        ).then(result => {
+          if (result.success && result.fileRecord) {
+            updateFormData({ trailerVideoUrl: result.fileRecord.fileUrl });
+          }
         });
         uploadPromises.push(trailerPromise);
       }
@@ -998,6 +1009,10 @@ export default function ModernCourseCreationPage() {
                     </Button>
                     <p className="mt-2 text-xs text-slate-500">
                       Max size: 5MB. Recommended: 1200x600px
+                      <br />
+                      <span className="text-emerald-600">
+                        ✓ Direct S3 Upload - No server memory usage
+                      </span>
                     </p>
                   </div>
                 )}
@@ -1079,6 +1094,10 @@ export default function ModernCourseCreationPage() {
                     </Button>
                     <p className="mt-2 text-xs text-slate-500">
                       Max size: 100MB. Recommended formats: MP4, WebM
+                      <br />
+                      <span className="text-emerald-600">
+                        ✓ Direct S3 Upload - No server memory usage
+                      </span>
                     </p>
                   </div>
                 )}
@@ -1091,6 +1110,25 @@ export default function ModernCourseCreationPage() {
                 />
               </div>
             </div>
+
+            {/* Upload Progress Indicator */}
+            {isUploading && (
+              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="font-semibold text-blue-800">
+                    Uploading to S3...
+                  </h4>
+                  <span className="text-sm text-blue-600">
+                    {uploadProgress}%
+                  </span>
+                </div>
+                <Progress value={uploadProgress} className="h-2 bg-blue-100" />
+                <p className="mt-1 text-xs text-blue-600">
+                  Status: {uploadStatus} • Using Direct S3 Upload (No server
+                  memory usage)
+                </p>
+              </div>
+            )}
 
             {/* Save Draft Button */}
             {!formData.courseId &&
@@ -1105,17 +1143,20 @@ export default function ModernCourseCreationPage() {
                       </h4>
                       <p className="text-sm text-green-700">
                         Save your course draft to start building the curriculum
+                        • Files upload directly to S3
                       </p>
                     </div>
                     <Button
                       onClick={handleSaveDraft}
-                      disabled={isCreating || isUploadingThumbnail || isUploadingTrailerVideo}
+                      disabled={isCreating || isUploading}
                       className="bg-green-600 text-white hover:bg-green-700"
                     >
-                      {isCreating || isUploadingThumbnail || isUploadingTrailerVideo ? (
+                      {isCreating || isUploading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isCreating ? 'Saving...' : isUploadingThumbnail ? 'Uploading thumbnail...' : 'Uploading video...'}
+                          {isCreating
+                            ? 'Saving...'
+                            : 'Uploading via Direct S3...'}
                         </>
                       ) : (
                         <>
@@ -1492,10 +1533,10 @@ export default function ModernCourseCreationPage() {
               <Button
                 onClick={handlePublish}
                 size="lg"
-                disabled={isCreating || isUploadingThumbnail || isUploadingTrailerVideo}
+                disabled={isCreating || isUploading}
                 className="bg-gradient-to-r from-emerald-500 to-green-600 px-8 shadow-lg hover:from-emerald-600 hover:to-green-700"
               >
-                {isCreating || isUploadingThumbnail || isUploadingTrailerVideo ? (
+                {isCreating || isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Publishing...
@@ -1732,10 +1773,10 @@ export default function ModernCourseCreationPage() {
                   {currentStep === WIZARD_STEPS.length - 1 ? (
                     <Button
                       onClick={handlePublish}
-                      disabled={isCreating || isUploadingThumbnail || isUploadingTrailerVideo}
+                      disabled={isCreating || isUploading}
                       className="bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg hover:from-emerald-600 hover:to-green-700"
                     >
-                      {isCreating || isUploadingThumbnail || isUploadingTrailerVideo ? (
+                      {isCreating || isUploading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Publishing...

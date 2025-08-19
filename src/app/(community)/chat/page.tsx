@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSocket } from '@/hooks/use-socket';
-import { ChatRoomList } from '@/components/chat/ChatRoomList';
-import { ChatRoomInterface } from '@/components/chat/ChatRoomInterface';
+import { ChatRoomList } from '@/components/communication/chat/ChatRoomList';
+import { ChatRoomInterface } from '@/components/communication/chat/ChatRoomInterface';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { generateSEO, generateOrganizationStructuredData } from '@/lib/seo';
-import { StructuredData } from '@/components/common/structured-data';
+import { StructuredData } from '@/components/shared/structured-data';
 import { HeroSection } from '@/components/landing/hero-section';
 import { FeaturesSection } from '@/components/landing/features-section';
 import { CTASection } from '@/components/landing/cta-section';

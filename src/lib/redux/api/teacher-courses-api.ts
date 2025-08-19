@@ -163,6 +163,43 @@ export interface CourseStatistics {
   recentlyUpdated: number;
 }
 
+// Direct S3 Upload interfaces
+export interface GenerateUploadUrlRequest {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  uploadType: string;
+  lessonId?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface GenerateUploadUrlResponse {
+  uploadId: string;
+  presignedUrl: string;
+  s3Key: string;
+  expiresIn: number;
+}
+
+export interface ConfirmUploadRequest {
+  uploadId: string;
+  s3Key: string;
+  etag: string;
+  actualFileSize: number;
+}
+
+export interface ConfirmUploadResponse {
+  success: boolean;
+  fileRecord: {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    uploadType: string;
+  };
+}
+
 export const teacherCoursesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get teacher's courses - uses existing /course/my-courses endpoint
@@ -355,6 +392,30 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
         { type: 'Course', id: 'LIST' },
       ],
     }),
+
+    // ==================== DIRECT S3 UPLOAD ====================
+
+    // Generate presigned URL for direct S3 upload
+    generateUploadUrl: builder.mutation<GenerateUploadUrlResponse, { courseId: string } & GenerateUploadUrlRequest>({
+      query: ({ courseId, ...body }) => ({
+        url: `/course/${courseId}/generate-upload-url`,
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    // Confirm upload completion
+    confirmUpload: builder.mutation<ConfirmUploadResponse, { courseId: string } & ConfirmUploadRequest>({
+      query: ({ courseId, ...body }) => ({
+        url: `/course/${courseId}/confirm-upload`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, error, { courseId }) => [
+        { type: 'Course', id: courseId },
+        { type: 'Course', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -375,4 +436,7 @@ export const {
   useUploadCourseTrailerVideoMutation,
   useDeleteCourseThumbnailMutation,
   useDeleteCourseTrailerVideoMutation,
+  // Direct S3 upload hooks
+  useGenerateUploadUrlMutation,
+  useConfirmUploadMutation,
 } = teacherCoursesApi;

@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/sonner';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { ThemeProvider } from './theme/theme-provider';
+import { ThemeProvider } from '@/components/theme/theme-provider';
 import { AdvancedTokenManager } from '@/lib/auth/token-manager';
 
 const queryClient = new QueryClient({

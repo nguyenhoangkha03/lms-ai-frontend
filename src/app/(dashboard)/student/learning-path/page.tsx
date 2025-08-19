@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AdaptiveLearningPath } from '@/components/ai';
+import { AdaptiveLearningPath } from '@/components/ai/adaptive-learning-path';
 
 export default function LearningPathPage() {
   return (

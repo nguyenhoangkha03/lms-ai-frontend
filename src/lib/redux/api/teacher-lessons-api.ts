@@ -35,6 +35,9 @@ export interface UpdateLessonDto {
   lessonType?: 'video' | 'text' | 'quiz' | 'assignment' | 'interactive';
   orderIndex?: number;
   duration?: number;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  audioUrl?: string;
   isPreview?: boolean;
   isMandatory?: boolean;
   estimatedDuration?: number;
@@ -137,10 +140,10 @@ export interface ReorderSectionsDto {
 }
 
 export const teacherLessonsApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     // === SECTION ENDPOINTS === //
     createSection: builder.mutation<CourseSection, CreateSectionDto>({
-      query: (data) => ({
+      query: data => ({
         url: '/course-sections',
         method: 'POST',
         body: data,
@@ -149,11 +152,15 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     getSectionsByCourse: builder.query<CourseSection[], string>({
-      query: (courseId) => `/course-sections?courseId=${courseId}&includeLessons=true`,
+      query: courseId =>
+        `/course-sections?courseId=${courseId}&includeLessons=true`,
       providesTags: ['Section'],
     }),
 
-    updateSection: builder.mutation<CourseSection, { id: string; data: UpdateSectionDto }>({
+    updateSection: builder.mutation<
+      CourseSection,
+      { id: string; data: UpdateSectionDto }
+    >({
       query: ({ id, data }) => ({
         url: `/course-sections/${id}`,
         method: 'PATCH',
@@ -163,7 +170,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     deleteSection: builder.mutation<void, string>({
-      query: (id) => ({
+      query: id => ({
         url: `/course-sections/${id}`,
         method: 'DELETE',
       }),
@@ -171,7 +178,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     reorderSections: builder.mutation<void, ReorderSectionsDto>({
-      query: (data) => ({
+      query: data => ({
         url: '/course-sections/reorder',
         method: 'POST',
         body: data,
@@ -181,7 +188,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
 
     // === LESSON ENDPOINTS === //
     createLesson: builder.mutation<Lesson, CreateLessonDto>({
-      query: (data) => ({
+      query: data => ({
         url: '/lessons',
         method: 'POST',
         body: data,
@@ -190,17 +197,20 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     getLessonsBySection: builder.query<Lesson[], string>({
-      query: (sectionId) => `/lessons?sectionId=${sectionId}`,
+      query: sectionId => `/lessons?sectionId=${sectionId}`,
       providesTags: ['Lesson'],
     }),
 
     getLesson: builder.query<Lesson, { id: string; includeContent?: boolean }>({
-      query: ({ id, includeContent = true }) => 
+      query: ({ id, includeContent = true }) =>
         `/lessons/${id}?includeContent=${includeContent}`,
       providesTags: ['Lesson'],
     }),
 
-    updateLesson: builder.mutation<Lesson, { id: string; data: UpdateLessonDto }>({
+    updateLesson: builder.mutation<
+      Lesson,
+      { id: string; data: UpdateLessonDto }
+    >({
       query: ({ id, data }) => ({
         url: `/lessons/${id}`,
         method: 'PATCH',
@@ -210,7 +220,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     deleteLesson: builder.mutation<void, string>({
-      query: (id) => ({
+      query: id => ({
         url: `/lessons/${id}`,
         method: 'DELETE',
       }),
@@ -218,7 +228,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     publishLesson: builder.mutation<Lesson, string>({
-      query: (id) => ({
+      query: id => ({
         url: `/lessons/${id}/publish`,
         method: 'POST',
       }),
@@ -226,7 +236,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     reorderLessons: builder.mutation<void, ReorderLessonsDto>({
-      query: (data) => ({
+      query: data => ({
         url: '/lessons/reorder',
         method: 'POST',
         body: data,
@@ -235,7 +245,10 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     // === FILE UPLOAD ENDPOINTS === //
-    uploadLessonFiles: builder.mutation<any[], { lessonId: string; files: FormData }>({
+    uploadLessonFiles: builder.mutation<
+      any[],
+      { lessonId: string; files: FormData }
+    >({
       query: ({ lessonId, files }) => ({
         url: `/lessons/${lessonId}/files`,
         method: 'POST',
@@ -244,7 +257,10 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
       invalidatesTags: ['Lesson'],
     }),
 
-    uploadLessonVideo: builder.mutation<any, { lessonId: string; video: FormData }>({
+    uploadLessonVideo: builder.mutation<
+      any,
+      { lessonId: string; video: FormData }
+    >({
       query: ({ lessonId, video }) => ({
         url: `/lessons/${lessonId}/video`,
         method: 'POST',
@@ -254,11 +270,14 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     getLessonFiles: builder.query<any[], string>({
-      query: (lessonId) => `/lessons/${lessonId}/files`,
+      query: lessonId => `/lessons/${lessonId}/files`,
       providesTags: ['Lesson'],
     }),
 
-    deleteLessonFile: builder.mutation<void, { lessonId: string; fileId: string }>({
+    deleteLessonFile: builder.mutation<
+      void,
+      { lessonId: string; fileId: string }
+    >({
       query: ({ lessonId, fileId }) => ({
         url: `/lessons/${lessonId}/files/${fileId}`,
         method: 'DELETE',
@@ -267,7 +286,7 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
     }),
 
     getVideoStreamUrl: builder.query<{ streamUrl: string }, string>({
-      query: (lessonId) => `/lessons/${lessonId}/video/stream`,
+      query: lessonId => `/lessons/${lessonId}/video/stream`,
     }),
   }),
 });
@@ -279,7 +298,7 @@ export const {
   useUpdateSectionMutation,
   useDeleteSectionMutation,
   useReorderSectionsMutation,
-  
+
   // Lesson hooks
   useCreateLessonMutation,
   useGetLessonsBySectionQuery,
@@ -288,7 +307,7 @@ export const {
   useDeleteLessonMutation,
   usePublishLessonMutation,
   useReorderLessonsMutation,
-  
+
   // File upload hooks
   useUploadLessonFilesMutation,
   useUploadLessonVideoMutation,

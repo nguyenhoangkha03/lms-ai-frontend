@@ -54,13 +54,10 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
-  useUploadLessonVideoMutation,
-  useUploadLessonFilesMutation,
-  useGetLessonFilesQuery,
-  useDeleteLessonFileMutation,
   Lesson,
   CourseSection,
 } from '@/lib/redux/api/teacher-lessons-api';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface ContentUploaderProps {
   courseId: string;
@@ -98,10 +95,8 @@ export default function ContentUploader({
   const [videoUploadData, setVideoUploadData] = useState<VideoUploadData | null>(null);
   const [activeTab, setActiveTab] = useState('videos');
 
-  // API hooks
-  const [uploadVideo] = useUploadLessonVideoMutation();
-  const [uploadFiles] = useUploadLessonFilesMutation();
-  const [deleteFile] = useDeleteLessonFileMutation();
+  // Direct upload hook
+  const { uploadFile: directUpload, isUploading } = useDirectUpload();
 
   const getAllLessons = () => {
     return sections.flatMap(section => 
@@ -149,11 +144,7 @@ export default function ContentUploader({
 
   const handleVideoUpload = async (lessonId: string, videoFile: File) => {
     try {
-      const formData = new FormData();
-      formData.append('video', videoFile);
-
       // Add to upload progress
-      const progressId = Date.now().toString();
       setUploadProgress(prev => [...prev, {
         fileName: videoFile.name,
         progress: 0,
@@ -162,20 +153,17 @@ export default function ContentUploader({
         type: 'video'
       }]);
 
-      // Simulate upload progress (replace with real upload progress tracking)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => 
-          prev.map(item => 
-            item.fileName === videoFile.name && item.status === 'uploading'
-              ? { ...item, progress: Math.min(item.progress + 10, 90) }
-              : item
-          )
-        );
-      }, 200);
+      const result = await directUpload(
+        courseId,
+        videoFile,
+        'lesson',
+        lessonId,
+        {
+          showProgress: true,
+          metadata: { type: 'lesson_video' }
+        }
+      );
 
-      await uploadVideo({ lessonId, video: formData }).unwrap();
-
-      clearInterval(progressInterval);
       setUploadProgress(prev => 
         prev.map(item => 
           item.fileName === videoFile.name
@@ -201,7 +189,7 @@ export default function ContentUploader({
 
       toast({
         title: 'Upload failed',
-        description: error?.data?.message || 'Failed to upload video',
+        description: error?.message || 'Failed to upload video',
         variant: 'destructive',
       });
     }
@@ -209,11 +197,6 @@ export default function ContentUploader({
 
   const handleFileUpload = async (lessonId: string, files: FileList) => {
     try {
-      const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append('files', file);
-      });
-
       // Add to upload progress
       Array.from(files).forEach(file => {
         setUploadProgress(prev => [...prev, {
@@ -226,16 +209,38 @@ export default function ContentUploader({
         }]);
       });
 
-      await uploadFiles({ lessonId, files: formData }).unwrap();
+      // Upload files one by one using Direct S3 Upload
+      for (const file of Array.from(files)) {
+        try {
+          await directUpload(
+            courseId,
+            file,
+            'lesson',
+            lessonId,
+            {
+              showProgress: false,
+              metadata: { type: 'lesson_attachment' }
+            }
+          );
 
-      // Update progress to completed
-      setUploadProgress(prev => 
-        prev.map(item => 
-          Array.from(files).some(file => file.name === item.fileName)
-            ? { ...item, progress: 100, status: 'completed' }
-            : item
-        )
-      );
+          // Update individual file progress
+          setUploadProgress(prev => 
+            prev.map(item => 
+              item.fileName === file.name
+                ? { ...item, progress: 100, status: 'completed' }
+                : item
+            )
+          );
+        } catch (error) {
+          setUploadProgress(prev => 
+            prev.map(item => 
+              item.fileName === file.name
+                ? { ...item, status: 'error' }
+                : item
+            )
+          );
+        }
+      }
 
       toast({
         title: 'Files uploaded successfully',
@@ -246,7 +251,7 @@ export default function ContentUploader({
     } catch (error: any) {
       toast({
         title: 'Upload failed',
-        description: error?.data?.message || 'Failed to upload files',
+        description: error?.message || 'Failed to upload files',
         variant: 'destructive',
       });
     }

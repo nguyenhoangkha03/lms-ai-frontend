@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import { cn } from '@/lib/utils';
-import { Providers } from '@/components/providers';
+import { Providers } from '@/components/providers/providers';
 import { PerformanceProvider } from '@/components/performance/PerformanceProvider';
 import { ResourcePreloader } from '@/components/performance/ResourcePreloader';
 import TokenSyncComponent from '@/components/auth/token-sync';
@@ -135,12 +135,15 @@ const criticalCSS = `
 
 // Resources to preload
 const criticalResources = {
-  images: process.env.NODE_ENV === 'development' ? [] : [
-    '/images/logo.png',
-    '/images/logo.webp',
-    '/images/hero-bg.webp',
-    '/icons/icon-192x192.png',
-  ],
+  images:
+    process.env.NODE_ENV === 'development'
+      ? []
+      : [
+          '/images/logo.png',
+          '/images/logo.webp',
+          '/images/hero-bg.webp',
+          '/icons/icon-192x192.png',
+        ],
   routes: [], // Temporarily disabled to prevent 404 errors on non-existent chunks
   fonts: [], // Disabled to prevent 404 errors - fonts are loaded via Next.js font optimization
   scripts: [], // Disabled to prevent 404 errors - scripts are loaded automatically by Next.js
