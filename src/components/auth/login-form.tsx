@@ -65,26 +65,14 @@ export const LoginForm: React.FC = () => {
         return;
       }
 
-      console.log('💭 No 2FA required, continuing...');
-
-      console.log('🔄 Saving tokens and updating auth state...');
-
       if (result.accessToken) {
-        console.log('💾 Saving tokens to AdvancedTokenManager...');
         AdvancedTokenManager.setTokens({
           accessToken: result.accessToken,
           refreshToken: result.refreshToken || '',
           expiresIn: result.expiresIn || 900,
           tokenType: 'Bearer' as const,
         });
-        console.log('✅ Tokens saved successfully');
       }
-
-      console.log('🚀 Dispatching loginSuccess to Redux...', {
-        user: result.user,
-        token: result.accessToken,
-        refreshToken: result.refreshToken || '',
-      });
 
       dispatch(
         loginSuccess({
@@ -96,15 +84,10 @@ export const LoginForm: React.FC = () => {
         })
       );
 
-      console.log('✅ loginSuccess dispatched to Redux');
-
-      console.log('📢 Showing success toast...');
       toast({
         title: 'Welcome back!',
         description: result.message || 'You have been successfully logged in.',
       });
-
-      console.log('🚀 Preparing redirect...');
 
       let finalRedirectUrl = redirectUrl;
 
@@ -126,8 +109,17 @@ export const LoginForm: React.FC = () => {
             break;
           case 'student':
           default:
-            finalRedirectUrl = ROUTES.STUDENT_DASHBOARD;
-            console.log('🎓 Student login - redirecting to student dashboard');
+            // Check if student has completed onboarding (multiple methods)
+            const hasCompletedOnboarding =
+              result.user?.studentProfile?.onboardingCompleted || false; // Primary method
+            // result.user?.lastLoginAt !== null; // Fallback: if has logged in before
+            console.log('hasCompletedOnboarding', hasCompletedOnboarding);
+            finalRedirectUrl = hasCompletedOnboarding
+              ? '/dashboard' // Unified dashboard route
+              : '/onboarding';
+            console.log(
+              `🎓 Student login - Onboarding completed: ${hasCompletedOnboarding}, redirecting to: ${finalRedirectUrl}`
+            );
             break;
         }
       } else if (result.user?.userType === 'teacher') {

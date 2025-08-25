@@ -174,10 +174,11 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
     field: K,
     value: QuestionFormData[K]
   ) => {
-    onUpdate({
+    const updatedQuestion = {
       ...question,
       [field]: value,
-    });
+    };
+    onUpdate(updatedQuestion);
   };
 
   // Handle question type change
@@ -206,7 +207,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
       updatedQuestion.correctAnswer = '';
     }
 
-    onUpdate(updatedQuestion);
+    onUpdate(updatedQuestion as QuestionFormData);
   };
 
   // Handle options management
@@ -252,16 +253,25 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
     if (!question.options) return;
 
     // For single-answer questions, uncheck others
-    const updatedOptions = question.options.map(opt => ({
-      ...opt,
-      isCorrect: opt.id === optionId ? isCorrect : false,
-    }));
-
-    handleUpdate('options', updatedOptions);
+    const updatedOptions = question.options.map(opt => {
+      const newOpt = {
+        ...opt,
+        isCorrect: opt.id === optionId ? isCorrect : false,
+      };
+      return newOpt;
+    });
 
     // Update correct answer
     const correctOption = updatedOptions.find(opt => opt.isCorrect);
-    handleUpdate('correctAnswer', correctOption?.text || '');
+
+    // Update both options and correctAnswer in one call to avoid race condition
+    const updatedQuestion = {
+      ...question,
+      options: updatedOptions,
+      correctAnswer: correctOption?.text || '',
+    };
+
+    onUpdate(updatedQuestion);
   };
 
   // Handle tags
@@ -420,7 +430,9 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
               <Label>Difficulty Level</Label>
               <Select
                 value={question.difficulty}
-                onValueChange={value => handleUpdate('difficulty', value)}
+                onValueChange={value =>
+                  handleUpdate('difficulty', value as any)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -481,7 +493,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
           <CardContent className="space-y-4">
             {question.options.map((option, index) => (
               <div
-                key={option.id}
+                key={`${option.id}-${option.isCorrect}`}
                 className="flex items-start gap-3 rounded-lg border p-3"
               >
                 <div className="mt-1 flex items-center gap-2">
@@ -490,6 +502,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   </span>
                   {question.questionType === 'multiple_choice' && (
                     <Checkbox
+                      key={`checkbox-${option.id}-${option.isCorrect}`}
                       checked={option.isCorrect}
                       onCheckedChange={checked =>
                         setCorrectOption(option.id, !!checked)

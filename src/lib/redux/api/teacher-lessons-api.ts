@@ -37,7 +37,15 @@ export interface UpdateLessonDto {
   duration?: number;
   videoUrl?: string;
   thumbnailUrl?: string;
+  videoDuration?: number;
+  availableUntil?: string;
   audioUrl?: string;
+  attachments?: Array<{
+    filename: string;
+    url: string;
+    fileSize: number;
+    mimeType: string;
+  }>;
   isPreview?: boolean;
   isMandatory?: boolean;
   estimatedDuration?: number;
@@ -61,14 +69,33 @@ export interface Lesson {
   isPreview: boolean;
   isMandatory: boolean;
   estimatedDuration: number;
+  audioUrl?: string;
+  videoUrl?: string;
+  videoDuration?: number;
+  availableUntil?: string;
+  thumbnailUrl?: string;
+  attachments?: Array<{
+    filename: string;
+    url: string;
+    fileSize: number;
+    mimeType: string;
+  }>;
   points: number;
+  prerequisites?: string[];
+  objectives?: string[];
+  transcript?: any[];
+  interactiveElements?: Record<string, any>;
   availableFrom?: string;
   status: 'draft' | 'published' | 'archived';
-  videoUrl?: string;
   tags?: string[];
-  objectives?: string[];
   materials?: string[];
-  settings?: Record<string, any>;
+  settings?: {
+    allowComments: boolean;
+    showProgress: boolean;
+    allowDownload: boolean;
+    autoPlay: boolean;
+    showTranscript: boolean;
+  };
   sectionId: string;
   createdAt: string;
   updatedAt: string;
@@ -77,6 +104,11 @@ export interface Lesson {
   files?: any[];
   // Computed
   formattedDuration: string;
+  metadata?: {
+    difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    tags: string[];
+    language: string;
+  };
 }
 
 export interface CreateSectionDto {
@@ -106,27 +138,34 @@ export interface UpdateSectionDto {
 }
 
 export interface CourseSection {
-  id: string;
-  title: string;
-  description?: string;
-  orderIndex: number;
-  isActive: boolean;
-  isRequired: boolean;
-  totalLessons: number;
-  totalDuration: number;
-  objectives?: string[];
-  courseId: string;
-  availableFrom?: string;
-  availableUntil?: string;
-  settings?: Record<string, any>;
-  metadata?: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-  // Relations
-  lessons?: Lesson[];
-  // Computed
-  formattedDuration: string;
-  isAvailable: boolean;
+  data: {
+    id: string;
+    title: string;
+    description?: string;
+    orderIndex: number;
+    isActive: boolean;
+    isRequired: boolean;
+    totalLessons: number;
+    totalDuration: number;
+    objectives?: string[];
+    courseId: string;
+    availableFrom?: string;
+    availableUntil?: string;
+    settings: {
+      allowDownloads: boolean;
+      requireSequentialAccess: boolean;
+      completionCriteria: 'all_lessons' | 'percentage' | 'time_based';
+    };
+    metadata?: Record<string, any>;
+    createdAt: string;
+    updatedAt: string;
+    // Relations
+    lessons?: Lesson[];
+    // Computed
+    formattedDuration: string;
+    isAvailable: boolean;
+  };
+  lessons: Lesson[];
 }
 
 export interface ReorderLessonsDto {
@@ -235,6 +274,28 @@ export const teacherLessonsApi = baseApi.injectEndpoints({
       invalidatesTags: ['Lesson'],
     }),
 
+    getLessonsQuery: builder.query<
+      {
+        lessons: Lesson[];
+        total: number;
+        page: number;
+        limit: number;
+      },
+      {
+        courseId: string;
+        lessonId?: string;
+        status?: string;
+        limit?: number;
+        page?: number;
+      }
+    >({
+      query: ({ courseId, ...params }) => ({
+        url: `/lessons/course/${courseId}`,
+        params,
+      }),
+      providesTags: ['Lesson'],
+    }),
+
     reorderLessons: builder.mutation<void, ReorderLessonsDto>({
       query: data => ({
         url: '/lessons/reorder',
@@ -303,6 +364,7 @@ export const {
   useCreateLessonMutation,
   useGetLessonsBySectionQuery,
   useGetLessonQuery,
+  useGetLessonsQueryQuery: useGetLessonsQuery,
   useUpdateLessonMutation,
   useDeleteLessonMutation,
   usePublishLessonMutation,

@@ -60,9 +60,15 @@ export function SocketProvider({
     if (socketRef.current?.connected) return;
     if (!isAuthenticated || !user?.id) return;
     
-    // Disable socket connection for admin and teacher users to prevent timeout issues
+    // Disable socket connection for admin, teacher users and during onboarding to prevent timeout issues
     if (user?.userType === 'admin' || user?.userType === 'teacher') {
       console.log(`Socket connection disabled for ${user.userType} users - using API polling instead`);
+      return;
+    }
+    
+    // Disable socket connection during onboarding process
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/onboarding')) {
+      console.log('Socket connection disabled during onboarding process');
       return;
     }
 

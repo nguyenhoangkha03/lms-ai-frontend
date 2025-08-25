@@ -1,33 +1,84 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
 import { WelcomeStep } from '@/components/onboarding/steps/welcome-step';
+import { CategorySelectionStep } from '@/components/onboarding/steps/category-selection-step';
 import { SkillAssessmentStep } from '@/components/onboarding/steps/skill-assessment-step';
 import { PreferencesSetupStep } from '@/components/onboarding/steps/preferences-setup-step';
 import { LearningPathSelectionStep } from '@/components/onboarding/steps/learning-path-selection-step';
-import { WelcomeDashboardStep } from '@/components/onboarding/steps/welcome-dashboard-step';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import {
   setOnboardingActive,
   loadOnboardingProgress,
-  nextStep,
   setCurrentStep,
+  setLoading,
+  setError,
+  setSelectedCategory,
 } from '@/lib/redux/slices/onboarding-slice';
 import {
   useGetOnboardingProgressQuery,
   useUpdateOnboardingProgressMutation,
+  useCompleteOnboardingMutation,
+  useSkipOnboardingStepMutation,
+  useSelectLearningPathMutation,
 } from '@/lib/redux/api/onboarding-api';
+
+// Define step configuration
+const STEP_CONFIG = [
+  {
+    id: 1,
+    title: 'Welcome to LMS AI Platform',
+    description: "Let's set up your personalized learning experience",
+    canGoBack: false,
+    canSkip: false,
+    showHelp: true,
+  },
+  {
+    id: 2,
+    title: 'Choose Your Learning Focus', 
+    description: 'Select the main subject area you want to learn',
+    canGoBack: true,
+    canSkip: false, // Must choose category
+    showHelp: true,
+  },
+  {
+    id: 3,
+    title: 'Skill Assessment',
+    description: 'Customized questions based on your chosen focus',
+    canGoBack: true,
+    canSkip: true,
+    showHelp: true,
+  },
+  {
+    id: 4,
+    title: 'Learning Preferences',
+    description: 'Customize your learning experience to match your style',
+    canGoBack: true,
+    canSkip: true, 
+    showHelp: true,
+  },
+  {
+    id: 5,
+    title: 'Choose Your Learning Path',
+    description: 'Select a personalized curriculum designed for your goals',
+    canGoBack: true,
+    canSkip: false,
+    showHelp: true,
+  },
+] as const;
 
 export default function StudentOnboardingPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { currentStep, isCompleted, isActive, isTransitioning } =
-    useAppSelector(state => state.onboarding);
+  const { currentStep, isCompleted, isActive, isLoading, selectedPath, selectedCategory } = useAppSelector(state => state.onboarding);
 
-  const { data: progressData, isLoading } = useGetOnboardingProgressQuery();
+  const { data: progressData, isLoading: isLoadingProgress } = useGetOnboardingProgressQuery();
   const [updateProgress] = useUpdateOnboardingProgressMutation();
+  const [completeOnboarding] = useCompleteOnboardingMutation();
+  const [skipStep] = useSkipOnboardingStepMutation();
+  const [selectPath] = useSelectLearningPathMutation();
 
   // Initialize onboarding
   useEffect(() => {
@@ -35,7 +86,6 @@ export default function StudentOnboardingPage() {
       dispatch(loadOnboardingProgress(progressData));
 
       if (progressData.onboardingCompleted) {
-        // Redirect to dashboard if already completed
         router.push('/student/dashboard');
         return;
       }
@@ -44,31 +94,105 @@ export default function StudentOnboardingPage() {
     }
   }, [progressData, dispatch, router]);
 
-  // Prevent access if loading or completed
-  if (isLoading) {
+  // Centralized navigation handlers
+  const handleNext = async (stepData?: any) => {
+    if (isLoading) return;
+
+    dispatch(setLoading(true));
+    
+    try {
+      if (currentStep === 1) {
+        // Step 1: Welcome - mark as completed
+        await updateProgress({ 
+          step: currentStep, 
+          data: { welcomeCompleted: true }
+        }).unwrap();
+      } else if (currentStep === 2) {
+        // Step 2: Category Selection - validate category selection
+        if (!stepData?.selectedCategory) {
+          dispatch(setError('Please select a learning category to continue.'));
+          return;
+        }
+        dispatch(setSelectedCategory(stepData.selectedCategory));
+      }
+      
+      if (currentStep === STEP_CONFIG.length) {
+        // Step 5: Learning Path Selection - need to select path first
+        if (!selectedPath) {
+          dispatch(setError('Please select a learning path to continue.'));
+          return;
+        }
+        
+        // Select learning path first
+        await selectPath({
+          pathId: selectedPath.id,
+          customization: {},
+        }).unwrap();
+        
+        // Complete onboarding
+        const result = await completeOnboarding().unwrap();
+        router.push(result.redirectUrl || '/student/dashboard');
+      } else {
+        // Update progress and move to next step
+        await updateProgress({ 
+          step: currentStep, 
+          data: { ...stepData, categoryId: selectedCategory }
+        }).unwrap();
+        
+        dispatch(setCurrentStep(currentStep + 1));
+      }
+    } catch (error) {
+      console.error('Error progressing step:', error);
+      dispatch(setError('Failed to save progress. Please try again.'));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1 && !isLoading) {
+      dispatch(setCurrentStep(currentStep - 1));
+    }
+  };
+
+  const handleSkip = async (reason = 'user_skipped') => {
+    if (isLoading) return;
+    
+    dispatch(setLoading(true));
+    
+    try {
+      await skipStep({ step: currentStep, reason }).unwrap();
+      dispatch(setCurrentStep(currentStep + 1));
+    } catch (error) {
+      console.error('Error skipping step:', error);
+      dispatch(setError('Failed to skip step. Please try again.'));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  // Loading state
+  if (isLoadingProgress) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="space-y-4 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">
-            Loading your onboarding progress...
-          </p>
+          <p className="text-muted-foreground">Loading your onboarding progress...</p>
         </div>
       </div>
     );
   }
 
+  // Completed state
   if (isCompleted) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="space-y-4 text-center">
-          <h2 className="text-2xl font-bold">Onboarding Already Complete</h2>
-          <p className="text-muted-foreground">
-            You've already completed the onboarding process.
-          </p>
+          <h2 className="text-2xl font-bold">Onboarding Complete! 🎉</h2>
+          <p className="text-muted-foreground">Welcome to your personalized learning journey.</p>
           <button
             onClick={() => router.push('/student/dashboard')}
-            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
+            className="rounded-lg bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
           >
             Go to Dashboard
           </button>
@@ -77,221 +201,16 @@ export default function StudentOnboardingPage() {
     );
   }
 
-  // Handle step progression
-  const handleStepNext = async (stepData?: any) => {
-    try {
-      await updateProgress({ step: currentStep + 1, data: stepData }).unwrap();
-      dispatch(nextStep());
-    } catch (error) {
-      console.error('Error updating progress:', error);
-    }
-  };
-
-  // Handle onboarding completion
-  const handleComplete = async () => {
-    try {
-      await updateProgress({ step: 5, data: { completed: true } }).unwrap();
-      router.push('/student/dashboard');
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
-    }
-  };
-
-  const stepConfig = {
-    1: {
-      title: 'Welcome to LMS AI Platform',
-      description: "Let's set up your personalized learning experience",
-      canGoBack: false,
-      canSkip: false,
-      showHelp: true,
-      helpContent: (
-        <div className="space-y-4">
-          <p>
-            Welcome to your AI-powered learning journey! This onboarding process
-            will help us create a personalized experience tailored just for you.
-          </p>
-          <div className="space-y-2">
-            <h4 className="font-medium">What we'll cover:</h4>
-            <ul className="space-y-1 text-sm">
-              <li>• Assess your current skill level</li>
-              <li>• Set up your learning preferences</li>
-              <li>• Choose your learning path</li>
-              <li>• Configure your study schedule</li>
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            This process takes about 10-15 minutes and can be paused at any
-            time.
-          </p>
-        </div>
-      ),
-    },
-    2: {
-      title: 'Skill Assessment',
-      description: 'Help us understand your current knowledge level',
-      canSkip: true,
-      canGoBack: true,
-      showHelp: true,
-      helpContent: (
-        <div className="space-y-4">
-          <p>
-            The skill assessment helps our AI understand your current knowledge
-            level and learning style.
-          </p>
-          <div className="space-y-2">
-            <h4 className="font-medium">Tips for the assessment:</h4>
-            <ul className="space-y-1 text-sm">
-              <li>• Answer honestly - there are no wrong answers</li>
-              <li>• Take your time to read each question carefully</li>
-              <li>• You can go back to previous questions</li>
-              <li>• The assessment adapts to your responses</li>
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Your responses help us recommend the best courses and learning paths
-            for you.
-          </p>
-        </div>
-      ),
-    },
-    3: {
-      title: 'Learning Preferences',
-      description: 'Customize your learning experience to match your style',
-      canSkip: true,
-      canGoBack: true,
-      showHelp: true,
-      helpContent: (
-        <div className="space-y-4">
-          <p>
-            Setting up your preferences helps us personalize your learning
-            experience.
-          </p>
-          <div className="space-y-2">
-            <h4 className="font-medium">We'll help you set up:</h4>
-            <ul className="space-y-1 text-sm">
-              <li>
-                • Your preferred learning style (visual, auditory, hands-on)
-              </li>
-              <li>• Best times for studying</li>
-              <li>• Session duration preferences</li>
-              <li>• Learning goals and interests</li>
-              <li>• Notification preferences</li>
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            You can always change these settings later in your profile.
-          </p>
-        </div>
-      ),
-    },
-    4: {
-      title: 'Choose Your Learning Path',
-      description: 'Select a personalized curriculum designed for your goals',
-      canSkip: false,
-      canGoBack: true,
-      showHelp: true,
-      helpContent: (
-        <div className="space-y-4">
-          <p>
-            Based on your assessment and preferences, we've curated learning
-            paths that match your goals.
-          </p>
-          <div className="space-y-2">
-            <h4 className="font-medium">AI Recommendations:</h4>
-            <ul className="space-y-1 text-sm">
-              <li>• Paths are ranked by compatibility with your profile</li>
-              <li>• Each path includes carefully selected courses</li>
-              <li>• Estimated completion times are personalized</li>
-              <li>• You can customize any path to fit your needs</li>
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Don't worry - you can always add more courses or switch paths later.
-          </p>
-        </div>
-      ),
-    },
-    5: {
-      title: 'Welcome to Your Dashboard',
-      description: 'Your personalized learning environment is ready!',
-      canGoBack: false,
-      canSkip: false,
-      showHelp: true,
-      helpContent: (
-        <div className="space-y-4">
-          <p>
-            Congratulations! Your personalized learning environment is now set
-            up.
-          </p>
-          <div className="space-y-2">
-            <h4 className="font-medium">Your dashboard includes:</h4>
-            <ul className="space-y-1 text-sm">
-              <li>• Progress tracking for all your courses</li>
-              <li>• AI-powered recommendations</li>
-              <li>• Personalized study schedule</li>
-              <li>• Achievement system</li>
-              <li>• Quick access to all learning tools</li>
-            </ul>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            You can always return to modify your preferences in the settings.
-          </p>
-        </div>
-      ),
-    },
-  };
-
-  const currentStepConfig = stepConfig[currentStep as keyof typeof stepConfig];
-
-  // Render current step content
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return <WelcomeStep onNext={() => handleStepNext()} />;
-
-      case 2:
-        return (
-          <SkillAssessmentStep
-            onNext={() => handleStepNext()}
-            onBack={() => dispatch(setCurrentStep(1))}
-          />
-        );
-
-      case 3:
-        return (
-          <PreferencesSetupStep
-            onNext={() => handleStepNext()}
-            onBack={() => dispatch(setCurrentStep(2))}
-          />
-        );
-
-      case 4:
-        return (
-          <LearningPathSelectionStep
-            onNext={() => handleStepNext()}
-            onBack={() => dispatch(setCurrentStep(3))}
-          />
-        );
-
-      case 5:
-        return <WelcomeDashboardStep onComplete={handleComplete} />;
-
-      default:
-        return <WelcomeStep onNext={() => handleStepNext()} />;
-    }
-  };
-
+  // Inactive state
   if (!isActive) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="space-y-4 text-center">
-          <h2 className="text-2xl font-bold">Onboarding Not Active</h2>
-          <p className="text-muted-foreground">
-            The onboarding process is not currently active.
-          </p>
+          <h2 className="text-2xl font-bold">Ready to Get Started?</h2>
+          <p className="text-muted-foreground">Let's set up your personalized learning experience.</p>
           <button
             onClick={() => dispatch(setOnboardingActive(true))}
-            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
+            className="rounded-lg bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
           >
             Start Onboarding
           </button>
@@ -300,15 +219,59 @@ export default function StudentOnboardingPage() {
     );
   }
 
+  // Get current step configuration
+  const currentStepConfig = STEP_CONFIG[currentStep - 1];
+  
+  // Render current step content
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return <WelcomeStep />;
+      case 2:
+        return (
+          <CategorySelectionStep 
+            onCategorySelect={(categoryId) => {
+              dispatch(setSelectedCategory(categoryId));
+            }}
+            selectedCategory={selectedCategory}
+          />
+        );
+      case 3:
+        return <SkillAssessmentStep />;
+      case 4:
+        return <PreferencesSetupStep />;
+      case 5:
+        return <LearningPathSelectionStep />;
+      default:
+        return <WelcomeStep />;
+    }
+  };
+
+  // Check if we can proceed to next step
+  const canProceed = () => {
+    switch (currentStep) {
+      case 2: // Category selection step
+        return !!selectedCategory;
+      case 5: // Learning path selection step
+        return !!selectedPath;
+      default:
+        return true;
+    }
+  };
+
+  // Main render - simplified layout
   return (
     <OnboardingLayout
       title={currentStepConfig?.title || 'Onboarding'}
       description={currentStepConfig?.description}
-      canGoBack={currentStepConfig?.canGoBack}
+      canGoBack={currentStepConfig?.canGoBack && currentStep > 1}
       canSkip={currentStepConfig?.canSkip}
       showHelp={currentStepConfig?.showHelp}
-      helpContent={currentStepConfig?.helpContent}
-      isLoading={isTransitioning}
+      isLoading={isLoading}
+      canProceed={canProceed()}
+      onNext={() => handleNext({ selectedCategory })}
+      onBack={handleBack}
+      onSkip={handleSkip}
     >
       {renderStepContent()}
     </OnboardingLayout>

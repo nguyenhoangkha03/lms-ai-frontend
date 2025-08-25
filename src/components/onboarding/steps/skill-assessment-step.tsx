@@ -39,15 +39,13 @@ import {
 } from '@/lib/redux/slices/onboarding-slice';
 import {
   useGetSkillAssessmentQuery,
+  useGetSkillAssessmentByCategoryQuery,
   useSubmitSkillAssessmentMutation,
   type AssessmentQuestion,
   type AssessmentResponse,
 } from '@/lib/redux/api/onboarding-api';
 
-interface SkillAssessmentStepProps {
-  onNext: () => void;
-  onBack: () => void;
-}
+// Simplified - no props needed
 
 const categoryIcons: Record<string, React.ReactNode> = {
   technical: <Brain className="h-5 w-5" />,
@@ -58,10 +56,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   problem_solving: <Target className="h-5 w-5" />,
 };
 
-export const SkillAssessmentStep: React.FC<SkillAssessmentStepProps> = ({
-  onNext,
-  onBack,
-}) => {
+export const SkillAssessmentStep: React.FC = () => {
   const dispatch = useAppDispatch();
   const {
     assessmentStarted,
@@ -70,9 +65,23 @@ export const SkillAssessmentStep: React.FC<SkillAssessmentStepProps> = ({
     assessmentResponses,
     assessmentTimeRemaining,
     assessmentResult,
+    selectedCategory,
   } = useAppSelector(state => state.onboarding);
 
-  const { data: assessment, isLoading } = useGetSkillAssessmentQuery();
+  // Use category-specific assessment if category is selected, otherwise use general assessment
+  const { data: categoryAssessment, isLoading: isCategoryLoading } =
+    useGetSkillAssessmentByCategoryQuery(selectedCategory!, {
+      skip: !selectedCategory,
+    });
+
+  const { data: generalAssessment, isLoading: isGeneralLoading } =
+    useGetSkillAssessmentQuery(undefined, {
+      skip: !!selectedCategory,
+    });
+
+  const assessment = selectedCategory ? categoryAssessment : generalAssessment;
+  const isLoading = selectedCategory ? isCategoryLoading : isGeneralLoading;
+
   const [submitAssessment, { isLoading: isSubmitting }] =
     useSubmitSkillAssessmentMutation();
 
@@ -149,6 +158,7 @@ export const SkillAssessmentStep: React.FC<SkillAssessmentStepProps> = ({
     try {
       const result = await submitAssessment({
         responses: assessmentResponses,
+        categoryId: selectedCategory,
       }).unwrap();
 
       dispatch(completeAssessment(result));
@@ -187,7 +197,6 @@ export const SkillAssessmentStep: React.FC<SkillAssessmentStepProps> = ({
     return (
       <AssessmentResults
         result={assessmentResult}
-        onNext={onNext}
         onRetake={() => {
           dispatch(startAssessment());
           setCurrentAnswer('');
@@ -203,7 +212,6 @@ export const SkillAssessmentStep: React.FC<SkillAssessmentStepProps> = ({
       <PreAssessmentScreen
         assessment={assessment!}
         onStart={handleStartAssessment}
-        onBack={onBack}
       />
     );
   }
@@ -320,7 +328,6 @@ export const SkillAssessmentStep: React.FC<SkillAssessmentStepProps> = ({
   return null;
 };
 
-// Question input component
 const QuestionInput: React.FC<{
   question: AssessmentQuestion;
   value: string | number | string[];
@@ -328,17 +335,95 @@ const QuestionInput: React.FC<{
 }> = ({ question, value, onChange }) => {
   switch (question.type) {
     case 'multiple_choice':
+      let parsedOptions = [];
+      if (typeof question.options === 'string') {
+        try {
+          // Thử parse JSON trực tiếp trước
+          parsedOptions = JSON.parse(question.options);
+        } catch (error) {
+          console.log('Initial JSON parse failed, attempting to fix malformed JSON...');
+          console.log('Original options string:', question.options);
+          
+          try {
+            // Thử sửa JSON bị lỗi format
+            let fixedJson = question.options;
+            
+            // Fix thiếu dấu ngoặc kép quanh property names và values  
+            if (!fixedJson.includes('"id"') && fixedJson.includes('id:')) {
+              fixedJson = fixedJson
+                // Thêm dấu ngoặc kép quanh property names
+                .replace(/(\w+):/g, '"$1":')
+                // Thêm dấu ngoặc kép quanh values (trừ boolean và number)
+                .replace(/:([^,}\]]+)/g, (match, value) => {
+                  const trimmed = value.trim();
+                  // Không thêm ngoặc kép nếu đã có hoặc là boolean/number
+                  if (trimmed.startsWith('"') || trimmed === 'true' || trimmed === 'false' || !isNaN(trimmed)) {
+                    return ':' + trimmed;
+                  }
+                  return ':"' + trimmed + '"';
+                })
+                // Replace single quotes với double quotes
+                .replace(/'/g, '"');
+            }
+            
+            console.log('Fixed JSON string:', fixedJson);
+            parsedOptions = JSON.parse(fixedJson);
+            console.log('Successfully parsed fixed JSON:', parsedOptions);
+            
+          } catch (secondError) {
+            console.error('Failed to parse even after fixing:', secondError);
+            console.error('Fixed string was:', fixedJson);
+            
+            // Fallback: extract text content từ malformed JSON
+            try {
+              const textMatches = question.options.match(/text:([^,}]+)/g);
+              if (textMatches) {
+                parsedOptions = textMatches.map((match, index) => {
+                  const text = match.replace('text:', '').trim();
+                  return {
+                    id: index + 1,
+                    text: text,
+                    isCorrect: false,
+                    feedback: '',
+                    orderIndex: index
+                  };
+                });
+                console.log('Extracted options from malformed JSON:', parsedOptions);
+              } else {
+                // Final fallback
+                parsedOptions = [
+                  { id: 1, text: 'Option A', isCorrect: false },
+                  { id: 2, text: 'Option B', isCorrect: false },
+                  { id: 3, text: 'Option C', isCorrect: false },
+                  { id: 4, text: 'Option D', isCorrect: false }
+                ];
+              }
+            } catch (finalError) {
+              console.error('Final fallback also failed:', finalError);
+              parsedOptions = [
+                { id: 1, text: 'Option A', isCorrect: false },
+                { id: 2, text: 'Option B', isCorrect: false },
+                { id: 3, text: 'Option C', isCorrect: false },
+                { id: 4, text: 'Option D', isCorrect: false }
+              ];
+            }
+          }
+        }
+      } else if (Array.isArray(question.options)) {
+        parsedOptions = question.options;
+      }
+
       return (
         <RadioGroup
           value={value as string}
           onValueChange={onChange}
           className="space-y-3"
         >
-          {question.options?.map((option, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <RadioGroupItem value={option} id={`option-${index}`} />
-              <Label htmlFor={`option-${index}`} className="cursor-pointer">
-                {option}
+          {parsedOptions.map((option: any, index: number) => (
+            <div key={option.id || index} className="flex items-center space-x-2">
+              <RadioGroupItem value={option.text} id={`option-${option.id || index}`} />
+              <Label htmlFor={`option-${option.id || index}`} className="cursor-pointer">
+                {option.text || option}
               </Label>
             </div>
           ))}
@@ -408,8 +493,7 @@ const QuestionInput: React.FC<{
 const PreAssessmentScreen: React.FC<{
   assessment: any;
   onStart: () => void;
-  onBack: () => void;
-}> = ({ assessment, onStart, onBack }) => (
+}> = ({ assessment, onStart }) => (
   <div className="space-y-8">
     <div className="space-y-4 text-center">
       <div className="inline-flex items-center justify-center rounded-full bg-primary/10 p-4">
@@ -458,11 +542,7 @@ const PreAssessmentScreen: React.FC<{
       </AlertDescription>
     </Alert>
 
-    <div className="flex justify-between">
-      <Button variant="outline" onClick={onBack}>
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
+    <div className="flex justify-center">
       <Button onClick={onStart} size="lg">
         Start Assessment
         <ChevronRight className="ml-2 h-4 w-4" />
@@ -474,9 +554,8 @@ const PreAssessmentScreen: React.FC<{
 // Assessment results component
 const AssessmentResults: React.FC<{
   result: any;
-  onNext: () => void;
   onRetake: () => void;
-}> = ({ result, onNext, onRetake }) => (
+}> = ({ result, onRetake }) => (
   <div className="space-y-8">
     <div className="space-y-4 text-center">
       <div className="inline-flex items-center justify-center rounded-full bg-green-100 p-4">
@@ -535,14 +614,13 @@ const AssessmentResults: React.FC<{
       </CardContent>
     </Card>
 
-    <div className="flex justify-between">
+    <div className="flex justify-center">
       <Button variant="outline" onClick={onRetake}>
         Retake Assessment
       </Button>
-      <Button onClick={onNext} size="lg">
-        Continue Setup
-        <ChevronRight className="ml-2 h-4 w-4" />
-      </Button>
+    </div>
+    <div className="text-center text-sm text-muted-foreground">
+      Assessment completed! Click "Next" below to continue.
     </div>
   </div>
 );

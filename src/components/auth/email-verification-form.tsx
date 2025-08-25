@@ -71,7 +71,14 @@ const EmailVerificationContent: React.FC = () => {
       if (verifyData.user?.userType) {
         switch (verifyData.user.userType) {
           case 'student':
-            redirectUrl = ROUTES.STUDENT_DASHBOARD;
+            // Check if student has completed onboarding (same logic as login)
+            const hasCompletedOnboarding =
+              verifyData.user?.studentProfile?.onboardingCompleted ||
+              verifyData.user?.lastLoginAt !== null;
+
+            redirectUrl = hasCompletedOnboarding
+              ? ROUTES.STUDENT_DASHBOARD
+              : '/student/onboarding';
             break;
           case 'teacher':
             // Check teacher application status
@@ -226,7 +233,14 @@ const EmailVerificationContent: React.FC = () => {
             if (verifyData?.user?.userType) {
               switch (verifyData.user.userType) {
                 case 'student':
-                  redirectUrl = ROUTES.STUDENT_DASHBOARD;
+                  // Check if student has completed onboarding (same logic as login)
+                  const hasCompletedOnboarding =
+                    verifyData.user?.studentProfile?.onboardingCompleted ||
+                    verifyData.user?.lastLoginAt !== null;
+
+                  redirectUrl = hasCompletedOnboarding
+                    ? ROUTES.STUDENT_DASHBOARD
+                    : '/student/onboarding';
                   break;
                 case 'teacher':
                   // Check teacher application status
@@ -259,7 +273,13 @@ const EmailVerificationContent: React.FC = () => {
           (verifyData.user.status === 'pending' ||
             verifyData.user.teacherProfile?.isApproved === false)
             ? 'View Application Status'
-            : 'Continue to Dashboard'}
+            : verifyData?.user?.userType === 'student' &&
+                !(
+                  verifyData.user?.studentProfile?.onboardingCompleted ||
+                  verifyData.user?.lastLoginAt
+                )
+              ? 'Start Learning Journey'
+              : 'Continue to Dashboard'}
         </Button>
       </div>
     );

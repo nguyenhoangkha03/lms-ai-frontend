@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -42,9 +42,9 @@ import { BulkQuestionImporter } from '../BulkQuestionImporter';
 import {
   useGenerateQuestionsWithAIMutation,
   useImportQuestionsToAssessmentMutation,
-} from '@/lib/redux/api/assessment-creation-api';
+} from '@/lib/redux/api/teacher-assessment-api';
 
-import { Question, QuestionFormData } from '@/types/assessment';
+import { Question, QuestionFormData, QuestionType } from '@/types/assessment';
 
 interface QuestionBuilderStepProps {
   questions: Question[];
@@ -102,7 +102,7 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
   // Question form state
   const [questionForm, setQuestionForm] = useState<QuestionFormData>({
     questionText: '',
-    questionType: 'multiple_choice',
+    questionType: QuestionType.MULTIPLE_CHOICE,
     points: 1,
     difficulty: 'medium',
     hint: '',
@@ -140,12 +140,12 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
       id: `temp-${Date.now()}`,
       assessmentId: '',
       questionText: questionForm.questionText,
-      questionType: questionForm.questionType as any,
+      questionType: questionForm.questionType,
       explanation: questionForm.explanation,
       points: questionForm.points,
-      difficulty: questionForm.difficulty as any,
+      difficulty: questionForm.difficulty,
       orderIndex: questions.length,
-      timeLimit: undefined,
+      timeLimit: questionForm.timeLimit,
       hint: questionForm.hint,
       options: questionForm.options,
       correctAnswer: questionForm.correctAnswer,
@@ -171,7 +171,7 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
     // Reset form
     setQuestionForm({
       questionText: '',
-      questionType: 'multiple_choice',
+      questionType: QuestionType.MULTIPLE_CHOICE,
       points: 1,
       difficulty: 'medium',
       hint: '',
@@ -284,7 +284,7 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
         lessonId,
         courseId,
         topic: params.topic,
-        questionType: params.questionType,
+        questionType: params.questionType as QuestionType,
         difficulty: params.difficulty,
         count: params.count,
         context: params.context,
@@ -296,7 +296,7 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
           id: `ai-${Date.now()}-${index}`,
           assessmentId: '',
           questionText: q.questionText,
-          questionType: q.questionType as any,
+          questionType: q.questionType as QuestionType,
           explanation: q.explanation,
           points: q.points,
           difficulty: q.difficulty,
@@ -555,7 +555,9 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
             <CardContent>
               <QuestionEditor
                 question={questionForm}
-                onUpdate={setQuestionForm}
+                onUpdate={updatedQuestion => {
+                  setQuestionForm(updatedQuestion);
+                }}
                 onSave={addNewQuestion}
                 errors={errors}
               />
@@ -703,27 +705,47 @@ export const QuestionBuilderStep: React.FC<QuestionBuilderStepProps> = ({
                               )}
                             </div>
 
-                            {question.tags.length > 0 && (
-                              <div className="mt-2 flex items-center gap-1">
-                                {question.tags.slice(0, 3).map(tag => (
-                                  <Badge
-                                    key={tag}
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))}
-                                {question.tags.length > 3 && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    +{question.tags.length - 3}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
+                            {(() => {
+                              let tags = [];
+                              try {
+                                if (Array.isArray(question.tags)) {
+                                  tags = question.tags;
+                                } else if (question.tags && typeof question.tags === 'string') {
+                                  const parsed = JSON.parse(question.tags);
+                                  tags = Array.isArray(parsed) ? parsed : [];
+                                } else if (question.tags) {
+                                  // Handle other types by converting to array
+                                  tags = [];
+                                }
+                              } catch (e) {
+                                tags = [];
+                              }
+                              // Ensure tags is always an array before operations
+                              if (!Array.isArray(tags)) {
+                                tags = [];
+                              }
+                              return tags.length > 0 && (
+                                <div className="mt-2 flex items-center gap-1">
+                                  {(tags.slice(0, 3) || []).map((tag: string) => (
+                                    <Badge
+                                      key={tag}
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                  {tags.length > 3 && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      +{tags.length - 3}
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           {/* Question Actions */}

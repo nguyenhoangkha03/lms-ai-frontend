@@ -54,7 +54,7 @@ export interface TeacherCourse {
   lastUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
-  // Relations 
+  // Relations
   teacher?: {
     id: string;
     firstName: string;
@@ -94,7 +94,15 @@ export interface TeacherCourseQueryParams {
   updatedAfter?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'updatedAt' | 'title' | 'price' | 'rating' | 'totalEnrollments' | 'publishedAt' | 'featured';
+  sortBy?:
+    | 'createdAt'
+    | 'updatedAt'
+    | 'title'
+    | 'price'
+    | 'rating'
+    | 'totalEnrollments'
+    | 'publishedAt'
+    | 'featured';
   sortOrder?: 'ASC' | 'DESC';
   includeTeacher?: boolean;
   includeCategory?: boolean;
@@ -163,6 +171,23 @@ export interface CourseStatistics {
   recentlyUpdated: number;
 }
 
+export interface CourseFileStatistics {
+  courseId: string;
+  totalFiles: number;
+  filesByType: {
+    video: number;
+    audio: number;
+    image: number;
+    document: number;
+    thumbnail: number;
+    trailer: number;
+    lesson: number;
+    promotional: number;
+  };
+  totalSize: number; // in bytes
+  totalSizeMB: number; // in MB
+}
+
 // Direct S3 Upload interfaces
 export interface GenerateUploadUrlRequest {
   fileName: string;
@@ -201,19 +226,23 @@ export interface ConfirmUploadResponse {
 }
 
 export const teacherCoursesApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     // Get teacher's courses - uses existing /course/my-courses endpoint
-    getTeacherCourses: builder.query<TeacherCoursesResponse, TeacherCourseQueryParams>({
+    getTeacherCourses: builder.query<
+      TeacherCoursesResponse,
+      TeacherCourseQueryParams
+    >({
       query: (params = {}) => ({
         url: '/course/my-courses',
         params: {
           ...params,
           includeTeacher: params.includeTeacher ?? true,
           includeCategory: params.includeCategory ?? true,
+          includeSections: params.includeSections ?? false,
           includeStats: params.includeStats ?? false,
         },
       }),
-      providesTags: (result) =>
+      providesTags: result =>
         result
           ? [
               ...result.data.map(({ id }) => ({ type: 'Course' as const, id })),
@@ -223,7 +252,18 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     }),
 
     // Get single course by ID - uses existing /course/:id endpoint
-    getTeacherCourse: builder.query<TeacherCourse, { id: string; options?: { includeTeacher?: boolean; includeCategory?: boolean; includeSections?: boolean; includeStats?: boolean } }>({
+    getTeacherCourse: builder.query<
+      TeacherCourse,
+      {
+        id: string;
+        options?: {
+          includeTeacher?: boolean;
+          includeCategory?: boolean;
+          includeSections?: boolean;
+          includeStats?: boolean;
+        };
+      }
+    >({
       query: ({ id, options = {} }) => ({
         url: `/course/${id}`,
         params: {
@@ -238,7 +278,7 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
 
     // Create new course - uses existing POST /course endpoint
     createTeacherCourse: builder.mutation<TeacherCourse, CreateCourseDto>({
-      query: (courseData) => ({
+      query: courseData => ({
         url: '/course',
         method: 'POST',
         body: courseData,
@@ -246,8 +286,11 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Course', id: 'LIST' }],
     }),
 
-    // Update course - uses existing PATCH /course/:id endpoint  
-    updateTeacherCourse: builder.mutation<TeacherCourse, { id: string; data: UpdateCourseDto }>({
+    // Update course - uses existing PATCH /course/:id endpoint
+    updateTeacherCourse: builder.mutation<
+      TeacherCourse,
+      { id: string; data: UpdateCourseDto }
+    >({
       query: ({ id, data }) => ({
         url: `/course/${id}`,
         method: 'PATCH',
@@ -261,7 +304,7 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
 
     // Delete course - uses existing DELETE /course/:id endpoint
     deleteTeacherCourse: builder.mutation<void, string>({
-      query: (id) => ({
+      query: id => ({
         url: `/course/${id}`,
         method: 'DELETE',
       }),
@@ -272,8 +315,11 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     }),
 
     // Submit course for review - uses existing POST /course/:id/submit-for-review endpoint
-    submitCourseForReview: builder.mutation<{ success: boolean; message: string }, string>({
-      query: (id) => ({
+    submitCourseForReview: builder.mutation<
+      { success: boolean; message: string },
+      string
+    >({
+      query: id => ({
         url: `/course/${id}/submit-for-review`,
         method: 'POST',
       }),
@@ -284,8 +330,11 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     }),
 
     // Publish course - uses existing POST /course/:id/publish endpoint
-    publishCourse: builder.mutation<{ success: boolean; message: string }, string>({
-      query: (id) => ({
+    publishCourse: builder.mutation<
+      { success: boolean; message: string },
+      string
+    >({
+      query: id => ({
         url: `/course/${id}/publish`,
         method: 'POST',
       }),
@@ -296,7 +345,10 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     }),
 
     // Unpublish course - uses existing POST /course/:id/unpublish endpoint
-    unpublishCourse: builder.mutation<{ success: boolean; message: string }, { id: string; reason: string }>({
+    unpublishCourse: builder.mutation<
+      { success: boolean; message: string },
+      { id: string; reason: string }
+    >({
       query: ({ id, reason }) => ({
         url: `/course/${id}/unpublish`,
         method: 'POST',
@@ -310,13 +362,24 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
 
     // Get course statistics - uses existing GET /course/:id/statistics endpoint
     getCourseStatistics: builder.query<CourseStatistics, string>({
-      query: (id) => `/course/${id}/statistics`,
+      query: id => `/course/${id}/statistics`,
       providesTags: (result, error, id) => [{ type: 'CourseStats', id }],
     }),
 
+    // Get course file statistics from file_uploads table
+    getCourseFileStatistics: builder.query<CourseFileStatistics, string>({
+      query: courseId => `/course/${courseId}/file-statistics`,
+      providesTags: (result, error, courseId) => [
+        { type: 'CourseFileStats', id: courseId },
+      ],
+    }),
+
     // Bulk operations - uses existing bulk endpoints
-    bulkUpdateCourseStatus: builder.mutation<{ success: boolean; updated: number }, { courseIds: string[]; status: CourseStatus }>({
-      query: (data) => ({
+    bulkUpdateCourseStatus: builder.mutation<
+      { success: boolean; updated: number },
+      { courseIds: string[]; status: CourseStatus }
+    >({
+      query: data => ({
         url: '/course/bulk/status',
         method: 'PATCH',
         body: data,
@@ -324,10 +387,13 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Course', id: 'LIST' }],
     }),
 
-    bulkDeleteCourses: builder.mutation<{ success: boolean; deleted: number }, { courseIds: string[] }>({
-      query: (data) => ({
+    bulkDeleteCourses: builder.mutation<
+      { success: boolean; deleted: number },
+      { courseIds: string[] }
+    >({
+      query: data => ({
         url: '/course/bulk',
-        method: 'DELETE', 
+        method: 'DELETE',
         body: data,
       }),
       invalidatesTags: [{ type: 'Course', id: 'LIST' }],
@@ -336,7 +402,10 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     // ==================== FILE UPLOAD ENDPOINTS ====================
 
     // Upload course thumbnail
-    uploadCourseThumbnail: builder.mutation<{ thumbnailUrl: string }, { courseId: string; file: File }>({
+    uploadCourseThumbnail: builder.mutation<
+      { thumbnailUrl: string },
+      { courseId: string; file: File }
+    >({
       query: ({ courseId, file }) => {
         const formData = new FormData();
         formData.append('thumbnail', file);
@@ -353,7 +422,10 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     }),
 
     // Upload course trailer video
-    uploadCourseTrailerVideo: builder.mutation<{ trailerVideoUrl: string }, { courseId: string; file: File }>({
+    uploadCourseTrailerVideo: builder.mutation<
+      { trailerVideoUrl: string },
+      { courseId: string; file: File }
+    >({
       query: ({ courseId, file }) => {
         const formData = new FormData();
         formData.append('trailerVideo', file);
@@ -371,7 +443,7 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
 
     // Delete course thumbnail
     deleteCourseThumbnail: builder.mutation<void, string>({
-      query: (courseId) => ({
+      query: courseId => ({
         url: `/course/${courseId}/thumbnail`,
         method: 'DELETE',
       }),
@@ -383,7 +455,7 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
 
     // Delete course trailer video
     deleteCourseTrailerVideo: builder.mutation<void, string>({
-      query: (courseId) => ({
+      query: courseId => ({
         url: `/course/${courseId}/trailer-video`,
         method: 'DELETE',
       }),
@@ -396,7 +468,10 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     // ==================== DIRECT S3 UPLOAD ====================
 
     // Generate presigned URL for direct S3 upload
-    generateUploadUrl: builder.mutation<GenerateUploadUrlResponse, { courseId: string } & GenerateUploadUrlRequest>({
+    generateUploadUrl: builder.mutation<
+      GenerateUploadUrlResponse,
+      { courseId: string } & GenerateUploadUrlRequest
+    >({
       query: ({ courseId, ...body }) => ({
         url: `/course/${courseId}/generate-upload-url`,
         method: 'POST',
@@ -405,7 +480,10 @@ export const teacherCoursesApi = baseApi.injectEndpoints({
     }),
 
     // Confirm upload completion
-    confirmUpload: builder.mutation<ConfirmUploadResponse, { courseId: string } & ConfirmUploadRequest>({
+    confirmUpload: builder.mutation<
+      ConfirmUploadResponse,
+      { courseId: string } & ConfirmUploadRequest
+    >({
       query: ({ courseId, ...body }) => ({
         url: `/course/${courseId}/confirm-upload`,
         method: 'POST',
@@ -429,6 +507,7 @@ export const {
   usePublishCourseMutation,
   useUnpublishCourseMutation,
   useGetCourseStatisticsQuery,
+  useGetCourseFileStatisticsQuery,
   useBulkUpdateCourseStatusMutation,
   useBulkDeleteCoursesMutation,
   // File upload hooks

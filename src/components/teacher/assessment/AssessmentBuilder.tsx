@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import {
   Save,
   Eye,
@@ -37,13 +37,14 @@ import { AssessmentPreview } from './AssessmentPreview';
 import { AssessmentAnalytics } from './AssessmentAnalytics';
 
 import {
-  useCreateAssessmentMutation,
+  useCreateAssessmentTeacherMutation,
   useUpdateAssessmentMutation,
   useGetAssessmentByIdQuery,
   usePublishAssessmentMutation,
   useArchiveAssessmentMutation,
   useDuplicateAssessmentMutation,
-} from '@/lib/redux/api/assessment-creation-api';
+  useCreateQuestionsForAssessmentMutation,
+} from '@/lib/redux/api/teacher-assessment-api';
 
 import { AssessmentFormData, Assessment } from '@/types/assessment';
 
@@ -88,14 +89,12 @@ const STEPS = [
 ];
 
 export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
-  assessmentId,
+  assessmentId: initialAssessmentId,
   courseId,
-  lessonId,
   mode = 'create',
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { toast } = useToast();
 
   // State management
   const [currentStep, setCurrentStep] = useState(0);
@@ -104,6 +103,13 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Track assessment ID for create mode
+  const [assessmentId, setAssessmentId] = useState<string | undefined>(
+    initialAssessmentId
+  );
+  const [currentMode, setCurrentMode] = useState(mode);
 
   // Assessment data state
   const [assessmentData, setAssessmentData] = useState<AssessmentFormData>({
@@ -113,7 +119,7 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
       instructions: '',
       assessmentType: 'quiz',
       courseId: courseId || '',
-      lessonId: lessonId,
+      lessonId: '',
     },
     configuration: {
       maxAttempts: 1,
@@ -179,12 +185,15 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
     data: existingAssessment,
     isLoading: isLoadingAssessment,
     error: loadError,
-  } = useGetAssessmentByIdQuery(assessmentId!, {
-    skip: !assessmentId || mode === 'create',
-  });
+  } = useGetAssessmentByIdQuery(
+    { id: assessmentId!, includeQuestions: true },
+    {
+      skip: !assessmentId || currentMode === 'create',
+    }
+  );
 
   const [createAssessment, { isLoading: isCreating }] =
-    useCreateAssessmentMutation();
+    useCreateAssessmentTeacherMutation();
   const [updateAssessment, { isLoading: isUpdating }] =
     useUpdateAssessmentMutation();
   const [publishAssessment, { isLoading: isPublishing }] =
@@ -193,20 +202,25 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
     useArchiveAssessmentMutation();
   const [duplicateAssessment, { isLoading: isDuplicating }] =
     useDuplicateAssessmentMutation();
+  const [createQuestionsForAssessment, { isLoading: isCreatingQuestions }] =
+    useCreateQuestionsForAssessmentMutation();
 
   // Load existing assessment data
   useEffect(() => {
-    if (existingAssessment && (mode === 'edit' || mode === 'duplicate')) {
+    if (
+      existingAssessment &&
+      (currentMode === 'edit' || currentMode === 'duplicate')
+    ) {
       setAssessmentData({
         basicInfo: {
           title:
-            mode === 'duplicate'
+            currentMode === 'duplicate'
               ? `${existingAssessment.title} (Copy)`
               : existingAssessment.title,
           description: existingAssessment.description,
-          instructions: existingAssessment.instructions,
+          instructions: existingAssessment.instructions!,
           assessmentType: existingAssessment.assessmentType,
-          courseId: existingAssessment.courseId,
+          courseId: existingAssessment.courseId!,
           lessonId: existingAssessment.lessonId,
         },
         configuration: {
@@ -224,12 +238,55 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
           isProctored: existingAssessment.isProctored,
           gradingMethod: existingAssessment.gradingMethod,
         },
-        questions: existingAssessment.questions || [],
-        antiCheatSettings: existingAssessment.antiCheatSettings,
+        questions: (existingAssessment.questions || []).map(question => ({
+          ...question,
+          options: (() => {
+            try {
+              if (typeof question.options === 'string') {
+                return JSON.parse(question.options);
+              } else if (Array.isArray(question.options)) {
+                return question.options;
+              }
+              return question.options;
+            } catch (e) {
+              console.warn('Failed to parse question options:', e);
+              return question.options || [];
+            }
+          })(),
+          tags: (() => {
+            try {
+              if (typeof question.tags === 'string') {
+                return JSON.parse(question.tags);
+              } else if (Array.isArray(question.tags)) {
+                return question.tags;
+              }
+              return [];
+            } catch (e) {
+              console.warn('Failed to parse question tags:', e);
+              return [];
+            }
+          })(),
+        })),
+        antiCheatSettings: (() => {
+          try {
+            if (typeof existingAssessment.antiCheatSettings === 'string') {
+              return JSON.parse(existingAssessment.antiCheatSettings);
+            } else if (
+              existingAssessment.antiCheatSettings &&
+              typeof existingAssessment.antiCheatSettings === 'object'
+            ) {
+              return existingAssessment.antiCheatSettings;
+            }
+            return {};
+          } catch (e) {
+            console.warn('Failed to parse existing antiCheatSettings:', e);
+            return {};
+          }
+        })(),
         gradingRubric: undefined, // Load separately if needed
       });
     }
-  }, [existingAssessment, mode]);
+  }, [existingAssessment, currentMode]);
 
   // Get current step component
   const getCurrentStepComponent = () => {
@@ -409,13 +466,109 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
 
   // Save handlers
   const handleSaveDraft = async () => {
+    console.log('=== handleSaveDraft called ===');
+    console.log('Current assessmentData:', assessmentData);
+    console.log('Current questions:', assessmentData.questions);
     try {
+      // Ensure antiCheatSettings is always an object
+      const defaultAntiCheatSettings = {
+        proctoring: {
+          enabled: false,
+          requireWebcam: false,
+          requireMicrophone: false,
+          recordSession: false,
+          identityVerification: false,
+          faceDetection: false,
+          voiceDetection: false,
+          environmentScan: false,
+        },
+        lockdown: {
+          fullscreenMode: false,
+          preventTabSwitching: false,
+          preventWindowSwitching: false,
+          blockExternalApps: false,
+          allowedApplications: [],
+          preventVirtualMachine: false,
+          preventMultipleMonitors: false,
+        },
+        monitoring: {
+          trackMouseMovement: false,
+          trackKeystrokes: false,
+          trackFocusLoss: true,
+          trackTabSwitching: true,
+          trackCopyPaste: true,
+          screenshotInterval: 300,
+          heartbeatInterval: 30,
+        },
+        violations: {
+          suspiciousActivityThreshold: 3,
+          autoSubmitOnViolation: false,
+          warningSystem: {
+            enabled: true,
+            maxWarnings: 3,
+            warningTypes: ['tab_switch', 'window_blur', 'copy_attempt'],
+          },
+          penaltySystem: {
+            enabled: false,
+            penaltyPerViolation: 5,
+            maxPenalty: 25,
+          },
+        },
+      };
+
+      // Parse antiCheatSettings safely
+      let parsedAntiCheatSettings = {};
+      try {
+        if (typeof assessmentData.antiCheatSettings === 'string') {
+          parsedAntiCheatSettings = JSON.parse(
+            assessmentData.antiCheatSettings
+          );
+        } else if (
+          assessmentData.antiCheatSettings &&
+          typeof assessmentData.antiCheatSettings === 'object'
+        ) {
+          parsedAntiCheatSettings = assessmentData.antiCheatSettings;
+        }
+      } catch (e) {
+        console.warn('Failed to parse antiCheatSettings, using defaults:', e);
+        parsedAntiCheatSettings = {};
+      }
+
+      const safeAntiCheatSettings = {
+        ...defaultAntiCheatSettings,
+        ...(parsedAntiCheatSettings || {}),
+        proctoring: {
+          ...defaultAntiCheatSettings.proctoring,
+          ...(parsedAntiCheatSettings?.proctoring || {}),
+        },
+        lockdown: {
+          ...defaultAntiCheatSettings.lockdown,
+          ...(parsedAntiCheatSettings?.lockdown || {}),
+        },
+        monitoring: {
+          ...defaultAntiCheatSettings.monitoring,
+          ...(parsedAntiCheatSettings?.monitoring || {}),
+        },
+        violations: {
+          ...defaultAntiCheatSettings.violations,
+          ...(parsedAntiCheatSettings?.violations || {}),
+          warningSystem: {
+            ...defaultAntiCheatSettings.violations.warningSystem,
+            ...(parsedAntiCheatSettings?.violations?.warningSystem || {}),
+          },
+          penaltySystem: {
+            ...defaultAntiCheatSettings.violations.penaltySystem,
+            ...(parsedAntiCheatSettings?.violations?.penaltySystem || {}),
+          },
+        },
+      };
+
       const assessmentPayload = {
         ...assessmentData.basicInfo,
         ...assessmentData.configuration,
         status: 'draft' as const,
-        questions: assessmentData.questions,
-        antiCheatSettings: assessmentData.antiCheatSettings,
+        // Remove questions from payload - backend doesn't accept it
+        antiCheatSettings: safeAntiCheatSettings,
         settings: {
           navigation: {
             allowBackward: true,
@@ -423,12 +576,10 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
             confirmBeforeSubmit: true,
           },
           security: {
-            preventCopyPaste:
-              assessmentData.antiCheatSettings.monitoring.trackCopyPaste,
+            preventCopyPaste: safeAntiCheatSettings.monitoring.trackCopyPaste,
             preventPrint: true,
             preventRightClick: true,
-            requireFullscreen:
-              assessmentData.antiCheatSettings.lockdown.fullscreenMode,
+            requireFullscreen: safeAntiCheatSettings.lockdown.fullscreenMode,
           },
           display: {
             questionsPerPage: 1,
@@ -445,44 +596,192 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
         },
       };
 
-      if (mode === 'edit' && assessmentId) {
+      // Debug: log payload before sending
+      console.log(
+        'Assessment payload:',
+        JSON.stringify(assessmentPayload, null, 2)
+      );
+
+      if (currentMode === 'edit' && assessmentId) {
+        console.log('=== UPDATE MODE ===');
         await updateAssessment({
           id: assessmentId,
           data: assessmentPayload as Assessment,
         }).unwrap();
-        toast({
-          title: 'Assessment Saved',
-          description: 'Your changes have been saved successfully.',
-        });
+
+        // Save questions to assessment if any exist (for edit mode too)
+        if (assessmentData.questions && assessmentData.questions.length > 0) {
+          console.log(
+            'Saving questions to existing assessment:',
+            assessmentData.questions
+          );
+
+          // Prepare questions for backend
+          const questionsForBackend = assessmentData.questions.map(
+            (question, index) => ({
+              questionText: question.questionText,
+              questionType: question.questionType,
+              explanation: question.explanation,
+              points: question.points,
+              difficulty: question.difficulty,
+              orderIndex: index,
+              timeLimit: question.timeLimit,
+              hint: question.hint,
+              options: (() => {
+                console.log('=== PROCESSING OPTIONS ===');
+                console.log('Original question.options:', question.options);
+                console.log('Type of question.options:', typeof question.options);
+                
+                if (typeof question.options === 'string') {
+                  // Parse back to array if it's a string, then let backend stringify
+                  try {
+                    const parsed = JSON.parse(question.options);
+                    console.log('Parsed string back to array:', parsed);
+                    return parsed;
+                  } catch (e) {
+                    console.log('Failed to parse string, returning as-is');
+                    return question.options;
+                  }
+                } else if (Array.isArray(question.options)) {
+                  // Send clean array object, let backend stringify
+                  const cleanOptions = question.options.map(opt => ({
+                    id: opt.id,
+                    text: String(opt.text || ''),
+                    isCorrect: Boolean(opt.isCorrect),
+                    feedback: String(opt.feedback || ''),
+                    orderIndex: Number(opt.orderIndex || 0)
+                  }));
+                  console.log('Sending clean array object to backend:', cleanOptions);
+                  return cleanOptions;
+                } else {
+                  console.log('Options is null/undefined');
+                  return null;
+                }
+              })(),
+              correctAnswer: question.correctAnswer,
+              tags: question.tags,
+              validationRules: question.validationRules,
+              attachments: question.attachments || [],
+            })
+          );
+
+          try {
+            // Add questions to the existing assessment
+            await createQuestionsForAssessment({
+              assessmentId: assessmentId,
+              questions: questionsForBackend,
+            }).unwrap();
+
+            console.log('Questions saved to existing assessment successfully');
+          } catch (questionError) {
+            console.error(
+              'Error saving questions to existing assessment:',
+              questionError
+            );
+            toast('⚠️ Assessment updated but failed to save questions');
+          }
+        }
+
+        toast('✅ Assessment Saved Successfully');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
       } else {
         const result = await createAssessment(
           assessmentPayload as Assessment
         ).unwrap();
-        toast({
-          title: 'Assessment Created',
-          description: 'Your assessment has been saved as draft.',
-        });
-        // Redirect to edit mode with the new assessment ID
-        router.push(`/teacher/assessments/${result.id}/edit`);
+
+        // Update assessment ID and switch to edit mode internally
+        setAssessmentId(result.id);
+        setCurrentMode('edit');
+
+        // Save questions to assessment if any exist
+        if (assessmentData.questions && assessmentData.questions.length > 0) {
+          console.log(
+            'Saving questions to assessment:',
+            assessmentData.questions
+          );
+
+          // Prepare questions for backend (remove temp IDs and add assessmentId)
+          const questionsForBackend = assessmentData.questions.map(
+            (question, index) => ({
+              questionText: question.questionText,
+              questionType: question.questionType,
+              explanation: question.explanation,
+              points: question.points,
+              difficulty: question.difficulty,
+              orderIndex: index,
+              timeLimit: question.timeLimit,
+              hint: question.hint,
+              options: (() => {
+                console.log('=== PROCESSING OPTIONS ===');
+                console.log('Original question.options:', question.options);
+                console.log('Type of question.options:', typeof question.options);
+                
+                if (typeof question.options === 'string') {
+                  // Parse back to array if it's a string, then let backend stringify
+                  try {
+                    const parsed = JSON.parse(question.options);
+                    console.log('Parsed string back to array:', parsed);
+                    return parsed;
+                  } catch (e) {
+                    console.log('Failed to parse string, returning as-is');
+                    return question.options;
+                  }
+                } else if (Array.isArray(question.options)) {
+                  // Send clean array object, let backend stringify
+                  const cleanOptions = question.options.map(opt => ({
+                    id: opt.id,
+                    text: String(opt.text || ''),
+                    isCorrect: Boolean(opt.isCorrect),
+                    feedback: String(opt.feedback || ''),
+                    orderIndex: Number(opt.orderIndex || 0)
+                  }));
+                  console.log('Sending clean array object to backend:', cleanOptions);
+                  return cleanOptions;
+                } else {
+                  console.log('Options is null/undefined');
+                  return null;
+                }
+              })(),
+              correctAnswer: question.correctAnswer,
+              tags: question.tags,
+              validationRules: question.validationRules,
+              attachments: question.attachments || [],
+            })
+          );
+
+          try {
+            // Add questions to the created assessment using RTK Query
+            await createQuestionsForAssessment({
+              assessmentId: result.id!,
+              questions: questionsForBackend,
+            }).unwrap();
+
+            console.log('Questions saved successfully');
+          } catch (questionError) {
+            console.error('Error saving questions:', questionError);
+            toast('⚠️ Assessment created but failed to save questions');
+          }
+        }
+
+        toast('✅ Draft Created Successfully');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+
+        // DO NOT redirect - keep user in create flow to complete remaining steps
+        // router.push(`/teacher/assessments/${result.id}/edit`); // REMOVED
       }
       setIsDirty(false);
     } catch (error: any) {
-      toast({
-        title: 'Save Failed',
-        description:
-          error.message || 'Failed to save assessment. Please try again.',
-        variant: 'destructive',
-      });
+      console.log('Lỗi');
+      toast('Failed to save assessment. Please try again.');
+      console.error('Error saving assessment:', error);
     }
   };
 
   const handlePublish = async () => {
     if (!assessmentId) {
-      toast({
-        title: 'Cannot Publish',
-        description: 'Please save the assessment first.',
-        variant: 'destructive',
-      });
+      toast('Cannot Publish');
       return;
     }
 
@@ -497,28 +796,17 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
     }
 
     if (!isValid) {
-      toast({
-        title: 'Validation Failed',
-        description: 'Please fix all validation errors before publishing.',
-        variant: 'destructive',
-      });
+      toast('Validation Failed');
       return;
     }
 
     try {
       await publishAssessment(assessmentId).unwrap();
-      toast({
-        title: 'Assessment Published',
-        description: 'Your assessment is now available to students.',
-      });
-      router.push('/teacher/assessments');
+      toast('Assessment Published');
+      router.push(`/teacher/courses/${courseId}/assessments`);
     } catch (error: any) {
-      toast({
-        title: 'Publish Failed',
-        description:
-          error.message || 'Failed to publish assessment. Please try again.',
-        variant: 'destructive',
-      });
+      toast('Publish Failed');
+      console.error('Error publishing assessment:', error);
     }
   };
 
@@ -527,17 +815,11 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
 
     try {
       await archiveAssessment(assessmentId).unwrap();
-      toast({
-        title: 'Assessment Archived',
-        description: 'The assessment has been archived.',
-      });
+      toast('Assessment Archived');
       router.push('/teacher/assessments');
     } catch (error: any) {
-      toast({
-        title: 'Archive Failed',
-        description: error.message || 'Failed to archive assessment.',
-        variant: 'destructive',
-      });
+      toast('Archive Failed');
+      console.error('Error archiving assessment:', error);
     }
   };
 
@@ -546,17 +828,11 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
 
     try {
       const result = await duplicateAssessment(assessmentId).unwrap();
-      toast({
-        title: 'Assessment Duplicated',
-        description: 'A copy of the assessment has been created.',
-      });
+      toast('Assessment Duplicated');
       router.push(`/teacher/assessments/${result.id}/edit`);
     } catch (error: any) {
-      toast({
-        title: 'Duplicate Failed',
-        description: error.message || 'Failed to duplicate assessment.',
-        variant: 'destructive',
-      });
+      toast('Duplicate Failed');
+      console.error('Error duplicating assessment:', error);
     }
   };
 
@@ -607,6 +883,17 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
                 : mode === 'duplicate'
                   ? 'Duplicate Assessment'
                   : 'Edit Assessment'}
+              {mode === 'create' && assessmentId && (
+                <span
+                  className={`ml-2 text-sm font-normal transition-all duration-500 ${
+                    saveSuccess
+                      ? 'animate-pulse font-semibold text-green-700'
+                      : 'text-green-600'
+                  }`}
+                >
+                  {saveSuccess ? '✅ Just Saved!' : '(Draft Saved)'}
+                </span>
+              )}
             </h1>
             <p className="mt-1 text-muted-foreground">
               {assessmentData.basicInfo.title || 'Untitled Assessment'}
@@ -621,17 +908,21 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
             </div>
 
             {/* Status Badge */}
-            {existingAssessment && (
+            {(existingAssessment || (mode === 'create' && assessmentId)) && (
               <Badge
                 variant={
-                  existingAssessment.status === 'published'
+                  existingAssessment?.status === 'published'
                     ? 'default'
-                    : existingAssessment.status === 'draft'
-                      ? 'secondary'
-                      : 'outline'
+                    : 'secondary'
+                }
+                className={
+                  existingAssessment?.status === 'draft' ||
+                  (mode === 'create' && assessmentId)
+                    ? 'border-green-300 bg-green-100 text-green-800'
+                    : ''
                 }
               >
-                {existingAssessment.status}
+                {existingAssessment?.status || 'draft'}
               </Badge>
             )}
 
@@ -652,12 +943,30 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
                 size="sm"
                 onClick={handleSaveDraft}
                 disabled={isCreating || isUpdating}
+                className={
+                  saveSuccess
+                    ? 'border-green-300 bg-green-50 text-green-700'
+                    : ''
+                }
               >
-                <Save className="mr-2 h-4 w-4" />
-                {isCreating || isUpdating ? 'Saving...' : 'Save Draft'}
+                {saveSuccess ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    {isCreating || isUpdating
+                      ? 'Saving...'
+                      : mode === 'create' && !assessmentId
+                        ? 'Save & Continue'
+                        : 'Save Draft'}
+                  </>
+                )}
               </Button>
 
-              {assessmentId && mode === 'edit' && (
+              {assessmentId && currentMode === 'edit' && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -706,7 +1015,7 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
           </TabsTrigger>
           <TabsTrigger
             value="analytics"
-            disabled={!assessmentId || mode === 'create'}
+            disabled={!assessmentId || currentMode === 'create'}
           >
             Analytics
           </TabsTrigger>
@@ -813,8 +1122,22 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
                         variant="outline"
                         onClick={handleSaveDraft}
                         disabled={isCreating || isUpdating}
+                        className={
+                          saveSuccess
+                            ? 'border-green-300 bg-green-50 text-green-700'
+                            : ''
+                        }
                       >
-                        Save Draft
+                        {saveSuccess ? (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Saved!
+                          </>
+                        ) : isCreating || isUpdating ? (
+                          'Saving...'
+                        ) : (
+                          'Save Draft'
+                        )}
                       </Button>
 
                       {currentStep < STEPS.length - 1 ? (
@@ -862,12 +1185,13 @@ export const AssessmentBuilder: React.FC<AssessmentBuilderProps> = ({
                   },
                   security: {
                     preventCopyPaste:
-                      assessmentData.antiCheatSettings.monitoring
-                        .trackCopyPaste,
+                      assessmentData.antiCheatSettings?.monitoring
+                        ?.trackCopyPaste || false,
                     preventPrint: true,
                     preventRightClick: true,
                     requireFullscreen:
-                      assessmentData.antiCheatSettings.lockdown.fullscreenMode,
+                      assessmentData.antiCheatSettings?.lockdown
+                        ?.fullscreenMode || false,
                   },
                   display: {
                     questionsPerPage: 1,

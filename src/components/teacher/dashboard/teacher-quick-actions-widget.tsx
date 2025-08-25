@@ -254,11 +254,11 @@ export const TeacherQuickActionsWidget: React.FC<
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/teacher/assessments/create')}
+              onClick={() => router.push('/teacher/courses')}
               className="justify-start"
             >
               <ClipboardList className="mr-2 h-4 w-4" />
-              New Assessment
+              Create Assessment
             </Button>
             <Button
               variant="outline"

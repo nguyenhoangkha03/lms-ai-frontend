@@ -42,8 +42,10 @@ import {
 
 import {
   useGetCoursesQuery,
-  useGetLessonsQuery,
 } from '@/lib/redux/api/course-api';
+import {
+  useGetLessonsQuery,
+} from '@/lib/redux/api/teacher-lessons-api';
 
 interface AIQuestionGeneratorProps {
   onGenerate: (params: {

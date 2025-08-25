@@ -70,7 +70,8 @@ export const LazyPages = {
     () => import('@/app/(dashboard)/teacher/courses/create/page')
   ),
   AssessmentCreate: createLazyComponent(
-    () => import('@/app/(dashboard)/teacher/assessments/create/page')
+    () =>
+      import('@/app/(dashboard)/teacher/courses/[id]/assessments/create/page')
   ),
   Gradebook: createLazyComponent(
     () => import('@/app/(dashboard)/teacher/gradebook/page')
@@ -127,9 +128,7 @@ export const LazyPages = {
     () => import('@/app/(community)/study-groups/page')
   ),
   Chat: createLazyComponent(() => import('@/app/(community)/chat/page')),
-  Search: createLazyComponent(
-    () => import('@/app/(dashboard)/shared/search/page')
-  ),
+  Search: createLazyComponent(() => import('@/app/search/page')),
 };
 
 export const LazyComponents = {
@@ -216,14 +215,16 @@ export const getRouteBundle = (pathname: string) => {
 // Preload function for route anticipation - temporarily disabled to prevent 404 errors
 export const preloadRoute = (route: string) => {
   if (typeof window === 'undefined') return;
-  
+
   // Disable preloading for now to prevent 404 errors on non-existent chunks
   if (process.env.NODE_ENV === 'development') {
-    console.log(`Route preloading disabled for: ${route} (prevents 404 errors)`);
+    console.log(
+      `Route preloading disabled for: ${route} (prevents 404 errors)`
+    );
   }
-  
+
   return; // Early return to disable preloading
-  
+
   /* Commented out until chunk structure is properly configured
   const bundles = getRouteBundle(route);
 
@@ -691,7 +692,7 @@ export class PerformanceMonitor {
     try {
       // Temporarily disabled - API endpoint not implemented
       // await fetch('/api/analytics/performance', {
-      //   method: 'POST', 
+      //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify({ type, data, timestamp: Date.now() }),
       // });

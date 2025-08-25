@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   teacherProfile?: TeacherProfile;
+  studentProfile?: StudentProfile;
   email: string;
   username: string;
   firstName: string;
@@ -71,6 +72,7 @@ export interface StudentProfile {
   badges?: string[];
   enableAIRecommendations: boolean;
   enableProgressTracking: boolean;
+  onboardingCompleted: boolean;
 }
 
 export interface TeacherProfile {

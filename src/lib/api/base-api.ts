@@ -342,6 +342,8 @@ export const baseApi = createApi({
     'Permissions',
     'Section',
     'CourseStats',
+    'Assessments',
+    'QuestionBankStats',
   ],
   endpoints: () => ({}),
 });

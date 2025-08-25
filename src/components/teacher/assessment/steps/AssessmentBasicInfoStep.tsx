@@ -32,10 +32,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-import {
-  useGetCoursesQuery,
-  useGetLessonsQuery,
-} from '@/lib/redux/api/course-api';
+import { useGetCoursesQuery } from '@/lib/redux/api/course-api';
+import { useGetLessonsQuery } from '@/lib/redux/api/teacher-lessons-api';
 
 import { useGenerateAIContentSuggestionMutation } from '@/lib/redux/api/course-creation-api';
 
@@ -168,16 +166,19 @@ export const AssessmentBasicInfoStep: React.FC<
 
   // Update selected course when courseId changes
   useEffect(() => {
-    if (coursesData?.courses && data.courseId) {
-      const course = coursesData.courses.find(
-        (c: any) => c.id === data.courseId
-      );
+    if (coursesData?.data && data.courseId) {
+      const course = coursesData.data.find((c: any) => c.id === data.courseId);
       setSelectedCourse(course || null);
     }
   }, [coursesData, data.courseId]);
 
   // Update selected lesson when lessonId changes
   useEffect(() => {
+    if (!data.lessonId) {
+      setSelectedLesson(null);
+      return;
+    }
+
     if (lessonsData?.lessons && data.lessonId) {
       const lesson = lessonsData.lessons.find(
         (l: any) => l.id === data.lessonId
@@ -270,7 +271,7 @@ export const AssessmentBasicInfoStep: React.FC<
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
             {/* Course Selection */}
             <div className="space-y-2">
               <Label htmlFor="courseId">Course *</Label>
@@ -286,11 +287,11 @@ export const AssessmentBasicInfoStep: React.FC<
                 </SelectTrigger>
                 <SelectContent>
                   {isLoadingCourses ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Loading courses...
                     </SelectItem>
                   ) : (
-                    coursesData?.courses?.map((course: any) => (
+                    coursesData?.data?.map((course: any) => (
                       <SelectItem key={course.id} value={course.id}>
                         <div className="flex items-center gap-2">
                           <span>{course.title}</span>
@@ -309,14 +310,16 @@ export const AssessmentBasicInfoStep: React.FC<
                 </p>
               )}
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
             {/* Lesson Selection */}
             <div className="space-y-2">
               <Label htmlFor="lessonId">Lesson (Optional)</Label>
               <Select
-                value={data.lessonId || ''}
+                value={data.lessonId || 'none'}
                 onValueChange={value =>
-                  handleUpdate('lessonId', value || undefined)
+                  handleUpdate('lessonId', value === 'none' ? undefined : value)
                 }
                 disabled={!data.courseId}
               >
@@ -324,9 +327,9 @@ export const AssessmentBasicInfoStep: React.FC<
                   <SelectValue placeholder="Select a lesson" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific lesson</SelectItem>
+                  <SelectItem value="none">No specific lesson</SelectItem>
                   {isLoadingLessons ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Loading lessons...
                     </SelectItem>
                   ) : (

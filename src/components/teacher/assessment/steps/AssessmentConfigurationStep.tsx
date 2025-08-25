@@ -14,7 +14,8 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { InlineDateTimePicker } from '@/components/ui/inline-date-time-picker';
+import { Input } from '@/components/ui/input';
 import {
   Settings,
   Clock,
@@ -613,10 +614,10 @@ export const AssessmentConfigurationStep: React.FC<
             Set when students can access this assessment
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <CardContent className="space-y-6 overflow-visible">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 overflow-visible">
             {/* Available From */}
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-visible relative">
               <div className="flex items-center justify-between">
                 <Label>Available From</Label>
                 <Switch
@@ -631,12 +632,15 @@ export const AssessmentConfigurationStep: React.FC<
               </div>
 
               {data.availableFrom && (
-                <DateTimePicker
-                  value={data.availableFrom}
-                  onChange={(value: string) =>
-                    handleUpdate('availableFrom', value)
-                  }
-                />
+                <div className="space-y-2">
+                  <InlineDateTimePicker
+                    value={data.availableFrom}
+                    onChange={(value: string) =>
+                      handleUpdate('availableFrom', value)
+                    }
+                    placeholder="Select start date and time"
+                  />
+                </div>
               )}
 
               <p className="text-xs text-muted-foreground">
@@ -647,7 +651,7 @@ export const AssessmentConfigurationStep: React.FC<
             </div>
 
             {/* Available Until */}
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-visible relative">
               <div className="flex items-center justify-between">
                 <Label>Available Until</Label>
                 <Switch
@@ -666,12 +670,15 @@ export const AssessmentConfigurationStep: React.FC<
               </div>
 
               {data.availableUntil && (
-                <DateTimePicker
-                  value={data.availableUntil}
-                  onChange={(value: string) =>
-                    handleUpdate('availableUntil', value)
-                  }
-                />
+                <div className="space-y-2">
+                  <InlineDateTimePicker
+                    value={data.availableUntil}
+                    onChange={(value: string) =>
+                      handleUpdate('availableUntil', value)
+                    }
+                    placeholder="Select end date and time"
+                  />
+                </div>
               )}
 
               <p className="text-xs text-muted-foreground">

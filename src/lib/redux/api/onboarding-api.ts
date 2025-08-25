@@ -16,6 +16,17 @@ export interface SkillAssessment {
   questions: AssessmentQuestion[];
   timeLimit: number;
   totalQuestions: number;
+  categoryId?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  iconUrl?: string;
+  color?: string;
+  courseCount: number;
 }
 
 export interface AssessmentQuestion {
@@ -115,19 +126,30 @@ export const onboardingApi = baseApi.injectEndpoints({
       invalidatesTags: ['OnboardingProgress'],
     }),
 
+    getRootCategories: builder.query<{ success: boolean; categories: Category[] }, void>({
+      query: () => '/categories/root-categories',
+      providesTags: ['Categories'],
+      transformResponse: (response: { success: boolean; categories: Category[] }) => response,
+    }),
+
     getSkillAssessment: builder.query<SkillAssessment, void>({
       query: () => '/onboarding/skill-assessment',
       providesTags: ['SkillAssessment'],
     }),
 
+    getSkillAssessmentByCategory: builder.query<SkillAssessment, string>({
+      query: (categoryId) => `/onboarding/skill-assessment/${categoryId}`,
+      providesTags: ['SkillAssessment'],
+    }),
+
     submitSkillAssessment: builder.mutation<
       AssessmentResult,
-      { responses: AssessmentResponse[] }
+      { responses: AssessmentResponse[]; categoryId?: string }
     >({
-      query: ({ responses }) => ({
+      query: ({ responses, categoryId }) => ({
         url: '/onboarding/skill-assessment/submit',
         method: 'POST',
-        body: { responses },
+        body: { responses, categoryId },
       }),
       invalidatesTags: ['AssessmentResult', 'OnboardingProgress'],
     }),
@@ -204,7 +226,9 @@ export const onboardingApi = baseApi.injectEndpoints({
 export const {
   useGetOnboardingProgressQuery,
   useUpdateOnboardingProgressMutation,
+  useGetRootCategoriesQuery,
   useGetSkillAssessmentQuery,
+  useGetSkillAssessmentByCategoryQuery,
   useSubmitSkillAssessmentMutation,
   useGetAssessmentResultQuery,
   useSaveLearningPreferencesMutation,

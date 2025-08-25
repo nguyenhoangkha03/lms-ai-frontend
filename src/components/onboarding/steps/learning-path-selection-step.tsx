@@ -50,10 +50,7 @@ import {
   type LearningPath,
 } from '@/lib/redux/api/onboarding-api';
 
-interface LearningPathSelectionStepProps {
-  onNext: () => void;
-  onBack: () => void;
-}
+// Simplified - no props needed
 
 // Path category icons
 const pathIcons: Record<string, React.ReactNode> = {
@@ -75,13 +72,9 @@ const levelColors = {
   advanced: 'bg-red-100 text-red-800',
 };
 
-export const LearningPathSelectionStep: React.FC<
-  LearningPathSelectionStepProps
-> = ({ onNext, onBack }) => {
+export const LearningPathSelectionStep: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { selectedPath, pathCustomization } = useAppSelector(
-    state => state.onboarding
-  );
+  const { selectedPath } = useAppSelector(state => state.onboarding);
 
   const { data: recommendedPaths = [], isLoading: loadingRecommended } =
     useGetRecommendedLearningPathsQuery();
@@ -117,19 +110,7 @@ export const LearningPathSelectionStep: React.FC<
   };
 
   // Handle next step
-  const handleNext = async () => {
-    if (!selectedPath) return;
-
-    try {
-      await selectPath({
-        pathId: selectedPath.id,
-        customization: pathCustomization,
-      }).unwrap();
-      onNext();
-    } catch (error) {
-      console.error('Error selecting learning path:', error);
-    }
-  };
+  // Path selection logic will be handled by parent component
 
   // Get path category for icon
   const getPathCategory = (path: LearningPath) => {
@@ -327,27 +308,22 @@ export const LearningPathSelectionStep: React.FC<
         </motion.div>
       )}
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-6">
-        <Button variant="outline" onClick={onBack}>
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-
-        <Button
-          onClick={handleNext}
-          disabled={!selectedPath || selecting}
-          size="lg"
-        >
-          {selecting ? (
-            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <>
-              Start Learning Journey
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </>
-          )}
-        </Button>
+      {/* Selection status */}
+      <div className="pt-6 text-center">
+        {selectedPath ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-green-600">
+              ✓ Selected: {selectedPath.title}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Ready to complete setup? Click "Complete Setup" below.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Please select a learning path to continue.
+          </p>
+        )}
       </div>
 
       {/* Path details modal */}

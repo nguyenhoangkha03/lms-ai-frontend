@@ -41,7 +41,7 @@ import {
   useGetGradingRubricsQuery,
   useCreateGradingRubricMutation,
   useUpdateGradingRubricMutation,
-} from '@/lib/redux/api/assessment-creation-api';
+} from '@/lib/redux/api/teacher-assessment-api';
 
 import {
   GradingRubric,
@@ -401,6 +401,9 @@ export const GradingRubricStep: React.FC<GradingRubricStepProps> = ({
   );
   const [isCreatingNew, setIsCreatingNew] = useState(!rubric);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedRubricType, setSelectedRubricType] = useState<string>(
+    rubric?.type || 'analytic'
+  );
   const [previewMode, setPreviewMode] = useState(false);
 
   // API hooks
@@ -471,7 +474,7 @@ export const GradingRubricStep: React.FC<GradingRubricStepProps> = ({
       id: `temp-${Date.now()}`,
       title: 'New Rubric',
       description: '',
-      type: 'analytic',
+      type: selectedRubricType as any,
       isTemplate: false,
       isActive: true,
       criteria: [
@@ -796,7 +799,17 @@ export const GradingRubricStep: React.FC<GradingRubricStepProps> = ({
                 {RUBRIC_TYPES.map(type => (
                   <Card
                     key={type.value}
-                    className="cursor-pointer transition-all hover:shadow-md"
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      selectedRubricType === type.value 
+                        ? 'bg-primary/5 ring-2 ring-primary' 
+                        : ''
+                    }`}
+                    onClick={() => {
+                      setSelectedRubricType(type.value);
+                      if (currentRubric) {
+                        handleRubricUpdate({ type: type.value as any });
+                      }
+                    }}
                   >
                     <CardContent className="p-4 text-center">
                       <div className="space-y-3">

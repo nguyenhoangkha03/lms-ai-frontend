@@ -39,17 +39,18 @@ import {
 } from 'lucide-react';
 
 import {
-  useGetQuestionBankQuery,
+  useGetQuestionBankQuestionsQuery,
   useGetQuestionBankStatisticsQuery,
-} from '@/lib/redux/api/assessment-creation-api';
+} from '@/lib/redux/api/teacher-assessment-api';
+import { QuestionType, QuestionBankItem } from '@/lib/types/assessment';
 
 interface QuestionBankSelectorProps {
   onImport: (questionIds: string[]) => Promise<void>;
   courseId: string;
   lessonId?: string;
   filters?: {
-    questionType?: string;
-    difficulty?: string;
+    questionType?: QuestionType;
+    difficulty?: 'easy' | 'medium' | 'hard' | 'expert';
     searchQuery?: string;
   };
 }
@@ -91,13 +92,14 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
   // Filter state
   const [filters, setFilters] = useState({
     searchQuery: initialFilters?.searchQuery || '',
-    questionType: initialFilters?.questionType || 'all',
-    difficulty: initialFilters?.difficulty || 'all',
+    questionType: initialFilters?.questionType ?? undefined,
+    difficulty: initialFilters?.difficulty ?? undefined,
     tags: [] as string[],
-    sortBy: 'created' as string,
+    sortBy: 'createdAt' as 'createdAt' | 'updatedAt' | 'difficulty' | 'points',
     sortOrder: 'desc' as 'asc' | 'desc',
     page: 1,
     limit: 20,
+    // courseId removed - question bank questions are generic
   });
 
   // Selection state
@@ -105,15 +107,30 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [previewQuestion, setPreviewQuestion] = useState<string | null>(null);
 
-  // API queries
+  // API queries - Remove courseId from filters since question bank questions are generic
   const {
     data: questionBankData,
     isLoading: isLoadingQuestions,
     error: questionsError,
-  } = useGetQuestionBankQuery(filters as any);
+  } = useGetQuestionBankQuestionsQuery({
+    searchQuery: filters.searchQuery,
+    questionType: filters.questionType,
+    difficulty: filters.difficulty,
+    tags: filters.tags,
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
+    page: filters.page,
+    limit: filters.limit,
+    // courseId: filters.courseId, // ❌ Remove courseId for question bank
+  });
 
   const { data: statisticsData, isLoading: isLoadingStats } =
-    useGetQuestionBankStatisticsQuery();
+    useGetQuestionBankStatisticsQuery(courseId);
+
+  // Debug logging
+  console.log('QuestionBank Filters:', filters);
+  console.log('QuestionBank Data:', questionBankData);
+  console.log('QuestionBank Error:', questionsError);
 
   // Update filters
   const updateFilter = (key: string, value: any) => {
@@ -134,13 +151,26 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
   };
 
   const selectAllQuestions = () => {
-    if (!questionBankData?.questions) return;
-    const allIds = questionBankData.questions.map(q => q.id);
+    if (!questionBankData?.data) return;
+    const questions = asQuestionBankItems(questionBankData.data);
+    const allIds = questions.map(q => q.id);
     setSelectedQuestions(allIds);
   };
 
   const clearSelection = () => {
     setSelectedQuestions([]);
+  };
+
+  // Helper to safely convert Question to QuestionBankItem
+  const asQuestionBankItems = (questions: any[]): QuestionBankItem[] => {
+    return questions.map(q => ({
+      ...q,
+      usageCount: q.usageCount || 0,
+      isTemplate: q.isTemplate || false,
+      averageRating: q.averageRating,
+      categoryId: q.categoryId,
+      lastUsedAt: q.lastUsedAt,
+    }));
   };
 
   // Handle bulk operations
@@ -177,28 +207,28 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
   const resetFilters = () => {
     setFilters({
       searchQuery: '',
-      questionType: 'all',
-      difficulty: 'all',
+      questionType: undefined,
+      difficulty: undefined,
       tags: [],
-      sortBy: 'created',
+      sortBy: 'createdAt',
       sortOrder: 'desc',
       page: 1,
       limit: 20,
+      courseId,
     });
   };
 
   // Get question stats
   const getQuestionStats = () => {
-    if (!questionBankData?.questions) return null;
+    if (!questionBankData?.data) return null;
 
-    const total = questionBankData.total;
+    const total = questionBankData.meta.total;
     const selected = selectedQuestions.length;
+    const questions = asQuestionBankItems(questionBankData.data);
     const avgScore =
-      questionBankData.questions.reduce(
-        (sum, q) => sum + q.analytics.avgScore,
-        0
-      ) / questionBankData.questions.length;
-    const usageTotal = questionBankData.questions.reduce(
+      questions.reduce((sum, q) => sum + (q.analytics?.averageScore || 0), 0) /
+      (questions.length || 1);
+    const usageTotal = questions.reduce(
       (sum, q) => sum + q.usageCount,
       0
     );
@@ -231,19 +261,19 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
               <div className="flex items-center gap-6 text-sm">
                 <div className="text-center">
                   <div className="text-lg font-semibold">
-                    {statisticsData.totalQuestions}
+                    {statisticsData?.totalQuestions || 0}
                   </div>
                   <div className="text-muted-foreground">Total Questions</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-semibold">
-                    {Object.keys(statisticsData.questionsByType).length}
+                    {Object.keys(statisticsData?.questionsByType || {}).length}
                   </div>
                   <div className="text-muted-foreground">Question Types</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-semibold">
-                    {statisticsData.popularTags.length}
+                    {statisticsData?.mostUsedTags?.length || 0}
                   </div>
                   <div className="text-muted-foreground">Tags Available</div>
                 </div>
@@ -364,14 +394,14 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
           </div>
 
           {/* Popular Tags */}
-          {statisticsData?.popularTags &&
-            statisticsData.popularTags.length > 0 && (
+          {statisticsData?.mostUsedTags &&
+            statisticsData.mostUsedTags?.length > 0 && (
               <div className="mt-4">
                 <Label className="mb-2 block text-sm font-medium">
                   Popular Tags
                 </Label>
                 <div className="flex flex-wrap gap-2">
-                  {statisticsData.popularTags.slice(0, 10).map(tag => (
+                  {statisticsData?.mostUsedTags?.slice(0, 10).map(tag => (
                     <Badge
                       key={tag.tag}
                       variant={
@@ -455,16 +485,15 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                   </>
                 )}
 
-                {questionBankData?.questions &&
-                  questionBankData.questions.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={selectAllQuestions}
-                    >
-                      Select All ({questionBankData.questions.length})
-                    </Button>
-                  )}
+                {questionBankData?.data && questionBankData.data.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectAllQuestions}
+                  >
+                    Select All ({questionBankData.data.length})
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -493,22 +522,21 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
             </Button>
           </CardContent>
         </Card>
-      ) : !questionBankData?.questions ||
-        questionBankData.questions.length === 0 ? (
+      ) : !questionBankData?.data || questionBankData.data.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <Database className="mx-auto mb-4 h-8 w-8 text-gray-400" />
             <h3 className="mb-2 text-lg font-medium">No Questions Found</h3>
             <p className="mb-4 text-muted-foreground">
               {filters.searchQuery ||
-              filters.questionType !== 'all' ||
-              filters.difficulty !== 'all'
+              filters.questionType !== undefined ||
+              filters.difficulty !== undefined
                 ? 'No questions match your current filters. Try adjusting your search criteria.'
                 : 'Your question bank is empty. Create some questions first to import them into assessments.'}
             </p>
             {(filters.searchQuery ||
-              filters.questionType !== 'all' ||
-              filters.difficulty !== 'all') && (
+              filters.questionType !== undefined ||
+              filters.difficulty !== undefined) && (
               <Button variant="outline" onClick={resetFilters}>
                 Clear Filters
               </Button>
@@ -517,7 +545,7 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
         </Card>
       ) : (
         <div className="space-y-4">
-          {questionBankData.questions.map((question, index) => {
+          {asQuestionBankItems(questionBankData.data).map((question, index) => {
             const isSelected = selectedQuestions.includes(question.id);
             const typeOption = QUESTION_TYPE_OPTIONS.find(
               opt => opt.value === question.questionType
@@ -583,7 +611,7 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                             </span>
                             <span className="flex items-center gap-1">
                               <Star className="h-3 w-3" />
-                              {question.analytics.avgScore.toFixed(1)}% avg
+                              {(question.analytics?.averageScore || 0).toFixed(1)}% avg
                             </span>
                           </div>
 
@@ -613,18 +641,18 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                               <BarChart3 className="h-3 w-3" />
                               Difficulty Index:{' '}
                               {(
-                                question.analytics.difficultyIndex * 100
+                                (question.analytics?.difficultyIndex || 0) * 100
                               ).toFixed(0)}
                               %
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               Avg Time:{' '}
-                              {Math.round(question.analytics.averageTimeSpent)}s
+                              {Math.round(question.analytics?.averageTimeSpent || 0)}s
                             </span>
                             <span className="flex items-center gap-1">
                               <CheckCircle className="h-3 w-3" />
-                              {question.analytics.attempts} attempts
+                              {question.analytics?.attempts || 0} attempts
                             </span>
                           </div>
                         </div>
@@ -667,9 +695,9 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                                         className={`h-2 w-2 rounded-full ${
                                           Array.isArray(question.correctAnswer)
                                             ? question.correctAnswer.includes(
-                                                option
+                                                option.text
                                               )
-                                            : question.correctAnswer === option
+                                            : String(question.correctAnswer) === option.text
                                               ? 'bg-green-500'
                                               : 'bg-gray-300'
                                         }`}
@@ -681,16 +709,16 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                                               question.correctAnswer
                                             )
                                               ? question.correctAnswer.includes(
-                                                  option
+                                                  option.text
                                                 )
-                                              : question.correctAnswer ===
-                                                option
+                                              : String(question.correctAnswer) ===
+                                                option.text
                                           )
                                             ? 'font-medium text-green-700'
                                             : ''
                                         }
                                       >
-                                        {option}
+                                        {option.text}
                                       </span>
                                     </div>
                                   ))}
@@ -706,7 +734,7 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                                 <p className="mt-1 rounded border border-green-200 bg-green-50 p-2 text-sm">
                                   {Array.isArray(question.correctAnswer)
                                     ? question.correctAnswer.join(', ')
-                                    : question.correctAnswer.toString()}
+                                    : String(question.correctAnswer)}
                                 </p>
                               </div>
                             )}
@@ -745,7 +773,7 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
           })}
 
           {/* Pagination */}
-          {questionBankData.total > filters.limit && (
+          {questionBankData.meta.total > filters.limit && (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -753,9 +781,9 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                     Showing {(filters.page - 1) * filters.limit + 1} to{' '}
                     {Math.min(
                       filters.page * filters.limit,
-                      questionBankData.total
+                      questionBankData.meta.total
                     )}{' '}
-                    of {questionBankData.total} questions
+                    of {questionBankData.meta.total} questions
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -775,12 +803,14 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                         {
                           length: Math.min(
                             5,
-                            Math.ceil(questionBankData.total / filters.limit)
+                            Math.ceil(
+                              questionBankData.meta.total / filters.limit
+                            )
                           ),
                         },
                         (_, i) => {
                           const totalPages = Math.ceil(
-                            questionBankData.total / filters.limit
+                            questionBankData.meta.total / filters.limit
                           );
                           let pageNum;
 
@@ -818,14 +848,16 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                         updateFilter(
                           'page',
                           Math.min(
-                            Math.ceil(questionBankData.total / filters.limit),
+                            Math.ceil(
+                              questionBankData.meta.total / filters.limit
+                            ),
                             filters.page + 1
                           )
                         )
                       }
                       disabled={
                         filters.page >=
-                        Math.ceil(questionBankData.total / filters.limit)
+                        Math.ceil(questionBankData.meta.total / filters.limit)
                       }
                     >
                       Next
@@ -839,8 +871,8 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
       )}
 
       {/* Quick Import Actions */}
-      {questionBankData?.questions &&
-        questionBankData.questions.length > 0 &&
+      {questionBankData?.data &&
+        questionBankData.data.length > 0 &&
         selectedQuestions.length === 0 && (
           <Card className="border-dashed">
             <CardContent className="p-6 text-center">
@@ -855,7 +887,8 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                   size="sm"
                   onClick={() => {
                     // Select random 5 questions
-                    const randomQuestions = questionBankData.questions
+                    const questions = asQuestionBankItems(questionBankData.data);
+                    const randomQuestions = questions
                       .sort(() => Math.random() - 0.5)
                       .slice(0, 5)
                       .map(q => q.id);
@@ -870,9 +903,10 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                   size="sm"
                   onClick={() => {
                     // Select top performing questions
-                    const topQuestions = questionBankData.questions
+                    const questions = asQuestionBankItems(questionBankData.data);
+                    const topQuestions = questions
                       .sort(
-                        (a, b) => b.analytics.avgScore - a.analytics.avgScore
+                        (a, b) => (b.analytics?.averageScore || 0) - (a.analytics?.averageScore || 0)
                       )
                       .slice(0, 10)
                       .map(q => q.id);
@@ -887,8 +921,11 @@ export const QuestionBankSelector: React.FC<QuestionBankSelectorProps> = ({
                   size="sm"
                   onClick={() => {
                     // Select most used questions
-                    const popularQuestions = questionBankData.questions
-                      .sort((a, b) => b.usageCount - a.usageCount)
+                    const questions = asQuestionBankItems(questionBankData.data);
+                    const popularQuestions = questions
+                      .sort(
+                        (a, b) => b.usageCount - a.usageCount
+                      )
                       .slice(0, 8)
                       .map(q => q.id);
                     setSelectedQuestions(popularQuestions);

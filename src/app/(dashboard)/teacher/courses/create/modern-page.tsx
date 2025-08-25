@@ -24,6 +24,8 @@ import {
   Users,
   Award,
   Loader2,
+  CheckCircle,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +44,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useCreateTeacherCourseMutation } from '@/lib/redux/api/teacher-courses-api';
+import {
+  useCreateTeacherCourseMutation,
+  useUpdateTeacherCourseMutation,
+  useSubmitCourseForReviewMutation,
+} from '@/lib/redux/api/teacher-courses-api';
 import useDirectUpload from '@/hooks/useDirectUpload';
 import { useGetCategoriesQuery } from '@/lib/redux/api/course-api';
 import {
@@ -50,8 +56,7 @@ import {
   CourseLanguage,
   CoursePricing,
 } from '@/lib/types/course-enums';
-import CurriculumBuilder from '@/components/features/course/creation/builders/curriculum-builder';
-import ContentUploader from '@/components/features/course/creation/upload/content-uploader';
+import CurriculumBuilder from '@/components/course/creation/builders/curriculum-builder';
 import { CourseSection } from '@/lib/redux/api/teacher-lessons-api';
 
 interface CourseFormData {
@@ -116,15 +121,8 @@ const WIZARD_STEPS = [
   {
     id: 'curriculum',
     title: 'Course Structure',
-    description: 'Create sections and lessons',
+    description: 'Create sections, lessons & upload content',
     icon: <BookOpen className="h-5 w-5" />,
-    estimatedTime: 30,
-  },
-  {
-    id: 'content',
-    title: 'Upload Content',
-    description: 'Add videos and materials',
-    icon: <Video className="h-5 w-5" />,
     estimatedTime: 45,
   },
   {
@@ -171,6 +169,10 @@ export default function ModernCourseCreationPage() {
   // API mutations
   const [createCourse, { isLoading: isCreating }] =
     useCreateTeacherCourseMutation();
+  const [updateCourse, { isLoading: isUpdating }] =
+    useUpdateTeacherCourseMutation();
+  const [submitForReview, { isLoading: isSubmitting }] =
+    useSubmitCourseForReviewMutation();
 
   // Direct S3 Upload hook
   const { uploadFile, uploadProgress, uploadStatus, isUploading } =
@@ -189,6 +191,8 @@ export default function ModernCourseCreationPage() {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
+  const [tagInput, setTagInput] = useState('');
 
   const [formData, setFormData] = useState<CourseFormData>({
     // Basic info
@@ -364,15 +368,16 @@ export default function ModernCourseCreationPage() {
           formData.categoryId &&
           formData.whatYouWillLearn.length > 0
         );
-      case 1: // Curriculum
-        return formData.sections.length > 0;
-      case 2: // Content
-        return formData.sections.some(
-          section => section.lessons && section.lessons.length > 0
+      case 1: // Curriculum (includes content upload)
+        return (
+          formData.sections.length > 0 &&
+          formData.sections.some(
+            section => section.lessons && section.lessons.length > 0
+          )
         );
-      case 3: // Pricing
+      case 2: // Pricing
         return formData.price >= 0;
-      case 4: // Review
+      case 3: // Review
         return false; // Never completed until published
       default:
         return false;
@@ -381,6 +386,13 @@ export default function ModernCourseCreationPage() {
 
   const progressPercentage = ((currentStep + 1) / WIZARD_STEPS.length) * 100;
   const currentStepData = WIZARD_STEPS[currentStep];
+
+  const prepareCourseDataForUpdate = () => {
+    // For update - exclude slug and other non-updatable fields
+    const data = prepareCourseData();
+    const { slug, ...updateData } = data;
+    return updateData;
+  };
 
   const prepareCourseData = () => {
     // Generate slug from title if not provided
@@ -481,14 +493,11 @@ export default function ModernCourseCreationPage() {
       const courseData = prepareCourseData();
       console.log('💾 Saving course draft:', courseData);
 
-      // Create course first
       const result = await createCourse(courseData).unwrap();
       const courseId = result.id;
 
-      // Update form data with course ID
       updateFormData({ courseId });
 
-      // Upload files using Direct S3 Upload if they exist
       const uploadPromises = [];
 
       if (formData.thumbnailFile) {
@@ -565,67 +574,80 @@ export default function ModernCourseCreationPage() {
     }
   };
 
-  const handlePublish = async () => {
+  const handleSubmitForReview = async () => {
     try {
-      const courseData = prepareCourseData();
-      console.log('🚀 Creating course with data:', courseData);
-
-      // Create course first
-      const result = await createCourse(courseData).unwrap();
-      const courseId = result.id;
-
-      // Update form data with course ID
-      updateFormData({ courseId });
-
-      // Upload files using Direct S3 Upload if they exist
-      const uploadPromises = [];
-
-      if (formData.thumbnailFile) {
-        const thumbnailPromise = uploadFile(
-          courseId,
-          formData.thumbnailFile,
-          'promotional'
-        ).then(result => {
-          if (result.success && result.fileRecord) {
-            updateFormData({ thumbnailUrl: result.fileRecord.fileUrl });
-          }
+      const updateData = prepareCourseDataForUpdate();
+      console.log('🔄 Updating existing course with data:', updateData);
+      console.log('iddddddd' + formData.courseId);
+      console.log(
+        '🔄 Updating existing course with pricing/settings:',
+        updateData
+      );
+      try {
+        await updateCourse({
+          id: formData.courseId!,
+          data: updateData,
+        }).unwrap();
+        console.log('✅ Course updated successfully');
+      } catch (updateError: any) {
+        console.error('❌ Failed to update course before submission:', updateError);
+        toast({
+          title: 'Update Failed',
+          description:
+            updateError?.data?.message ||
+            'Could not save latest changes before submitting. Please try again.',
+          variant: 'destructive',
         });
-        uploadPromises.push(thumbnailPromise);
+        return; // Stop the submission process if update fails
       }
 
-      if (formData.trailerVideoFile) {
-        const trailerPromise = uploadFile(
-          courseId,
-          formData.trailerVideoFile,
-          'trailer'
-        ).then(result => {
-          if (result.success && result.fileRecord) {
-            updateFormData({ trailerVideoUrl: result.fileRecord.fileUrl });
-          }
-        });
-        uploadPromises.push(trailerPromise);
-      }
-
-      // Wait for file uploads to complete
-      if (uploadPromises.length > 0) {
-        await Promise.allSettled(uploadPromises);
-      }
+      await submitForReview(formData.courseId!).unwrap();
 
       toast({
         title: 'Success!',
-        description: 'Course created successfully',
+        description:
+          'Course submitted for review! Admin will review and approve your course. 📋',
       });
 
-      // Redirect to edit page for further course development
-      router.push(`/teacher/courses/${courseId}/edit`);
+      // router.push(`/teacher/courses`);
     } catch (error: any) {
-      console.error('❌ Course creation failed:', error);
+      console.error('❌ Course submission failed:', error);
       toast({
         title: 'Error',
-        description: error?.data?.message || 'Failed to create course',
+        description:
+          error?.data?.message || 'Failed to submit course for review',
         variant: 'destructive',
       });
     }
+  };
+
+  const handlePreviewCourse = () => {
+    // Validate basic requirements for preview
+    if (!formData.title.trim()) {
+      toast({
+        title: 'Missing Information',
+        description: 'Course title is required for preview',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.categoryId) {
+      toast({
+        title: 'Missing Information',
+        description: 'Course category is required for preview',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Show preview overlay
+    setShowPreview(true);
+
+    toast({
+      title: 'Preview Mode',
+      description: 'Course preview is now displayed',
+    });
   };
 
   const renderStepContent = () => {
@@ -721,7 +743,6 @@ export default function ModernCourseCreationPage() {
                   value={formData.categoryId}
                   onValueChange={value => updateFormData({ categoryId: value })}
                   disabled={isLoadingCategories}
-                  modal={false}
                 >
                   <SelectTrigger className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm">
                     <SelectValue
@@ -795,7 +816,6 @@ export default function ModernCourseCreationPage() {
                   onValueChange={(value: CourseLevel) =>
                     updateFormData({ level: value })
                   }
-                  modal={false}
                 >
                   <SelectTrigger className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm">
                     <SelectValue />
@@ -825,7 +845,6 @@ export default function ModernCourseCreationPage() {
                 onValueChange={(value: CourseLanguage) =>
                   updateFormData({ language: value })
                 }
-                modal={false}
               >
                 <SelectTrigger className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm">
                   <SelectValue />
@@ -872,21 +891,56 @@ export default function ModernCourseCreationPage() {
 
             <div>
               <Label className="text-lg font-semibold">Tags (Optional)</Label>
-              <Input
-                value={formData.tags.join(', ')}
-                onChange={e =>
-                  updateFormData({
-                    tags: e.target.value
-                      .split(',')
-                      .map(tag => tag.trim())
-                      .filter(tag => tag),
-                  })
-                }
-                placeholder="Enter tags separated by commas (e.g., programming, web development, javascript)"
-                className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm"
-              />
+              <div className="mt-2 space-y-3">
+                {/* Tag Input */}
+                <Input
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && tagInput.trim()) {
+                      e.preventDefault();
+                      const newTag = tagInput.trim();
+                      if (!formData.tags.includes(newTag)) {
+                        updateFormData({
+                          tags: [...formData.tags, newTag],
+                        });
+                      }
+                      setTagInput('');
+                    }
+                  }}
+                  placeholder="Type a tag and press Enter to add"
+                  className="border-white/20 bg-white/80 backdrop-blur-sm"
+                />
+
+                {/* Tags Display */}
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1 bg-blue-100 px-3 py-1 text-blue-800 hover:bg-blue-200"
+                      >
+                        <span>{tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newTags = formData.tags.filter(
+                              (_, i) => i !== index
+                            );
+                            updateFormData({ tags: newTags });
+                          }}
+                          className="ml-1 rounded-full p-0.5 hover:bg-blue-300"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
               <p className="mt-1 text-sm text-slate-500">
-                Help students find your course
+                Type tags and press Enter to add them. Click ✕ to remove.
               </p>
             </div>
 
@@ -898,15 +952,17 @@ export default function ModernCourseCreationPage() {
                 value={formData.requirements.join('\n')}
                 onChange={e =>
                   updateFormData({
-                    requirements: e.target.value
-                      .split('\n')
-                      .filter(req => req.trim()),
+                    requirements: e.target.value.split('\n'),
                   })
                 }
-                placeholder="Enter each requirement on a new line:\n• Basic computer skills\n• No prior programming experience needed"
+                placeholder="Enter each requirement on a new line&#10;• Basic programming knowledge&#10;• Computer with internet connection&#10;• Willingness to learn"
                 rows={4}
                 className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm"
               />
+              <p className="mt-1 text-sm text-slate-500">
+                Press Enter to create new lines. Empty lines will be removed
+                when saving.
+              </p>
             </div>
 
             <div>
@@ -915,15 +971,17 @@ export default function ModernCourseCreationPage() {
                 value={formData.whatYouWillLearn.join('\n')}
                 onChange={e =>
                   updateFormData({
-                    whatYouWillLearn: e.target.value
-                      .split('\n')
-                      .filter(item => item.trim()),
+                    whatYouWillLearn: e.target.value.split('\n'),
                   })
                 }
-                placeholder="Enter learning outcomes, one per line:\n• Build responsive websites\n• Master modern JavaScript\n• Deploy applications to production"
+                placeholder="Enter learning outcomes, one per line:&#10;• Build responsive websites&#10;• Master modern JavaScript&#10;• Deploy applications to production"
                 rows={5}
                 className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm"
               />
+              <p className="mt-1 text-sm text-slate-500">
+                Press Enter to create new lines. Empty lines will be removed
+                when saving.
+              </p>
             </div>
 
             <div>
@@ -934,15 +992,17 @@ export default function ModernCourseCreationPage() {
                 value={formData.targetAudience.join('\n')}
                 onChange={e =>
                   updateFormData({
-                    targetAudience: e.target.value
-                      .split('\n')
-                      .filter(audience => audience.trim()),
+                    targetAudience: e.target.value.split('\n'),
                   })
                 }
-                placeholder="Who is this course for? One per line:\n• Beginners to web development\n• Students wanting to learn programming\n• Career changers into tech"
+                placeholder="Who is this course for? One per line:&#10;• Beginners to web development&#10;• Students wanting to learn programming&#10;• Career changers into tech"
                 rows={4}
                 className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm"
               />
+              <p className="mt-1 text-sm text-slate-500">
+                Press Enter to create new lines. Empty lines will be removed
+                when saving.
+              </p>
             </div>
 
             <div>
@@ -1148,10 +1208,15 @@ export default function ModernCourseCreationPage() {
                     </div>
                     <Button
                       onClick={handleSaveDraft}
-                      disabled={isCreating || isUploading}
+                      disabled={
+                        isCreating || isUpdating || isSubmitting || isUploading
+                      }
                       className="bg-green-600 text-white hover:bg-green-700"
                     >
-                      {isCreating || isUploading ? (
+                      {isCreating ||
+                      isUpdating ||
+                      isSubmitting ||
+                      isUploading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           {isCreating
@@ -1224,52 +1289,7 @@ export default function ModernCourseCreationPage() {
           </motion.div>
         );
 
-      case 2: // Content
-        return (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            {formData.courseId && formData.sections.length > 0 ? (
-              <ContentUploader
-                courseId={formData.courseId}
-                sections={formData.sections}
-                onContentChange={() => {
-                  // Refresh sections data or trigger re-fetch
-                  console.log('Content updated, refreshing...');
-                }}
-              />
-            ) : (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 py-12 text-center">
-                <AlertCircle className="mx-auto mb-4 h-16 w-16 text-amber-500" />
-                <h3 className="mb-2 text-lg font-semibold text-amber-800">
-                  {!formData.courseId
-                    ? 'Course Must Be Created First'
-                    : 'No Lessons Available'}
-                </h3>
-                <p className="mb-6 text-amber-700">
-                  {!formData.courseId
-                    ? 'Please complete the basic course information and save your course first.'
-                    : 'Create sections and lessons before uploading content.'}
-                </p>
-                <Button
-                  onClick={() => setCurrentStep(!formData.courseId ? 0 : 1)}
-                  className="bg-amber-500 text-white hover:bg-amber-600"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  {!formData.courseId
-                    ? 'Go to Course Info'
-                    : 'Go to Curriculum Builder'}
-                </Button>
-              </div>
-            )}
-          </motion.div>
-        );
-
-      case 3: // Pricing
+      case 2: // Pricing
         return (
           <motion.div
             key="pricing"
@@ -1316,7 +1336,6 @@ export default function ModernCourseCreationPage() {
                       onValueChange={value =>
                         updateFormData({ currency: value })
                       }
-                      modal={false}
                     >
                       <SelectTrigger className="w-24 border-white/20 bg-white/80 backdrop-blur-sm">
                         <SelectValue />
@@ -1450,10 +1469,54 @@ export default function ModernCourseCreationPage() {
                 </div>
               </div>
             </div>
+
+            {/* Course Availability */}
+            <div className="space-y-4">
+              <Label className="text-lg font-semibold">
+                Course Availability
+              </Label>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="availableFrom">
+                    Available From (Optional)
+                  </Label>
+                  <Input
+                    id="availableFrom"
+                    type="datetime-local"
+                    value={formData.availableFrom}
+                    onChange={e =>
+                      updateFormData({ availableFrom: e.target.value })
+                    }
+                    className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    When this course becomes available to students
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="availableUntil">
+                    Available Until (Optional)
+                  </Label>
+                  <Input
+                    id="availableUntil"
+                    type="datetime-local"
+                    value={formData.availableUntil}
+                    onChange={e =>
+                      updateFormData({ availableUntil: e.target.value })
+                    }
+                    className="mt-2 border-white/20 bg-white/80 backdrop-blur-sm"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    When this course expires (leave empty for permanent)
+                  </p>
+                </div>
+              </div>
+            </div>
           </motion.div>
         );
 
-      case 4: // Review
+      case 3: // Review
         return (
           <motion.div
             key="review"
@@ -1465,10 +1528,10 @@ export default function ModernCourseCreationPage() {
             <div className="text-center">
               <Award className="mx-auto mb-4 h-16 w-16 text-emerald-500" />
               <h3 className="mb-2 text-xl font-semibold text-slate-700">
-                Ready to Publish!
+                Ready for Review!
               </h3>
               <p className="mb-6 text-slate-500">
-                Review your course details before publishing
+                Review your course details before submitting to admin
               </p>
             </div>
 
@@ -1529,26 +1592,21 @@ export default function ModernCourseCreationPage() {
               </CardContent>
             </Card>
 
-            <div className="text-center">
-              <Button
-                onClick={handlePublish}
-                size="lg"
-                disabled={isCreating || isUploading}
-                className="bg-gradient-to-r from-emerald-500 to-green-600 px-8 shadow-lg hover:from-emerald-600 hover:to-green-700"
-              >
-                {isCreating || isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Publishing...
-                  </>
-                ) : (
-                  <>
-                    <Check className="mr-2 h-5 w-5" />
-                    Publish Course
-                  </>
-                )}
-              </Button>
-            </div>
+            {/* Completion Status */}
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />
+                  <h4 className="mb-2 text-lg font-semibold text-green-800">
+                    Course Ready for Admin Review! 📋
+                  </h4>
+                  <p className="text-green-700">
+                    Your course is complete and ready for admin approval. Click
+                    "Submit for Review" below to send it for review.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         );
 
@@ -1627,7 +1685,9 @@ export default function ModernCourseCreationPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/20 bg-white/60 backdrop-blur-sm hover:bg-white/80"
+                onClick={() => handlePreviewCourse()}
+                disabled={!formData.title.trim() || !formData.categoryId}
+                className="border-white/20 bg-white/60 backdrop-blur-sm hover:bg-white/80 disabled:opacity-50"
               >
                 <Eye className="mr-1 h-4 w-4" />
                 Preview
@@ -1636,9 +1696,20 @@ export default function ModernCourseCreationPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/20 bg-white/60 backdrop-blur-sm hover:bg-white/80"
+                onClick={() => handleSaveDraft()}
+                disabled={
+                  isCreating ||
+                  isUpdating ||
+                  !formData.title.trim() ||
+                  !formData.categoryId
+                }
+                className="border-white/20 bg-white/60 backdrop-blur-sm hover:bg-white/80 disabled:opacity-50"
               >
-                <Save className="mr-1 h-4 w-4" />
+                {isCreating || isUpdating ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-1 h-4 w-4" />
+                )}
                 Save Draft
               </Button>
             </div>
@@ -1772,19 +1843,24 @@ export default function ModernCourseCreationPage() {
 
                   {currentStep === WIZARD_STEPS.length - 1 ? (
                     <Button
-                      onClick={handlePublish}
-                      disabled={isCreating || isUploading}
+                      onClick={handleSubmitForReview}
+                      disabled={
+                        isCreating || isUpdating || isSubmitting || isUploading
+                      }
                       className="bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg hover:from-emerald-600 hover:to-green-700"
                     >
-                      {isCreating || isUploading ? (
+                      {isCreating ||
+                      isUpdating ||
+                      isSubmitting ||
+                      isUploading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Publishing...
+                          Submitting...
                         </>
                       ) : (
                         <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Publish Course
+                          <Upload className="mr-2 h-4 w-4" />
+                          Submit for Review
                         </>
                       )}
                     </Button>
@@ -1826,13 +1902,11 @@ export default function ModernCourseCreationPage() {
                       {currentStep === 0 &&
                         "Make sure to fill in learning outcomes - this helps students understand what they'll achieve. Use clear, engaging titles with relevant keywords. Don't forget to save your draft!"}
                       {currentStep === 1 &&
-                        'Create a logical course structure with sections and lessons. Each section should cover a specific topic. You need to save your course first before building curriculum.'}
+                        'Create a logical course structure with sections and lessons. Upload videos, audio, thumbnails and documents directly within each lesson. High-quality content with good audio is essential for engagement.'}
                       {currentStep === 2 &&
-                        'Upload high-quality videos and learning materials for each lesson. Good audio quality is essential for student engagement.'}
-                      {currentStep === 3 &&
                         'Consider your pricing strategy carefully. Free courses get more students but paid courses show higher completion rates.'}
-                      {currentStep === 4 &&
-                        'Double-check all information before publishing. You can always update content later.'}
+                      {currentStep === 3 &&
+                        'Double-check all information before submitting. Admin will review and approve your course.'}
                     </p>
                   </div>
 
@@ -1927,7 +2001,7 @@ export default function ModernCourseCreationPage() {
                           variant="outline"
                           className="border-green-200 bg-green-50 text-xs text-green-700"
                         >
-                          ✓ Content uploaded
+                          ✓ Lessons & content created
                         </Badge>
                       )}
                     </div>

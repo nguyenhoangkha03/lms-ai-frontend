@@ -57,7 +57,7 @@ export const courseApi = baseApi.injectEndpoints({
       providesTags: ['Category'],
       transformResponse: (response: any) => {
         console.log('Categories API response:', response);
-        
+
         // Handle different response structures
         if (response.data && Array.isArray(response.data)) {
           // Pagination case: { success, message, data: categories[], meta }
@@ -70,16 +70,16 @@ export const courseApi = baseApi.injectEndpoints({
           const { success, message, meta, ...rest } = response;
           const keys = Object.keys(rest);
           const hasNumericKeys = keys.some(key => !isNaN(Number(key)));
-          
+
           if (hasNumericKeys) {
             // Convert back to array from spread object
-            const categoriesArray = Object.values(rest).filter(item => 
-              item && typeof item === 'object' && 'id' in item
+            const categoriesArray = Object.values(rest).filter(
+              item => item && typeof item === 'object' && 'id' in item
             );
             return categoriesArray;
           }
         }
-        
+
         // Fallback to empty array
         console.warn('Unexpected categories response structure:', response);
         return [];
@@ -245,10 +245,15 @@ export const courseApi = baseApi.injectEndpoints({
 
     getCoursesQuery: builder.query<
       {
-        courses: Course[];
-        total: number;
-        page: number;
-        limit: number;
+        data: Course[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrevious: boolean;
+        };
       },
       {
         teacherId?: string;
@@ -259,36 +264,14 @@ export const courseApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/courses',
+        url: '/course',
         params,
       }),
       providesTags: ['Course'],
     }),
 
-    getLessonsQuery: builder.query<
-      {
-        lessons: Lesson[];
-        total: number;
-        page: number;
-        limit: number;
-      },
-      {
-        courseId: string;
-        lessonId?: string;
-        status?: string;
-        limit?: number;
-        page?: number;
-      }
-    >({
-      query: ({ courseId, ...params }) => ({
-        url: `/courses/${courseId}/lessons`,
-        params,
-      }),
-      providesTags: ['Lesson'],
-    }),
-
     getCourseById: builder.query<Course, string>({
-      query: id => `/courses/${id}`,
+      query: id => `/course/${id}`,
       providesTags: (result, error, id) => [{ type: 'Course', id }],
     }),
 
@@ -297,7 +280,7 @@ export const courseApi = baseApi.injectEndpoints({
       { courseId: string; lessonId: string }
     >({
       query: ({ courseId, lessonId }) =>
-        `/courses/${courseId}/lessons/${lessonId}`,
+        `/course/${courseId}/lessons/${lessonId}`,
       providesTags: (result, error, { lessonId }) => [
         { type: 'Lesson', id: lessonId },
       ],
@@ -310,7 +293,7 @@ export const courseApi = baseApi.injectEndpoints({
       },
       void
     >({
-      query: () => '/courses/categories',
+      query: () => '/course/categories',
       providesTags: ['Category'],
     }),
   }),
@@ -334,7 +317,6 @@ export const {
   useAddCourseReviewMutation,
   useGetCourseProgressQuery,
   useGetCoursesQueryQuery: useGetCoursesQuery,
-  useGetLessonsQueryQuery: useGetLessonsQuery,
   useGetCourseByIdQuery,
   useGetLessonByIdQuery,
   useGetCourseCategoriesQuery,

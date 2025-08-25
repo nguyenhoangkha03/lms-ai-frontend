@@ -32,96 +32,57 @@ interface OnboardingLayoutProps {
   title: string;
   description?: string;
   canGoBack?: boolean;
-  canGoNext?: boolean;
   canSkip?: boolean;
+  canProceed?: boolean;
   isLoading?: boolean;
-  onNext?: () => void | Promise<void>;
-  onBack?: () => void;
-  onSkip?: () => void;
+  onNext: () => void | Promise<void>;
+  onBack: () => void;
+  onSkip: () => void;
   showProgress?: boolean;
   showHelp?: boolean;
-  helpContent?: React.ReactNode;
 }
 
 export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   children,
   title,
   description,
-  canGoBack = true,
-  canGoNext = true,
-  canSkip = true,
+  canGoBack = false,
+  canSkip = false,
+  canProceed = true,
   isLoading = false,
   onNext,
   onBack,
   onSkip,
   showProgress = true,
   showHelp = false,
-  helpContent,
 }) => {
   const dispatch = useAppDispatch();
-  const router = useRouter();
-  const {
-    currentStep,
-    totalSteps,
-    showSkipDialog,
-    isTransitioning,
-    totalTimeSpent,
-  } = useAppSelector(state => state.onboarding);
-
-  const [skipStep] = useSkipOnboardingStepMutation();
-  const [completeOnboardingMutation] = useCompleteOnboardingMutation();
-  const [showHelpDialog, setShowHelpDialog] = React.useState(false);
+  const { currentStep, totalSteps, showSkipDialog, totalTimeSpent, error } = 
+    useAppSelector(state => state.onboarding);
 
   // Calculate progress percentage
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  // Handle next step
+  // Simple event handlers - delegate to parent
   const handleNext = async () => {
-    if (onNext) {
-      try {
-        await onNext();
-      } catch (error) {
-        console.error('Error in onNext:', error);
-        return;
-      }
-    }
-
-    if (currentStep === totalSteps) {
-      // Complete onboarding
-      try {
-        const result = await completeOnboardingMutation().unwrap();
-        dispatch(completeOnboarding());
-        router.push(result.redirectUrl || '/student/dashboard');
-      } catch (error) {
-        console.error('Error completing onboarding:', error);
-      }
-    } else {
-      dispatch(nextStep());
-    }
-  };
-
-  // Handle previous step
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    }
-    dispatch(previousStep());
-  };
-
-  // Handle skip step
-  const handleSkip = async () => {
-    if (onSkip) {
-      onSkip();
-    }
-
     try {
-      await skipStep({ step: currentStep, reason: 'user_skipped' }).unwrap();
-      dispatch(nextStep());
+      await onNext();
     } catch (error) {
-      console.error('Error skipping step:', error);
+      console.error('Error in handleNext:', error);
     }
+  };
 
-    dispatch(setShowSkipDialog(false));
+  const handleBack = () => {
+    onBack();
+  };
+
+  const handleSkip = async () => {
+    try {
+      await onSkip();
+      dispatch(setShowSkipDialog(false));
+    } catch (error) {
+      console.error('Error in handleSkip:', error);
+    }
   };
 
   // Format time spent
@@ -159,16 +120,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
                 Time: {formatTimeSpent(totalTimeSpent)}
               </Badge>
 
-              {/* Help button */}
-              {showHelp && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowHelpDialog(true)}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              )}
+              {/* Help button - removed for simplicity */}
 
               {/* Step indicator */}
               <Badge variant="secondary">
@@ -199,6 +151,13 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
       {/* Main content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl">
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 rounded-lg bg-destructive/10 p-4 text-center text-destructive">
+              {error}
+            </div>
+          )}
+
           {/* Step header */}
           <div className="mb-8 text-center">
             <motion.h2
@@ -241,22 +200,22 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
           {/* Navigation */}
           <div className="mt-8 flex items-center justify-between">
             <div className="flex space-x-2">
-              {canGoBack && currentStep > 1 && (
+              {canGoBack && (
                 <Button
                   variant="outline"
                   onClick={handleBack}
-                  disabled={isTransitioning}
+                  disabled={isLoading}
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
               )}
 
-              {canSkip && currentStep < totalSteps && (
+              {canSkip && (
                 <Button
                   variant="ghost"
                   onClick={() => dispatch(setShowSkipDialog(true))}
-                  disabled={isTransitioning}
+                  disabled={isLoading}
                   className="text-muted-foreground"
                 >
                   Skip this step
@@ -266,7 +225,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
 
             <Button
               onClick={handleNext}
-              disabled={!canGoNext || isTransitioning || isLoading}
+              disabled={isLoading || !canProceed}
               className="min-w-[120px]"
             >
               {isLoading ? (
@@ -310,26 +269,6 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Help dialog */}
-      {showHelp && (
-        <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Help & Tips</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              {helpContent || (
-                <p className="text-muted-foreground">
-                  No help content available for this step.
-                </p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setShowHelpDialog(false)}>Got it</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 };

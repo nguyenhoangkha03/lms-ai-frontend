@@ -9,12 +9,10 @@ import {
   Trophy,
   BookOpen,
   Sparkles,
-  ChevronRight,
   Star,
   Clock,
   Target,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -76,11 +74,7 @@ const features: Feature[] = [
   },
 ];
 
-interface WelcomeStepProps {
-  onNext: () => void;
-}
-
-export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
+export const WelcomeStep: React.FC = () => {
   const { user } = useAppSelector(state => state.auth);
 
   const containerVariants = {
@@ -242,10 +236,9 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext }) => {
           This setup will take approximately 5-10 minutes to complete.
         </p>
 
-        <Button onClick={onNext} size="lg" className="group min-w-[200px]">
-          Let's Get Started
-          <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Button>
+        <div className="text-sm text-muted-foreground">
+          Ready to personalize your learning experience? Let's begin!
+        </div>
 
         <p className="text-xs text-muted-foreground">
           You can always modify these settings later in your profile.

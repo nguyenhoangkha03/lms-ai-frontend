@@ -59,7 +59,7 @@ export default function OAuthSuccessPage() {
         });
 
         // Determine redirect URL based on user type
-        let redirectUrl = ROUTES.STUDENT_DASHBOARD;
+        let redirectUrl = '/dashboard'; // Unified dashboard
 
         switch (authData.user?.userType) {
           case 'admin':
@@ -73,7 +73,11 @@ export default function OAuthSuccessPage() {
             break;
           case 'student':
           default:
-            redirectUrl = ROUTES.STUDENT_DASHBOARD;
+            // Check if onboarding is completed for OAuth users
+            const hasCompletedOnboarding = authData.user?.studentProfile?.onboardingCompleted || false;
+            redirectUrl = hasCompletedOnboarding
+              ? '/dashboard' // Unified dashboard route
+              : '/onboarding'; // Unified onboarding route
             break;
         }
 

@@ -50,16 +50,7 @@ export interface Question {
   id: string;
   assessmentId: string;
   questionText: string;
-  questionType:
-    | 'multiple_choice'
-    | 'true_false'
-    | 'short_answer'
-    | 'essay'
-    | 'fill_in_the_blank'
-    | 'matching'
-    | 'ordering'
-    | 'numeric'
-    | 'code';
+  questionType: QuestionType;
   explanation?: string;
   points: number;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
@@ -75,12 +66,21 @@ export interface Question {
   // Metadata
   tags: string[];
   attachments: Attachment[];
-  analytics: QuestionAnalytics;
+  analytics?: QuestionAnalytics;
 
   createdAt: string;
   updatedAt: string;
   createdBy: string;
   updatedBy: string;
+}
+
+export interface QuestionBankItem extends Omit<Question, 'assessmentId' | 'orderIndex'> {
+  // Additional fields specific to question bank
+  usageCount: number;
+  averageRating?: number;
+  isTemplate: boolean;
+  categoryId?: string;
+  lastUsedAt?: string;
 }
 
 export interface QuestionOption {
@@ -379,9 +379,9 @@ export interface AssessmentFormData {
 
 export interface QuestionFormData {
   questionText: string;
-  questionType: string;
+  questionType: QuestionType;
   points: number;
-  difficulty: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   timeLimit?: number;
   hint?: string;
   explanation?: string;
@@ -415,8 +415,8 @@ export interface AIGenerationSettings {
 // Question Bank Filter Types
 export interface QuestionBankFilters {
   search?: string;
-  questionType?: string[];
-  difficulty?: string[];
+  questionType?: QuestionType;
+  difficulty?: 'easy' | 'medium' | 'hard' | 'expert';
   tags?: string[];
   dateRange?: {
     start: string;
@@ -426,8 +426,20 @@ export interface QuestionBankFilters {
     min: number;
     max: number;
   };
-  sortBy?: 'created' | 'updated' | 'usage' | 'difficulty' | 'score';
+  sortBy?: 'createdAt' | 'updatedAt' | 'difficulty' | 'points';
   sortOrder?: 'asc' | 'desc';
+}
+
+export enum QuestionType {
+  MULTIPLE_CHOICE = 'multiple_choice',
+  TRUE_FALSE = 'true_false',
+  SHORT_ANSWER = 'short_answer',
+  ESSAY = 'essay',
+  FILL_IN_THE_BLANK = 'fill_in_the_blank',
+  MATCHING = 'matching',
+  ORDERING = 'ordering',
+  NUMERIC = 'numeric',
+  CODE = 'code',
 }
 
 // Manual Grading Types

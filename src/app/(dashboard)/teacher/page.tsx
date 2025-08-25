@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -70,8 +70,6 @@ import {
   useGetAtRiskStudentsQuery,
   useGetGradingQueueQuery,
 } from '@/lib/redux/api/teacher-dashboard-api';
-import { updateUser } from '@/lib/redux/slices/auth-slice';
-import { useAppDispatch } from '@/lib/redux/hooks';
 
 const containerVariants = {
   hidden: { opacity: 0 },

@@ -1,14 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -16,11 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { CalendarIcon, Clock, X } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-interface DateTimePickerProps {
+interface InlineDateTimePickerProps {
   value?: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -28,7 +23,7 @@ interface DateTimePickerProps {
   className?: string;
 }
 
-export const DateTimePicker: React.FC<DateTimePickerProps> = ({
+export const InlineDateTimePicker: React.FC<InlineDateTimePickerProps> = ({
   value,
   onChange,
   placeholder = 'Select date and time',
@@ -36,6 +31,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   className,
 }) => {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Parse the current value
   const currentDate = value ? new Date(value) : undefined;
@@ -49,6 +46,28 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     hours: isValidDate ? format(currentDate, 'HH') : '09',
     minutes: isValidDate ? format(currentDate, 'mm') : '00',
   });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current && 
+        !containerRef.current.contains(event.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
 
   // Handle date selection
   const handleDateSelect = (date: Date | undefined) => {
@@ -86,45 +105,61 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
   const minutes = Array.from({ length: 60 }, (_, i) =>
     i.toString().padStart(2, '0')
-  ).filter((_, i) => i % 5 === 0); // Show only 5-minute intervals
+  ).filter((_, i) => i % 5 === 0);
 
   return (
-    <div className={cn('grid gap-2 relative', className)}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              'w-full justify-start text-left font-normal relative z-10',
-              !selectedDate && 'text-muted-foreground'
-            )}
-            disabled={disabled}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {selectedDate ? (
-              <span>
-                {format(selectedDate, 'PPP')} at {time.hours}:{time.minutes}
-              </span>
-            ) : (
-              <span>{placeholder}</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-auto p-0 z-[1000]" 
-          align="start"
-          side="bottom"
-          sideOffset={4}
-          forcePortal={false}
+    <div className={cn('relative', className)} ref={containerRef}>
+      <Button
+        type="button"
+        variant="outline"
+        className={cn(
+          'w-full justify-start text-left font-normal',
+          !selectedDate && 'text-muted-foreground'
+        )}
+        disabled={disabled}
+        onClick={() => setOpen(!open)}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        {selectedDate ? (
+          <span>
+            {format(selectedDate, 'PPP')} at {time.hours}:{time.minutes}
+          </span>
+        ) : (
+          <span>{placeholder}</span>
+        )}
+      </Button>
+
+      {open && (
+        <div 
+          ref={dropdownRef}
+          className="absolute top-full left-0 z-50 mt-2 w-auto rounded-md border bg-white p-0 shadow-lg"
+          style={{ minWidth: '300px' }}
         >
           <div className="space-y-3 p-3">
+            {/* Header with close button */}
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-medium text-sm">Select Date & Time</h4>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOpen(false)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
             {/* Calendar */}
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleDateSelect}
-              initialFocus
-            />
+            <div className="border rounded p-2">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                initialFocus
+                className="w-full"
+              />
+            </div>
 
             {/* Time Selection */}
             <div className="border-t pt-3">
@@ -204,7 +239,6 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
                   onClick={() => setOpen(false)}
                   className="ml-auto"
@@ -214,8 +248,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
               </div>
             </div>
           </div>
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
     </div>
   );
 };

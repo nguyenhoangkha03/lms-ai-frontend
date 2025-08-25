@@ -8,11 +8,19 @@ import type {
 } from '../api/onboarding-api';
 
 interface OnboardingState {
+  // Core navigation
   currentStep: number;
   totalSteps: number;
   isActive: boolean;
   isCompleted: boolean;
+  isLoading: boolean;
+  error?: string;
 
+  // Category selection
+  selectedCategory?: string;
+  customizedAssessment: boolean;
+
+  // Assessment data
   assessmentStarted: boolean;
   assessmentInProgress: boolean;
   currentQuestionIndex: number;
@@ -20,47 +28,47 @@ interface OnboardingState {
   assessmentTimeRemaining: number;
   assessmentResult?: AssessmentResult;
 
+  // Preferences data - flattened, no sub-steps
   preferences?: LearningPreferences;
-  preferencesStep:
-    | 'learning-style'
-    | 'schedule'
-    | 'goals'
-    | 'notifications'
-    | 'completed';
 
+  // Learning paths
   availablePaths: LearningPath[];
   selectedPath?: LearningPath;
-  pathCustomization: Record<string, any>;
 
+  // UI state
   showSkipDialog: boolean;
-  isTransitioning: boolean;
-  error?: string;
 
+  // Analytics
   stepStartTime: number;
   totalTimeSpent: number;
   stepTimeSpent: Record<number, number>;
 }
 
 const initialState: OnboardingState = {
+  // Core navigation
   currentStep: 1,
-  totalSteps: 5,
+  totalSteps: 5, // Updated to 5 steps: Welcome → Category → Assessment → Preferences → Learning Path
   isActive: false,
   isCompleted: false,
+  isLoading: false,
 
+  // Category selection
+  customizedAssessment: false,
+
+  // Assessment
   assessmentStarted: false,
   assessmentInProgress: false,
   currentQuestionIndex: 0,
   assessmentResponses: [],
   assessmentTimeRemaining: 0,
 
-  preferencesStep: 'learning-style',
-
+  // Learning paths
   availablePaths: [],
-  pathCustomization: {},
 
+  // UI state
   showSkipDialog: false,
-  isTransitioning: false,
 
+  // Analytics
   stepStartTime: Date.now(),
   totalTimeSpent: 0,
   stepTimeSpent: {},
@@ -70,14 +78,16 @@ const onboardingSlice = createSlice({
   name: 'onboarding',
   initialState,
   reducers: {
+    // Simplified navigation - single source of truth
     setCurrentStep: (state, action: PayloadAction<number>) => {
       const timeSpent = Date.now() - state.stepStartTime;
       state.stepTimeSpent[state.currentStep] = timeSpent;
       state.totalTimeSpent += timeSpent;
 
-      state.currentStep = action.payload;
+      state.currentStep = Math.min(Math.max(1, action.payload), state.totalSteps);
       state.stepStartTime = Date.now();
       state.error = undefined;
+      state.isLoading = false;
     },
 
     nextStep: state => {
@@ -102,15 +112,22 @@ const onboardingSlice = createSlice({
       }
     },
 
+    // Loading state management
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+
+    setError: (state, action: PayloadAction<string | undefined>) => {
+      state.error = action.payload;
+      state.isLoading = false;
+    },
+
+    // Assessment actions - simplified
     startAssessment: state => {
       state.assessmentStarted = true;
       state.assessmentInProgress = true;
       state.currentQuestionIndex = 0;
       state.assessmentResponses = [];
-    },
-
-    setAssessmentTimeRemaining: (state, action: PayloadAction<number>) => {
-      state.assessmentTimeRemaining = action.payload;
     },
 
     answerAssessmentQuestion: (
@@ -138,13 +155,11 @@ const onboardingSlice = createSlice({
       state.assessmentResult = action.payload;
     },
 
-    setPreferencesStep: (
-      state,
-      action: PayloadAction<OnboardingState['preferencesStep']>
-    ) => {
-      state.preferencesStep = action.payload;
+    setAssessmentTimeRemaining: (state, action: PayloadAction<number>) => {
+      state.assessmentTimeRemaining = action.payload;
     },
 
+    // Preferences actions - flattened
     updatePreferences: (
       state,
       action: PayloadAction<Partial<LearningPreferences>>
@@ -155,6 +170,7 @@ const onboardingSlice = createSlice({
       } as LearningPreferences;
     },
 
+    // Learning path actions
     setAvailablePaths: (state, action: PayloadAction<LearningPath[]>) => {
       state.availablePaths = action.payload;
     },
@@ -163,26 +179,21 @@ const onboardingSlice = createSlice({
       state.selectedPath = action.payload;
     },
 
-    updatePathCustomization: (
-      state,
-      action: PayloadAction<Record<string, any>>
-    ) => {
-      state.pathCustomization = {
-        ...state.pathCustomization,
-        ...action.payload,
-      };
+    // Category selection actions
+    setSelectedCategory: (state, action: PayloadAction<string>) => {
+      state.selectedCategory = action.payload;
+      state.customizedAssessment = true;
+      state.error = undefined;
     },
 
+    resetCategorySelection: (state) => {
+      state.selectedCategory = undefined;
+      state.customizedAssessment = false;
+    },
+
+    // UI actions
     setShowSkipDialog: (state, action: PayloadAction<boolean>) => {
       state.showSkipDialog = action.payload;
-    },
-
-    setIsTransitioning: (state, action: PayloadAction<boolean>) => {
-      state.isTransitioning = action.payload;
-    },
-
-    setError: (state, action: PayloadAction<string | undefined>) => {
-      state.error = action.payload;
     },
 
     setOnboardingActive: (state, action: PayloadAction<boolean>) => {
@@ -208,6 +219,7 @@ const onboardingSlice = createSlice({
       };
     },
 
+    // Load progress from API
     loadOnboardingProgress: (
       state,
       action: PayloadAction<OnboardingProgress>
@@ -225,19 +237,19 @@ export const {
   setCurrentStep,
   nextStep,
   previousStep,
+  setLoading,
+  setError,
+  setSelectedCategory,
+  resetCategorySelection,
   startAssessment,
-  setAssessmentTimeRemaining,
   answerAssessmentQuestion,
   setCurrentQuestionIndex,
   completeAssessment,
-  setPreferencesStep,
+  setAssessmentTimeRemaining,
   updatePreferences,
   setAvailablePaths,
   selectLearningPath,
-  updatePathCustomization,
   setShowSkipDialog,
-  setIsTransitioning,
-  setError,
   setOnboardingActive,
   completeOnboarding,
   resetOnboarding,

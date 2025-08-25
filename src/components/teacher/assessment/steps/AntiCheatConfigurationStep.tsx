@@ -317,23 +317,23 @@ export const AntiCheatConfigurationStep: React.FC<
     let score = 0;
 
     // Proctoring features
-    if (data.proctoring.enabled) score += 20;
-    if (data.proctoring.requireWebcam) score += 15;
-    if (data.proctoring.recordSession) score += 10;
-    if (data.proctoring.identityVerification) score += 15;
-    if (data.proctoring.faceDetection) score += 10;
+    if (data.proctoring?.enabled) score += 20;
+    if (data.proctoring?.requireWebcam) score += 15;
+    if (data.proctoring?.recordSession) score += 10;
+    if (data.proctoring?.identityVerification) score += 15;
+    if (data.proctoring?.faceDetection) score += 10;
 
     // Lockdown features
-    if (data.lockdown.fullscreenMode) score += 5;
-    if (data.lockdown.preventTabSwitching) score += 10;
-    if (data.lockdown.blockExternalApps) score += 15;
-    if (data.lockdown.preventVirtualMachine) score += 10;
+    if (data.lockdown?.fullscreenMode) score += 5;
+    if (data.lockdown?.preventTabSwitching) score += 10;
+    if (data.lockdown?.blockExternalApps) score += 15;
+    if (data.lockdown?.preventVirtualMachine) score += 10;
 
     // Monitoring features
-    if (data.monitoring.trackFocusLoss) score += 5;
-    if (data.monitoring.trackTabSwitching) score += 5;
-    if (data.monitoring.trackMouseMovement) score += 5;
-    if (data.monitoring.trackKeystrokes) score += 10;
+    if (data.monitoring?.trackFocusLoss) score += 5;
+    if (data.monitoring?.trackTabSwitching) score += 5;
+    if (data.monitoring?.trackMouseMovement) score += 5;
+    if (data.monitoring?.trackKeystrokes) score += 10;
 
     if (score >= 80) return { level: 'Maximum', score, color: 'red' };
     if (score >= 60) return { level: 'High', score, color: 'orange' };
@@ -468,14 +468,14 @@ export const AntiCheatConfigurationStep: React.FC<
                   </p>
                 </div>
                 <Switch
-                  checked={data.proctoring.enabled}
+                  checked={data.proctoring?.enabled}
                   onCheckedChange={value =>
                     updateSetting('proctoring', 'enabled', value)
                   }
                 />
               </div>
 
-              {data.proctoring.enabled && (
+              {data.proctoring?.enabled && (
                 <>
                   <Separator />
 
@@ -497,7 +497,7 @@ export const AntiCheatConfigurationStep: React.FC<
                           </p>
                         </div>
                         <Switch
-                          checked={data.proctoring.requireWebcam}
+                          checked={data.proctoring?.requireWebcam}
                           onCheckedChange={value =>
                             updateSetting('proctoring', 'requireWebcam', value)
                           }
@@ -514,7 +514,7 @@ export const AntiCheatConfigurationStep: React.FC<
                           </p>
                         </div>
                         <Switch
-                          checked={data.proctoring.recordSession}
+                          checked={data.proctoring?.recordSession}
                           onCheckedChange={value =>
                             updateSetting('proctoring', 'recordSession', value)
                           }
@@ -531,7 +531,7 @@ export const AntiCheatConfigurationStep: React.FC<
                           </p>
                         </div>
                         <Switch
-                          checked={data.proctoring.faceDetection}
+                          checked={data.proctoring?.faceDetection}
                           onCheckedChange={value =>
                             updateSetting('proctoring', 'faceDetection', value)
                           }
@@ -548,7 +548,7 @@ export const AntiCheatConfigurationStep: React.FC<
                           </p>
                         </div>
                         <Switch
-                          checked={data.proctoring.identityVerification}
+                          checked={data.proctoring?.identityVerification}
                           onCheckedChange={value =>
                             updateSetting(
                               'proctoring',
@@ -581,7 +581,7 @@ export const AntiCheatConfigurationStep: React.FC<
                           </p>
                         </div>
                         <Switch
-                          checked={data.proctoring.requireMicrophone}
+                          checked={data.proctoring?.requireMicrophone}
                           onCheckedChange={value =>
                             updateSetting(
                               'proctoring',
@@ -602,7 +602,7 @@ export const AntiCheatConfigurationStep: React.FC<
                           </p>
                         </div>
                         <Switch
-                          checked={data.proctoring.voiceDetection}
+                          checked={data.proctoring?.voiceDetection}
                           onCheckedChange={value =>
                             updateSetting('proctoring', 'voiceDetection', value)
                           }
@@ -625,7 +625,7 @@ export const AntiCheatConfigurationStep: React.FC<
                         </p>
                       </div>
                       <Switch
-                        checked={data.proctoring.environmentScan}
+                        checked={data.proctoring?.environmentScan}
                         onCheckedChange={value =>
                           updateSetting('proctoring', 'environmentScan', value)
                         }
@@ -663,7 +663,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.lockdown.fullscreenMode}
+                    checked={data.lockdown?.fullscreenMode}
                     onCheckedChange={value =>
                       updateSetting('lockdown', 'fullscreenMode', value)
                     }
@@ -680,7 +680,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.lockdown.preventTabSwitching}
+                    checked={data.lockdown?.preventTabSwitching}
                     onCheckedChange={value =>
                       updateSetting('lockdown', 'preventTabSwitching', value)
                     }
@@ -697,7 +697,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.lockdown.preventWindowSwitching}
+                    checked={data.lockdown?.preventWindowSwitching}
                     onCheckedChange={value =>
                       updateSetting('lockdown', 'preventWindowSwitching', value)
                     }
@@ -714,7 +714,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.lockdown.blockExternalApps}
+                    checked={data.lockdown?.blockExternalApps}
                     onCheckedChange={value =>
                       updateSetting('lockdown', 'blockExternalApps', value)
                     }
@@ -731,7 +731,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.lockdown.preventVirtualMachine}
+                    checked={data.lockdown?.preventVirtualMachine}
                     onCheckedChange={value =>
                       updateSetting('lockdown', 'preventVirtualMachine', value)
                     }
@@ -748,7 +748,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.lockdown.preventMultipleMonitors}
+                    checked={data.lockdown?.preventMultipleMonitors}
                     onCheckedChange={value =>
                       updateSetting(
                         'lockdown',
@@ -761,7 +761,7 @@ export const AntiCheatConfigurationStep: React.FC<
               </div>
 
               {/* Allowed Applications */}
-              {data.lockdown.blockExternalApps && (
+              {data.lockdown?.blockExternalApps && (
                 <>
                   <Separator />
                   <div className="space-y-3">
@@ -774,7 +774,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                     <Textarea
                       placeholder="Enter application names, one per line (e.g., Calculator, Notepad)"
-                      value={data.lockdown.allowedApplications.join('\n')}
+                      value={data.lockdown?.allowedApplications?.join('\n') || ''}
                       onChange={e =>
                         updateSetting(
                           'lockdown',
@@ -815,7 +815,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.monitoring.trackFocusLoss}
+                    checked={data.monitoring?.trackFocusLoss}
                     onCheckedChange={value =>
                       updateSetting('monitoring', 'trackFocusLoss', value)
                     }
@@ -832,7 +832,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.monitoring.trackTabSwitching}
+                    checked={data.monitoring?.trackTabSwitching}
                     onCheckedChange={value =>
                       updateSetting('monitoring', 'trackTabSwitching', value)
                     }
@@ -849,7 +849,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.monitoring.trackCopyPaste}
+                    checked={data.monitoring?.trackCopyPaste}
                     onCheckedChange={value =>
                       updateSetting('monitoring', 'trackCopyPaste', value)
                     }
@@ -866,7 +866,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.monitoring.trackMouseMovement}
+                    checked={data.monitoring?.trackMouseMovement}
                     onCheckedChange={value =>
                       updateSetting('monitoring', 'trackMouseMovement', value)
                     }
@@ -883,7 +883,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.monitoring.trackKeystrokes}
+                    checked={data.monitoring?.trackKeystrokes}
                     onCheckedChange={value =>
                       updateSetting('monitoring', 'trackKeystrokes', value)
                     }
@@ -897,14 +897,14 @@ export const AntiCheatConfigurationStep: React.FC<
               <div className="space-y-6">
                 <div className="space-y-3">
                   <Label className="text-base font-medium">
-                    Screenshot Interval: {data.monitoring.screenshotInterval}{' '}
+                    Screenshot Interval: {data.monitoring?.screenshotInterval || 300}{' '}
                     seconds
                   </Label>
                   <p className="text-sm text-muted-foreground">
                     How often to take automatic screenshots (0 to disable)
                   </p>
                   <Slider
-                    value={[data.monitoring.screenshotInterval]}
+                    value={[data.monitoring?.screenshotInterval || 300]}
                     onValueChange={value =>
                       updateSetting(
                         'monitoring',
@@ -927,14 +927,14 @@ export const AntiCheatConfigurationStep: React.FC<
 
                 <div className="space-y-3">
                   <Label className="text-base font-medium">
-                    Heartbeat Interval: {data.monitoring.heartbeatInterval}{' '}
+                    Heartbeat Interval: {data.monitoring?.heartbeatInterval || 30}{' '}
                     seconds
                   </Label>
                   <p className="text-sm text-muted-foreground">
                     How often to check student connection status
                   </p>
                   <Slider
-                    value={[data.monitoring.heartbeatInterval]}
+                    value={[data.monitoring?.heartbeatInterval || 30]}
                     onValueChange={value =>
                       updateSetting('monitoring', 'heartbeatInterval', value[0])
                     }
@@ -972,13 +972,13 @@ export const AntiCheatConfigurationStep: React.FC<
               <div className="space-y-3">
                 <Label className="text-base font-medium">
                   Suspicious Activity Threshold:{' '}
-                  {data.violations.suspiciousActivityThreshold}
+                  {data.violations?.suspiciousActivityThreshold || 3}
                 </Label>
                 <p className="text-sm text-muted-foreground">
                   Number of violations before flagging as suspicious
                 </p>
                 <Slider
-                  value={[data.violations.suspiciousActivityThreshold]}
+                  value={[data.violations?.suspiciousActivityThreshold || 3]}
                   onValueChange={value =>
                     updateSetting(
                       'violations',
@@ -1011,7 +1011,7 @@ export const AntiCheatConfigurationStep: React.FC<
                   </p>
                 </div>
                 <Switch
-                  checked={data.violations.autoSubmitOnViolation}
+                  checked={data.violations?.autoSubmitOnViolation}
                   onCheckedChange={value =>
                     updateSetting('violations', 'autoSubmitOnViolation', value)
                   }
@@ -1032,7 +1032,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.violations.warningSystem.enabled}
+                    checked={data.violations?.warningSystem?.enabled}
                     onCheckedChange={value =>
                       updateNestedSetting(
                         'violations',
@@ -1044,15 +1044,15 @@ export const AntiCheatConfigurationStep: React.FC<
                   />
                 </div>
 
-                {data.violations.warningSystem.enabled && (
+                {data.violations?.warningSystem?.enabled && (
                   <>
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">
                         Maximum Warnings:{' '}
-                        {data.violations.warningSystem.maxWarnings}
+                        {data.violations?.warningSystem?.maxWarnings || 3}
                       </Label>
                       <Slider
-                        value={[data.violations.warningSystem.maxWarnings]}
+                        value={[data.violations?.warningSystem?.maxWarnings || 3]}
                         onValueChange={value =>
                           updateNestedSetting(
                             'violations',
@@ -1087,12 +1087,12 @@ export const AntiCheatConfigurationStep: React.FC<
                               </p>
                             </div>
                             <Switch
-                              checked={data.violations.warningSystem.warningTypes.includes(
+                              checked={(data.violations?.warningSystem?.warningTypes || []).includes(
                                 violation.id
                               )}
                               onCheckedChange={checked => {
                                 const currentTypes =
-                                  data.violations.warningSystem.warningTypes;
+                                  data.violations?.warningSystem?.warningTypes || [];
                                 const newTypes = checked
                                   ? [...currentTypes, violation.id]
                                   : currentTypes.filter(
@@ -1128,7 +1128,7 @@ export const AntiCheatConfigurationStep: React.FC<
                     </p>
                   </div>
                   <Switch
-                    checked={data.violations.penaltySystem.enabled}
+                    checked={data.violations?.penaltySystem?.enabled}
                     onCheckedChange={value =>
                       updateNestedSetting(
                         'violations',
@@ -1140,7 +1140,7 @@ export const AntiCheatConfigurationStep: React.FC<
                   />
                 </div>
 
-                {data.violations.penaltySystem.enabled && (
+                {data.violations?.penaltySystem?.enabled && (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">
@@ -1151,7 +1151,7 @@ export const AntiCheatConfigurationStep: React.FC<
                         min="0"
                         max="50"
                         value={
-                          data.violations.penaltySystem.penaltyPerViolation
+                          data.violations?.penaltySystem?.penaltyPerViolation || 5
                         }
                         onChange={e =>
                           updateNestedSetting(
@@ -1175,7 +1175,7 @@ export const AntiCheatConfigurationStep: React.FC<
                         type="number"
                         min="0"
                         max="100"
-                        value={data.violations.penaltySystem.maxPenalty}
+                        value={data.violations?.penaltySystem?.maxPenalty || 25}
                         onChange={e =>
                           updateNestedSetting(
                             'violations',
@@ -1217,24 +1217,24 @@ export const AntiCheatConfigurationStep: React.FC<
                 <span className="text-sm font-medium">Proctoring</span>
               </div>
               <div className="space-y-1">
-                {data.proctoring.enabled ? (
+                {data.proctoring?.enabled ? (
                   <>
-                    {data.proctoring.requireWebcam && (
+                    {data.proctoring?.requireWebcam && (
                       <Badge variant="secondary" className="text-xs">
                         Webcam Required
                       </Badge>
                     )}
-                    {data.proctoring.recordSession && (
+                    {data.proctoring?.recordSession && (
                       <Badge variant="secondary" className="text-xs">
                         Recording
                       </Badge>
                     )}
-                    {data.proctoring.identityVerification && (
+                    {data.proctoring?.identityVerification && (
                       <Badge variant="secondary" className="text-xs">
                         ID Verification
                       </Badge>
                     )}
-                    {data.proctoring.faceDetection && (
+                    {data.proctoring?.faceDetection && (
                       <Badge variant="secondary" className="text-xs">
                         Face Detection
                       </Badge>
@@ -1255,22 +1255,22 @@ export const AntiCheatConfigurationStep: React.FC<
                 <span className="text-sm font-medium">Lockdown</span>
               </div>
               <div className="space-y-1">
-                {data.lockdown.fullscreenMode && (
+                {data.lockdown?.fullscreenMode && (
                   <Badge variant="secondary" className="text-xs">
                     Fullscreen
                   </Badge>
                 )}
-                {data.lockdown.preventTabSwitching && (
+                {data.lockdown?.preventTabSwitching && (
                   <Badge variant="secondary" className="text-xs">
                     No Tab Switch
                   </Badge>
                 )}
-                {data.lockdown.blockExternalApps && (
+                {data.lockdown?.blockExternalApps && (
                   <Badge variant="secondary" className="text-xs">
                     App Blocking
                   </Badge>
                 )}
-                {data.lockdown.preventVirtualMachine && (
+                {data.lockdown?.preventVirtualMachine && (
                   <Badge variant="secondary" className="text-xs">
                     No VM
                   </Badge>
@@ -1285,24 +1285,24 @@ export const AntiCheatConfigurationStep: React.FC<
                 <span className="text-sm font-medium">Monitoring</span>
               </div>
               <div className="space-y-1">
-                {data.monitoring.trackFocusLoss && (
+                {data.monitoring?.trackFocusLoss && (
                   <Badge variant="secondary" className="text-xs">
                     Focus Tracking
                   </Badge>
                 )}
-                {data.monitoring.trackCopyPaste && (
+                {data.monitoring?.trackCopyPaste && (
                   <Badge variant="secondary" className="text-xs">
                     Copy/Paste
                   </Badge>
                 )}
-                {data.monitoring.trackKeystrokes && (
+                {data.monitoring?.trackKeystrokes && (
                   <Badge variant="secondary" className="text-xs">
                     Keystrokes
                   </Badge>
                 )}
-                {data.monitoring.screenshotInterval > 0 && (
+                {(data.monitoring?.screenshotInterval || 0) > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    Screenshots ({data.monitoring.screenshotInterval}s)
+                    Screenshots ({data.monitoring?.screenshotInterval || 300}s)
                   </Badge>
                 )}
               </div>
@@ -1316,21 +1316,21 @@ export const AntiCheatConfigurationStep: React.FC<
               </div>
               <div className="space-y-1">
                 <Badge variant="secondary" className="text-xs">
-                  Threshold: {data.violations.suspiciousActivityThreshold}
+                  Threshold: {data.violations?.suspiciousActivityThreshold || 3}
                 </Badge>
-                {data.violations.autoSubmitOnViolation && (
+                {data.violations?.autoSubmitOnViolation && (
                   <Badge variant="destructive" className="text-xs">
                     Auto Submit
                   </Badge>
                 )}
-                {data.violations.warningSystem.enabled && (
+                {data.violations?.warningSystem?.enabled && (
                   <Badge variant="secondary" className="text-xs">
-                    Warnings: {data.violations.warningSystem.maxWarnings}
+                    Warnings: {data.violations?.warningSystem?.maxWarnings || 3}
                   </Badge>
                 )}
-                {data.violations.penaltySystem.enabled && (
+                {data.violations?.penaltySystem?.enabled && (
                   <Badge variant="secondary" className="text-xs">
-                    Penalty: {data.violations.penaltySystem.penaltyPerViolation}
+                    Penalty: {data.violations?.penaltySystem?.penaltyPerViolation || 5}
                     %
                   </Badge>
                 )}
