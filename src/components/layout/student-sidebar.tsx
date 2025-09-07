@@ -97,14 +97,14 @@ const studentNavigation: NavItem[] = [
     icon: <TrendingUp className="h-5 w-5" />,
   },
   {
-    title: 'Analytics',
-    href: '/student/analytics',
-    icon: <BarChart3 className="h-5 w-5" />,
-  },
-  {
     title: 'Grades',
     href: '/student/grades',
     icon: <Trophy className="h-5 w-5" />,
+  },
+  {
+    title: 'Analytics',
+    href: '/student/analytics',
+    icon: <BarChart3 className="h-5 w-5" />,
   },
 
   // Achievement Section
