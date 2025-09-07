@@ -105,8 +105,8 @@ export function AssessmentTimer({
   if (!timeLimit) {
     return (
       <div className={cn('flex items-center gap-2', className)}>
-        <Clock className="h-4 w-4 text-gray-400" />
-        <span className="text-sm text-gray-400">
+        <Clock className="h-4 w-4 text-gray-600" />
+        <span className="text-sm text-gray-600">
           No time limit • {formatTime(timeSpent)} elapsed
         </span>
       </div>
@@ -122,12 +122,12 @@ export function AssessmentTimer({
   return (
     <div className={cn('space-y-2', className)}>
       {/* Timer Display */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-gray-300 bg-white">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className={cn('h-4 w-4', getStatusColor())} />
-              <span className="text-sm text-gray-400">Time Remaining</span>
+              <span className="text-sm text-gray-600">Time Remaining</span>
             </div>
 
             <div
@@ -208,13 +208,13 @@ export function AssessmentTimer({
 
       {/* Time Statistics */}
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded bg-gray-800 p-2 text-center">
-          <div className="text-gray-400">Elapsed</div>
-          <div className="font-mono text-white">{formatTime(timeSpent)}</div>
+        <div className="rounded bg-white p-2 text-center">
+          <div className="text-gray-600">Elapsed</div>
+          <div className="font-mono text-gray-900">{formatTime(timeSpent)}</div>
         </div>
-        <div className="rounded bg-gray-800 p-2 text-center">
-          <div className="text-gray-400">Progress</div>
-          <div className="font-mono text-white">
+        <div className="rounded bg-white p-2 text-center">
+          <div className="text-gray-600">Progress</div>
+          <div className="font-mono text-gray-900">
             {Math.round(100 - progressPercentage)}%
           </div>
         </div>

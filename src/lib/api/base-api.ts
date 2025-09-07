@@ -7,9 +7,6 @@ const baseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.baseURL,
   credentials: 'include',
   prepareHeaders: (headers, api) => {
-    console.log('🌐 API Base URL:', API_CONFIG.baseURL);
-    console.log('🔍 API object:', api);
-
     const token = AdvancedTokenManager.getAccessToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
@@ -22,13 +19,6 @@ const baseQuery = fetchBaseQuery({
         api.endpoint.includes('avatar') ||
         api.endpoint.includes('cover'));
 
-    console.log(
-      '📁 Is file upload endpoint:',
-      isFileUpload,
-      'Endpoint:',
-      api.endpoint
-    );
-
     // For file uploads, don't set Content-Type header
     // The browser will set the correct multipart/form-data with boundary
     if (!isFileUpload && !headers.get('Content-Type')) {
@@ -38,7 +28,6 @@ const baseQuery = fetchBaseQuery({
     headers.set('X-Request-ID', crypto.randomUUID());
     headers.set('X-Timestamp', new Date().toISOString());
 
-    console.log('📤 Request headers:', Object.fromEntries(headers.entries()));
     return headers;
   },
 });
@@ -70,12 +59,8 @@ const baseQuery = fetchBaseQuery({
 // });
 
 const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
-  console.log('🚀 Making API request:', args);
-
   // For FormData uploads, we need to handle headers specially
   if (args.body instanceof FormData) {
-    console.log('📁 FormData detected, ensuring no Content-Type header');
-
     // Create a new args object with modified headers
     args = {
       ...args,
@@ -92,19 +77,12 @@ const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
         delete args.headers[key];
       }
     });
-
-    console.log('📁 Modified headers for FormData:', args.headers);
   }
 
   let result = await baseQuery(args, api, extraOptions);
-  console.log('📥 API Response:', result);
 
   // If 401 error, let TokenManager handle the refresh instead of doing it here
   if (result.error && result.error.status === 401) {
-    console.log(
-      '🚫 401 error detected, delegating to TokenManager for refresh'
-    );
-
     // Import AdvancedTokenManager here to avoid circular dependency
     const { AdvancedTokenManager } = await import('@/lib/auth/token-manager');
 
@@ -112,11 +90,9 @@ const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
     const refreshSuccess = await AdvancedTokenManager.refreshTokenSilently();
 
     if (refreshSuccess) {
-      console.log('✅ Token refreshed successfully, retrying original request');
       // Retry the original request with new token
       result = await baseQuery(args, api, extraOptions);
     } else {
-      console.log('❌ Token refresh failed, clearing auth state');
       // TokenManager will handle clearing tokens and redirect
       // Don't do it here to avoid double action
     }
@@ -130,6 +106,7 @@ export const baseApi = createApi({
   baseQuery: baseQueryWithReauth,
   tagTypes: [
     'User',
+    'UserProfile',
     'Course',
     'Lesson',
     'Assessment',
@@ -138,6 +115,7 @@ export const baseApi = createApi({
     'Progress',
     'Grade',
     'Notification',
+    'NotificationCount',
     'Chat',
     'VideoSession',
     'AIRecommendation',
@@ -298,7 +276,11 @@ export const baseApi = createApi({
     'ContentAnalysisDashboard',
     'ContentAnalysis',
     'Cart',
+    'CartCount',
+    'CartCheck',
     'Purchases',
+    'Payment',
+    'Payments',
     'Subscriptions',
     'PricingPlans',
     'Coupons',
@@ -344,6 +326,8 @@ export const baseApi = createApi({
     'CourseStats',
     'Assessments',
     'QuestionBankStats',
+    'AssessmentAvailability',
+    'EnrollmentStatus',
   ],
   endpoints: () => ({}),
 });

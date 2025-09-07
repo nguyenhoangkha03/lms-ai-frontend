@@ -5,6 +5,7 @@ import { ReduxProvider } from './redux-provider';
 import { AuthProvider } from '@/contexts/auth-context';
 import { NotificationProvider } from '@/contexts/notification-context';
 import { SocketProvider } from '@/contexts/socket-context';
+import { ChatSocketProvider } from '@/contexts/chat-socket-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/sonner';
@@ -45,19 +46,21 @@ export function Providers({ children }: ProvidersProps) {
       >
         <ReduxProvider>
           <AuthProvider>
-            <SocketProvider>
-              <NotificationProvider>
-                <ProgressBar />
-                {children}
-                <Toaster position="top-right" expand richColors closeButton />
-              </NotificationProvider>
+            <SocketProvider namespace="/realtime">
+              <ChatSocketProvider>
+                <NotificationProvider>
+                  <ProgressBar />
+                  {children}
+                  <Toaster position="top-right" expand richColors closeButton />
+                </NotificationProvider>
+              </ChatSocketProvider>
             </SocketProvider>
           </AuthProvider>
         </ReduxProvider>
       </ThemeProvider>
-      {process.env.NODE_ENV === 'development' && (
+      {/* {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} />
-      )}
+      )} */}
     </QueryClientProvider>
   );
 }

@@ -58,10 +58,10 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(1, 'Reset token is required'),
-    password: passwordValidation,
+    newPassword: passwordValidation,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
-  .refine(data => data.password === data.confirmPassword, {
+  .refine(data => data.newPassword === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   });

@@ -49,7 +49,7 @@ export function SecurityMonitor({
     score -= tabSwitchCount * 5;
     score -= windowBlurCount * 3;
     score -= securityWarnings.length * 10;
-    score -= (analytics?.securityEvents.length || 0) * 8;
+    score -= (analytics?.securityEvents?.length || 0) * 8;
 
     // Focus loss penalty
     score -= (analytics?.focusLossCount || 0) * 2;
@@ -97,12 +97,12 @@ export function SecurityMonitor({
   return (
     <div className={cn('space-y-3', className)}>
       {/* Main Security Status */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-gray-300 bg-white">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm">
             {getSecurityIcon()}
             Security Monitor
-            <Badge className={cn('text-xs text-white', getRiskBadgeColor())}>
+            <Badge className={cn('text-xs text-gray-900', getRiskBadgeColor())}>
               {riskLevel.toUpperCase()} RISK
             </Badge>
           </CardTitle>
@@ -111,7 +111,7 @@ export function SecurityMonitor({
           {/* Security Score */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm text-gray-400">Integrity Score</span>
+              <span className="text-sm text-gray-600">Integrity Score</span>
               <span className={cn('text-lg font-bold', getScoreColor())}>
                 {securityScore}/100
               </span>
@@ -121,8 +121,8 @@ export function SecurityMonitor({
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="rounded bg-gray-700 p-2">
-              <div className="text-gray-400">Tab Switches</div>
+            <div className="rounded bg-gray-100 p-2">
+              <div className="text-gray-600">Tab Switches</div>
               <div
                 className={cn(
                   'font-bold',
@@ -132,8 +132,8 @@ export function SecurityMonitor({
                 {tabSwitchCount}
               </div>
             </div>
-            <div className="rounded bg-gray-700 p-2">
-              <div className="text-gray-400">Focus Loss</div>
+            <div className="rounded bg-gray-100 p-2">
+              <div className="text-gray-600">Focus Loss</div>
               <div
                 className={cn(
                   'font-bold',
@@ -150,28 +150,28 @@ export function SecurityMonitor({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs">
                 <Activity className="h-3 w-3 text-blue-400" />
-                <span className="text-gray-400">Activity Monitoring</span>
+                <span className="text-gray-600">Activity Monitoring</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="text-center">
                   <MousePointer className="mx-auto mb-1 h-4 w-4 text-blue-400" />
-                  <div className="text-gray-400">Mouse</div>
-                  <div className="font-mono text-white">
-                    {analytics.suspiciousActivityScore < 30
+                  <div className="text-gray-600">Mouse</div>
+                  <div className="font-mono text-gray-900">
+                    {(analytics?.suspiciousActivityScore || 0) < 30
                       ? 'Normal'
                       : 'Irregular'}
                   </div>
                 </div>
                 <div className="text-center">
                   <Keyboard className="mx-auto mb-1 h-4 w-4 text-green-400" />
-                  <div className="text-gray-400">Typing</div>
-                  <div className="font-mono text-white">Active</div>
+                  <div className="text-gray-600">Typing</div>
+                  <div className="font-mono text-gray-900">Active</div>
                 </div>
                 <div className="text-center">
                   <Monitor className="mx-auto mb-1 h-4 w-4 text-purple-400" />
-                  <div className="text-gray-400">Screen</div>
-                  <div className="font-mono text-white">Focused</div>
+                  <div className="text-gray-600">Screen</div>
+                  <div className="font-mono text-gray-900">Focused</div>
                 </div>
               </div>
             </div>
@@ -217,51 +217,51 @@ export function SecurityMonitor({
 
       {/* Analytics Summary */}
       {analytics && (
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-gray-300 bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-gray-400">
+            <CardTitle className="text-xs text-gray-600">
               Session Analytics
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-gray-400">Questions Answered:</span>
-              <span className="text-white">
-                {analytics.questionsAnswered}/{analytics.totalQuestions}
+              <span className="text-gray-600">Questions Answered:</span>
+              <span className="text-gray-900">
+                {analytics?.questionsAnswered || 0}/{analytics?.totalQuestions || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Avg. Time/Question:</span>
-              <span className="text-white">
-                {Math.round(analytics.averageTimePerQuestion)}s
+              <span className="text-gray-600">Avg. Time/Question:</span>
+              <span className="text-gray-900">
+                {Math.round(analytics?.averageTimePerQuestion || 0)}s
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Security Events:</span>
+              <span className="text-gray-600">Security Events:</span>
               <span
                 className={cn(
                   'font-medium',
-                  analytics.securityEvents.length > 5
+                  analytics?.securityEvents?.length > 5
                     ? 'text-red-400'
                     : 'text-green-400'
                 )}
               >
-                {analytics.securityEvents.length}
+                {analytics?.securityEvents?.length || 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Suspicion Score:</span>
+              <span className="text-gray-600">Suspicion Score:</span>
               <span
                 className={cn(
                   'font-medium',
-                  analytics.suspiciousActivityScore > 70
+                  (analytics?.suspiciousActivityScore || 0) > 70
                     ? 'text-red-400'
-                    : analytics.suspiciousActivityScore > 40
+                    : (analytics?.suspiciousActivityScore || 0) > 40
                       ? 'text-yellow-400'
                       : 'text-green-400'
                 )}
               >
-                {analytics.suspiciousActivityScore}/100
+                {analytics?.suspiciousActivityScore || 0}/100
               </span>
             </div>
           </CardContent>
@@ -272,11 +272,11 @@ export function SecurityMonitor({
       <div className="flex gap-2">
         <div className="flex items-center gap-1 text-xs">
           <div className="h-2 w-2 animate-pulse rounded-full bg-green-400"></div>
-          <span className="text-gray-400">Monitoring Active</span>
+          <span className="text-gray-600">Monitoring Active</span>
         </div>
         <div className="flex items-center gap-1 text-xs">
           <Eye className="h-3 w-3 text-blue-400" />
-          <span className="text-gray-400">AI Oversight</span>
+          <span className="text-gray-600">AI Oversight</span>
         </div>
       </div>
     </div>

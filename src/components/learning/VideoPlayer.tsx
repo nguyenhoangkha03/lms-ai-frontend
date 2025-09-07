@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { useAppSelector } from '@/lib/redux/hooks';
 import {
   useUpdateVideoPositionMutation,
   useGetVideoPositionQuery,
@@ -32,6 +33,7 @@ import { toast } from 'sonner';
 interface VideoPlayerProps {
   lessonId: string;
   videoUrl: string;
+  sessionId?: string;
   thumbnailUrl?: string;
   subtitles?: Array<{
     language: string;
@@ -43,9 +45,33 @@ interface VideoPlayerProps {
   autoplay?: boolean;
 }
 
+// Helper function to detect and convert YouTube URLs
+const getVideoInfo = (url: string) => {
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+  const match = url.match(youtubeRegex);
+  
+  if (match) {
+    const videoId = match[1];
+    return {
+      isYouTube: true,
+      videoId,
+      embedUrl: `https://www.youtube.com/embed/${videoId}`,
+      thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+    };
+  }
+  
+  return {
+    isYouTube: false,
+    videoId: null,
+    embedUrl: url,
+    thumbnailUrl: null
+  };
+};
+
 export function VideoPlayer({
   lessonId,
   videoUrl,
+  sessionId,
   thumbnailUrl,
   subtitles = [],
   onProgress,
@@ -53,6 +79,12 @@ export function VideoPlayer({
   className,
   autoplay = false,
 }: VideoPlayerProps) {
+  const videoInfo = getVideoInfo(videoUrl);
+  const effectiveThumbnail = thumbnailUrl || videoInfo.thumbnailUrl;
+  
+  // Get current user from Redux store
+  const { user } = useAppSelector(state => state.auth) || {};
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -107,30 +139,48 @@ export function VideoPlayer({
       if (videoRef.current) {
         videoRef.current.play().catch(console.error);
         trackActivity({
+          studentId: user?.id,
+          sessionId,
           lessonId,
-          activityType: 'video_start',
+          activityType: state.currentTime > 0 ? 'video_resume' : 'video_start',
           metadata: { timestamp: state.currentTime },
         }).catch(console.error);
       }
-    }, [lessonId, state.currentTime, trackActivity]),
+    }, [lessonId, state.currentTime, trackActivity, user?.id, sessionId]),
 
     pause: useCallback(() => {
       if (videoRef.current) {
         videoRef.current.pause();
         trackActivity({
+          studentId: user?.id,
+          sessionId,
           lessonId,
           activityType: 'video_pause',
           metadata: { timestamp: state.currentTime },
         }).catch(console.error);
       }
-    }, [lessonId, state.currentTime, trackActivity]),
+    }, [lessonId, state.currentTime, trackActivity, user?.id, sessionId]),
 
     seek: useCallback((time: number) => {
       if (videoRef.current) {
+        const oldTime = videoRef.current.currentTime;
         videoRef.current.currentTime = time;
         setState(prev => ({ ...prev, currentTime: time }));
+        
+        // Track seek activity
+        trackActivity({
+          studentId: user?.id,
+          sessionId,
+          lessonId,
+          activityType: 'video_seek',
+          metadata: { 
+            fromTime: oldTime,
+            toTime: time,
+            seekDistance: Math.abs(time - oldTime)
+          },
+        }).catch(console.error);
       }
-    }, []),
+    }, [lessonId, trackActivity, user?.id, sessionId]),
 
     setVolume: useCallback((volume: number) => {
       if (videoRef.current) {
@@ -141,14 +191,40 @@ export function VideoPlayer({
 
     setPlaybackRate: useCallback((rate: number) => {
       if (videoRef.current) {
+        const oldRate = videoRef.current.playbackRate;
         videoRef.current.playbackRate = rate;
         setState(prev => ({ ...prev, playbackRate: rate }));
+        
+        // Track speed change
+        trackActivity({
+          studentId: user?.id,
+          sessionId,
+          lessonId,
+          activityType: 'video_speed_change',
+          metadata: { 
+            fromSpeed: oldRate,
+            toSpeed: rate
+          },
+        }).catch(console.error);
       }
-    }, []),
+    }, [lessonId, trackActivity, user?.id, sessionId]),
 
     setQuality: useCallback((quality: string) => {
+      const oldQuality = state.quality;
       setState(prev => ({ ...prev, quality }));
-    }, []),
+      
+      // Track quality change
+      trackActivity({
+        studentId: user?.id,
+        sessionId,
+        lessonId,
+        activityType: 'video_quality_change',
+        metadata: { 
+          fromQuality: oldQuality,
+          toQuality: quality
+        },
+      }).catch(console.error);
+    }, [lessonId, state.quality, trackActivity, user?.id, sessionId]),
 
     toggleFullscreen: useCallback(() => {
       if (!document.fullscreenElement) {
@@ -229,12 +305,14 @@ export function VideoPlayer({
   const handleEnded = useCallback(() => {
     setState(prev => ({ ...prev, isPlaying: false }));
     trackActivity({
+      studentId: user?.id,
+      sessionId,
       lessonId,
       activityType: 'video_complete',
       metadata: { duration: state.duration },
     }).catch(console.error);
     onComplete?.();
-  }, [lessonId, state.duration, trackActivity, onComplete]);
+  }, [lessonId, state.duration, trackActivity, onComplete, user?.id, sessionId]);
 
   const handlePlay = useCallback(() => {
     setState(prev => ({ ...prev, isPlaying: true }));
@@ -404,42 +482,68 @@ export function VideoPlayer({
       onMouseLeave={() => state.isPlaying && setShowControls(false)}
     >
       {/* Video Element */}
-      <video
-        ref={videoRef}
-        className="h-full w-full object-contain"
-        poster={thumbnailUrl}
-        preload="metadata"
-        crossOrigin="anonymous"
-      >
-        <source src={videoUrl} type="video/mp4" />
-        {subtitles.map(subtitle => (
-          <track
-            key={subtitle.language}
-            kind="subtitles"
-            src={subtitle.url}
-            srcLang={subtitle.language}
-            label={
-              subtitle.language === 'vi' ? 'Tiếng Việt' : subtitle.language
-            }
+      {videoInfo.isYouTube ? (
+        <div className="relative h-full w-full">
+          <iframe
+            className="h-full w-full"
+            src={`${videoInfo.embedUrl}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}&controls=1&modestbranding=1&rel=0${autoplay ? '&autoplay=1' : ''}`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            style={{ border: 'none' }}
           />
-        ))}
-        Trình duyệt của bạn không hỗ trợ video HTML5.
-      </video>
+          {/* Overlay for basic controls - YouTube iframe handles most functionality */}
+          <div className="absolute right-4 top-4 z-10">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBookmark}
+              className="text-white hover:bg-white/20 bg-black/50"
+            >
+              <Bookmark className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          className="h-full w-full object-contain"
+          poster={effectiveThumbnail}
+          preload="metadata"
+          crossOrigin="anonymous"
+        >
+          <source src={videoUrl} type="video/mp4" />
+          {subtitles.map(subtitle => (
+            <track
+              key={subtitle.language}
+              kind="subtitles"
+              src={subtitle.url}
+              srcLang={subtitle.language}
+              label={
+                subtitle.language === 'vi' ? 'Tiếng Việt' : subtitle.language
+              }
+            />
+          ))}
+          Trình duyệt của bạn không hỗ trợ video HTML5.
+        </video>
+      )}
 
-      {/* Loading Overlay */}
-      {state.isLoading && (
+      {/* Loading Overlay - Only for non-YouTube videos */}
+      {!videoInfo.isYouTube && state.isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-white"></div>
         </div>
       )}
 
-      {/* Controls Overlay */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 transition-opacity duration-300',
-          showControls ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        )}
-      >
+      {/* Controls Overlay - Only for non-YouTube videos */}
+      {!videoInfo.isYouTube && (
+        <div
+          className={cn(
+            'absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 transition-opacity duration-300',
+            showControls ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          )}
+        >
         {/* Top Controls */}
         <div className="absolute right-4 top-4 flex items-center gap-2">
           <Button
@@ -630,9 +734,10 @@ export function VideoPlayer({
           </div>
         </div>
       </div>
+      )}
 
-      {/* Settings Panel */}
-      {showSettings && (
+      {/* Settings Panel - Only for non-YouTube videos */}
+      {!videoInfo.isYouTube && showSettings && (
         <div className="absolute right-4 top-16 z-10 min-w-64 rounded-lg bg-black/90 p-4 text-white">
           <h3 className="mb-3 font-semibold">Cài đặt video</h3>
 

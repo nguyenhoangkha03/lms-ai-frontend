@@ -21,6 +21,7 @@ import {
   type ForgotPasswordFormData,
 } from '@/lib/validations/auth-schemas';
 import { ROUTES } from '@/lib/constants/constants';
+import { useForgotPasswordMutation } from '@/lib/redux/api/auth-api';
 import {
   Mail,
   AlertCircle,
@@ -31,9 +32,10 @@ import {
 
 export const ForgotPasswordForm: React.FC = () => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -44,30 +46,21 @@ export const ForgotPasswordForm: React.FC = () => {
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
-      setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to send reset email');
-      }
+      const result = await forgotPassword(data).unwrap();
 
       setIsSuccess(true);
       toast({
         title: 'Reset email sent!',
         description: 'Please check your email for password reset instructions.',
       });
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      const errorMessage = 
+        error?.data?.message || 
+        error?.message || 
+        'Failed to send reset email. Please try again.';
+      setError(errorMessage);
     }
   };
 

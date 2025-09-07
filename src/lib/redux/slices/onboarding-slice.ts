@@ -84,7 +84,16 @@ const onboardingSlice = createSlice({
       state.stepTimeSpent[state.currentStep] = timeSpent;
       state.totalTimeSpent += timeSpent;
 
-      state.currentStep = Math.min(Math.max(1, action.payload), state.totalSteps);
+      console.log(
+        '🔍 setCurrentStep:',
+        state.currentStep,
+        '->',
+        action.payload
+      );
+      state.currentStep = Math.min(
+        Math.max(1, action.payload),
+        state.totalSteps
+      );
       state.stepStartTime = Date.now();
       state.error = undefined;
       state.isLoading = false;
@@ -155,6 +164,12 @@ const onboardingSlice = createSlice({
       state.assessmentResult = action.payload;
     },
 
+    markAssessmentResultsViewed: state => {
+      if (state.assessmentResult) {
+        state.assessmentResult.hasViewedResults = true;
+      }
+    },
+
     setAssessmentTimeRemaining: (state, action: PayloadAction<number>) => {
       state.assessmentTimeRemaining = action.payload;
     },
@@ -186,7 +201,7 @@ const onboardingSlice = createSlice({
       state.error = undefined;
     },
 
-    resetCategorySelection: (state) => {
+    resetCategorySelection: state => {
       state.selectedCategory = undefined;
       state.customizedAssessment = false;
     },
@@ -245,6 +260,7 @@ export const {
   answerAssessmentQuestion,
   setCurrentQuestionIndex,
   completeAssessment,
+  markAssessmentResultsViewed,
   setAssessmentTimeRemaining,
   updatePreferences,
   setAvailablePaths,

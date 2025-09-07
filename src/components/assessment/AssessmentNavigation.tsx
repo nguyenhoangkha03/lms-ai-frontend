@@ -46,7 +46,7 @@ export function AssessmentNavigation({
         <Badge variant="outline" className="border-blue-400 text-blue-400">
           Question {currentQuestion + 1} of {totalQuestions}
         </Badge>
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-gray-600">
           Progress: {Math.round(((currentQuestion + 1) / totalQuestions) * 100)}
           %
         </div>
@@ -54,9 +54,9 @@ export function AssessmentNavigation({
 
       {/* Warning for unanswered last question */}
       {showSubmitWarning && (
-        <Alert className="border-yellow-500 bg-yellow-900/20">
-          <AlertTriangle className="h-4 w-4 text-yellow-400" />
-          <AlertDescription className="text-yellow-300">
+        <Alert className="border-yellow-400 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-700" />
+          <AlertDescription className="text-yellow-800">
             You haven't answered this question yet. Are you sure you want to
             submit the assessment?
           </AlertDescription>
@@ -70,14 +70,14 @@ export function AssessmentNavigation({
             variant="outline"
             onClick={onPrevious}
             disabled={!canGoPrevious}
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+            className="border-gray-300 text-gray-900 hover:bg-gray-100 disabled:opacity-50"
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
             Previous
           </Button>
 
           {!allowBackNavigation && currentQuestion > 0 && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-600">
               Back navigation disabled
             </div>
           )}
@@ -116,7 +116,7 @@ export function AssessmentNavigation({
           ) : (
             <>
               <div className="h-4 w-4 rounded-full border-2 border-gray-600"></div>
-              <span className="text-gray-400">Question not answered</span>
+              <span className="text-gray-600">Question not answered</span>
             </>
           )}
         </div>

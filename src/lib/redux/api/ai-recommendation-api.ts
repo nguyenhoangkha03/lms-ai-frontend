@@ -23,14 +23,14 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/ai/recommendations',
+        url: '/ai/recommendations',
         params,
       }),
       providesTags: ['AIRecommendation'],
     }),
 
     getComprehensiveRecommendations: builder.query<AIRecommendation[], void>({
-      query: () => '/api/v1/ai/recommendations/comprehensive',
+      query: () => '/ai/recommendations/comprehensive',
       providesTags: ['AIRecommendation'],
     }),
 
@@ -42,7 +42,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/ai/recommendations/all',
+        url: '/ai/recommendations/all',
         method: 'GET',
         params: data,
       }),
@@ -58,7 +58,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: ({ id, ...data }) => ({
-        url: `/api/v1/ai/recommendations/${id}/interact`,
+        url: `/ai/recommendations/${id}/interact`,
         method: 'PUT',
         body: data,
       }),
@@ -74,7 +74,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: ({ id, ...data }) => ({
-        url: `/api/v1/ai/recommendations/${id}/feedback`,
+        url: `/ai/recommendations/${id}/feedback`,
         method: 'PUT',
         body: data,
       }),
@@ -90,7 +90,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/ai/recommendations/content',
+        url: '/ai/recommendations/content',
         params,
       }),
       providesTags: ['ContentFeed'],
@@ -105,7 +105,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/ai/recommendations/content',
+        url: '/ai/recommendations/content',
         method: 'POST',
         body: data,
       }),
@@ -114,12 +114,12 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
 
     // Adaptive Learning Paths
     getLearningPath: builder.query<AdaptiveLearningPath, string>({
-      query: pathId => `/api/v1/intelligent-tutoring/learning-paths/${pathId}`,
+      query: pathId => `/intelligent-tutoring/learning-paths/${pathId}`,
       providesTags: ['LearningPath'],
     }),
 
     getCurrentLearningPath: builder.query<AdaptiveLearningPath, void>({
-      query: () => '/api/v1/ai/recommendations/learning-path',
+      query: () => '/ai/recommendations/learning-path',
       providesTags: ['LearningPath'],
     }),
 
@@ -132,7 +132,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/intelligent-tutoring/learning-paths/generate',
+        url: '/intelligent-tutoring/learning-paths/generate',
         method: 'POST',
         body: data,
       }),
@@ -148,7 +148,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: ({ pathId, ...data }) => ({
-        url: `/api/v1/intelligent-tutoring/learning-paths/${pathId}/adapt`,
+        url: `/intelligent-tutoring/learning-paths/${pathId}/adapt`,
         method: 'PUT',
         body: data,
       }),
@@ -164,7 +164,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/intelligent-tutoring/sessions',
+        url: '/intelligent-tutoring/sessions',
         params,
       }),
       providesTags: ['TutoringSession'],
@@ -179,7 +179,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/intelligent-tutoring/sessions',
+        url: '/intelligent-tutoring/sessions',
         method: 'POST',
         body: data,
       }),
@@ -194,7 +194,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/intelligent-tutoring/questions/ask',
+        url: '/intelligent-tutoring/questions/ask',
         method: 'POST',
         body: data,
       }),
@@ -203,7 +203,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
 
     endTutoringSession: builder.mutation<void, string>({
       query: sessionId => ({
-        url: `/api/v1/intelligent-tutoring/sessions/${sessionId}/end`,
+        url: `/intelligent-tutoring/sessions/${sessionId}/end`,
         method: 'POST',
       }),
       invalidatesTags: ['TutoringSession'],
@@ -219,7 +219,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/ai/suggestions/smart',
+        url: '/ai/suggestions/smart',
         params,
       }),
       providesTags: ['SmartSuggestion'],
@@ -234,7 +234,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: ({ id, ...data }) => ({
-        url: `/api/v1/ai/suggestions/${id}/interact`,
+        url: `/ai/suggestions/${id}/interact`,
         method: 'PUT',
         body: data,
       }),
@@ -249,26 +249,26 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/intelligent-tutoring/learning-style/analyze',
+        url: '/intelligent-tutoring/learning-style/analyze',
         method: 'POST',
         body: data,
       }),
     }),
 
     getLearningStyleProfile: builder.query<any, void>({
-      query: () => '/api/v1/intelligent-tutoring/learning-style/profile',
+      query: () => '/intelligent-tutoring/learning-style/profile',
     }),
 
     getPerformanceImprovementSuggestions: builder.query<
       AIRecommendation[],
       void
     >({
-      query: () => '/api/v1/ai/recommendations/performance-improvement',
+      query: () => '/ai/recommendations/performance-improvement',
       providesTags: ['AIRecommendation'],
     }),
 
     getStudyScheduleRecommendations: builder.query<AIRecommendation[], void>({
-      query: () => '/api/v1/ai/recommendations/study-schedule',
+      query: () => '/ai/recommendations/study-schedule',
       providesTags: ['AIRecommendation'],
     }),
 
@@ -276,7 +276,7 @@ export const aiRecommendationApi = baseApi.injectEndpoints({
       AIRecommendation[],
       void
     >({
-      query: () => '/api/v1/ai/recommendations/difficulty-adjustment',
+      query: () => '/ai/recommendations/difficulty-adjustment',
       providesTags: ['AIRecommendation'],
     }),
   }),

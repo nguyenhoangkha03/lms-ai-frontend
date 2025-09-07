@@ -7,6 +7,12 @@ import {
   Wishlist,
   CourseDetail,
 } from '@/lib/types/course';
+import {
+  transformCourse,
+  transformCourses,
+  transformEnrollments,
+  transformApiResponse,
+} from '@/lib/utils/data-transform';
 export interface CourseFilters {
   search?: string;
   category?: string;
@@ -49,6 +55,34 @@ export const courseApi = baseApi.injectEndpoints({
         url: '/course/public',
         params: filters,
       }),
+      transformResponse: (response: any) => {
+        console.log('getPublicCourses API response:', response);
+
+        // Handle new backend response format
+        if (response.success && response.data) {
+          return {
+            courses: response.data,
+            total: response.total,
+            page: response.page,
+            totalPages: response.totalPages,
+            hasNext: response.hasNext,
+            hasPrevious: response.hasPrevious,
+            filters: response.filters,
+          };
+        }
+
+        // Fallback for old format
+        const courses = response.data || response;
+        return {
+          courses: response.data,
+          total: courses?.length || 0,
+          page: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrevious: false,
+          filters: {},
+        };
+      },
       providesTags: ['Course'],
     }),
 
@@ -88,14 +122,45 @@ export const courseApi = baseApi.injectEndpoints({
 
     getCourseDetail: builder.query<CourseDetail, string>({
       query: slug => `/course/public/${slug}`,
+      transformResponse: (response: any) => {
+        console.log('getCourseDetail API responseeee:', response);
+        return response.data;
+      },
       providesTags: (_result, _error, slug) => [{ type: 'Course', id: slug }],
     }),
 
     searchCourses: builder.query<CourseSearchResponse, CourseFilters>({
       query: filters => ({
-        url: '/course/search',
+        url: '/course/public',
         params: filters,
       }),
+      transformResponse: (response: any) => {
+        console.log('searchCourses API response:', response);
+
+        // Handle backend response format
+        if (response.success && response.data) {
+          return {
+            courses: response.data,
+            total: response.total,
+            page: response.page,
+            totalPages: response.totalPages,
+            hasNext: response.hasNext,
+            hasPrevious: response.hasPrevious,
+            filters: response.filters || { categories: [], levels: [], languages: [] }
+          };
+        }
+
+        // Fallback for direct data
+        return {
+          courses: response.data || response.courses || [],
+          total: response.total || 0,
+          page: response.page || 1,
+          totalPages: response.totalPages || 1,
+          hasNext: response.hasNext || false,
+          hasPrevious: response.hasPrevious || false,
+          filters: response.filters || { categories: [], levels: [], languages: [] }
+        };
+      },
       providesTags: ['Course'],
     }),
 
@@ -128,8 +193,18 @@ export const courseApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Enrollment', 'Course'],
+      invalidatesTags: ['Enrollment', 'Course', 'EnrollmentStatus'],
     }),
+
+    // getEnrollmentStatus: builder.query<
+    //   { isEnrolled: boolean; enrollment?: any },
+    //   string
+    // >({
+    //   query: courseId => `/course/${courseId}/enrollment-status`,
+    //   providesTags: (_result, _error, courseId) => [
+    //     { type: 'EnrollmentStatus', id: courseId },
+    //   ],
+    // }),
 
     getUserEnrollments: builder.query<
       Enrollment[],
@@ -143,6 +218,19 @@ export const courseApi = baseApi.injectEndpoints({
         url: '/enrollments/my',
         params,
       }),
+      transformResponse: (response: any) => {
+        console.log('getUserEnrollments API response:', response);
+
+        if (response?.success && response?.data) {
+          return transformEnrollments(response.data);
+        } else if (Array.isArray(response)) {
+          return transformEnrollments(response);
+        } else if (response?.data && Array.isArray(response.data)) {
+          return transformEnrollments(response.data);
+        }
+
+        return transformEnrollments(response || []);
+      },
       providesTags: ['Enrollment'],
     }),
 
@@ -153,7 +241,7 @@ export const courseApi = baseApi.injectEndpoints({
       },
       string
     >({
-      query: courseId => `/enrollments/status/${courseId}`,
+      query: courseId => `/enrollments/check/${courseId}`,
       providesTags: (_result, _error, courseId) => [
         { type: 'Enrollment', id: courseId },
       ],
@@ -162,6 +250,19 @@ export const courseApi = baseApi.injectEndpoints({
     getWishlist: builder.query<Wishlist[], void>({
       query: () => '/wishlist',
       providesTags: ['Wishlist'],
+      transformResponse: (response: any) => {
+        console.log('getWishlist API response:', response);
+
+        if (response?.success && response?.data) {
+          return response.data;
+        } else if (Array.isArray(response)) {
+          return response;
+        } else if (response?.data && Array.isArray(response.data)) {
+          return response.data;
+        }
+
+        return response || [];
+      },
     }),
 
     addToWishlist: builder.mutation<Wishlist, { courseId: string }>({

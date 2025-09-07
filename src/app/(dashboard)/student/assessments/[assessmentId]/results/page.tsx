@@ -27,10 +27,13 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+import AILessonRecommendations from '@/components/ai/ai-lesson-recommendations';
 
 export default function AssessmentResultsPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const assessmentId = params.assessmentId as string;
 
   const { data: assessment, isLoading: assessmentLoading } =
@@ -39,14 +42,18 @@ export default function AssessmentResultsPage() {
   const { data: attempts, isLoading: attemptsLoading } =
     useGetAssessmentAttemptsQuery(assessmentId);
 
-  const latestAttempt = attempts?.[0]; // Most recent attempt
+  const latestAttempt = attempts?.[0];
 
-  const { data: aiFeedback } = useGetAIFeedbackQuery(
+  const { data: aiFeedback, error: aiFeedbackError } = useGetAIFeedbackQuery(
     latestAttempt?.sessionId || '',
     {
-      skip: !latestAttempt?.sessionId,
+      skip: true,
     }
   );
+
+  if (aiFeedbackError) {
+    console.log('AI Feedback not available:', aiFeedbackError);
+  }
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -132,9 +139,11 @@ export default function AssessmentResultsPage() {
   const PerformanceIcon = performance.icon;
   const correctAnswers = latestAttempt.answers.filter(a => a.isCorrect).length;
 
+  console.log('assessment', latestAttempt);
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto max-w-6xl px-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -142,11 +151,13 @@ export default function AssessmentResultsPage() {
               <h1 className="mb-2 text-3xl font-bold text-gray-900">
                 Assessment Results
               </h1>
-              <p className="text-gray-600">{assessment.title}</p>
+              <p className="text-gray-600">
+                {assessment?.title || 'Assessment'}
+              </p>
               <div className="mt-2 flex items-center gap-2">
                 <Badge variant="outline">
-                  Attempt {latestAttempt.attempt} of{' '}
-                  {assessment.attemptsAllowed}
+                  Attempt {latestAttempt.attemptNumber} of{' '}
+                  {assessment?.maxAttempts || 'N/A'}
                 </Badge>
                 <Badge
                   variant={latestAttempt.passed ? 'default' : 'destructive'}
@@ -163,9 +174,9 @@ export default function AssessmentResultsPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Assessments
               </Button>
-              {assessment.attemptsAllowed > 1 &&
+              {(assessment?.maxAttempts || 1) > 1 &&
                 attempts &&
-                attempts.length < assessment.attemptsAllowed &&
+                attempts.length < (assessment?.maxAttempts || 1) &&
                 !latestAttempt.passed && (
                   <Button
                     onClick={() =>
@@ -316,12 +327,30 @@ export default function AssessmentResultsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {latestAttempt.answers.map((answer, index) => {
-                    const question = assessment.questions[index];
-                    if (!question) return null;
+                    const question = assessment?.questions?.[index];
+                    const option = JSON.parse(question?.options as any)?.find(
+                      (option: any) => option.isCorrect === true
+                    );
+                    const answerText = JSON.parse(
+                      question?.options as any
+                    )?.find((option: any) => option.id === answer.answer)?.text;
+                    console.log('question', question);
+                    console.log('answerText', answerText);
+                    if (!question) {
+                      // Show a placeholder if question data is not available
+                      return (
+                        <div key={index} className="rounded-lg border p-4">
+                          <div className="text-sm text-gray-500">
+                            Question {index + 1} - Question details not
+                            available
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div
-                        key={answer.questionId}
+                        key={answer.questionId || index}
                         className={cn(
                           'rounded-lg border p-4 transition-colors',
                           answer.isCorrect
@@ -336,26 +365,44 @@ export default function AssessmentResultsPage() {
                                 Question {index + 1}
                               </Badge>
                               <Badge variant="outline" className="text-xs">
-                                {question.points} points
+                                {question.points || 1} points
                               </Badge>
                               <Badge variant="outline" className="text-xs">
-                                {question.type.replace('_', ' ')}
+                                {question.questionType?.replace('_', ' ') ||
+                                  'Question'}
                               </Badge>
                             </div>
                             <h4 className="mb-1 font-medium">
-                              {question.title}
+                              {question.questionText || `Question ${index + 1}`}
                             </h4>
-                            <p className="line-clamp-2 text-sm text-gray-600">
-                              {question.content.replace(/<[^>]*>/g, '')}
+                            {answer.isCorrect ? (
+                              ''
+                            ) : (
+                              <p className="line-clamp-2 text-sm font-medium text-red-600">
+                                <span className="mr-2 rounded bg-red-100 px-2 py-0.5 text-xs text-red-700">
+                                  You choose
+                                </span>
+                                {(answerText || '').replace(/<[^>]*>/g, '')}
+                              </p>
+                            )}
+
+                            <p className="mt-1 line-clamp-2 text-sm font-medium text-green-600">
+                              <span className="mr-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                                The correct answer
+                              </span>
+                              {(option.text || '').replace(/<[^>]*>/g, '')}
                             </p>
                           </div>
                           <div className="ml-4 flex items-center gap-3">
                             <div className="text-right text-sm">
                               <div className="font-medium">
-                                {answer.points}/{question.points}
+                                {answer.isCorrect ? question.points : 0}/
+                                {question.points || 1}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {formatTime(answer.timeSpent)}
+                                {formatTime(
+                                  Math.floor((answer.timeSpent || 0) / 1000)
+                                )}
                               </div>
                             </div>
                             {answer.isCorrect ? (
@@ -382,6 +429,15 @@ export default function AssessmentResultsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* AI Lesson Recommendations */}
+            <AILessonRecommendations
+              userId={user?.id || ''}
+              assessmentAttemptId={latestAttempt?.sessionId || ''}
+              onLessonSelect={(lessonId) => {
+                router.push(`/student/courses/lessons/${lessonId}`);
+              }}
+            />
 
             {/* AI Feedback */}
             {aiFeedback && (
@@ -502,7 +558,7 @@ export default function AssessmentResultsPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Attempt Number:</span>
                     <span className="font-medium">
-                      {latestAttempt.attempt}/{assessment.attemptsAllowed}
+                      {latestAttempt.attemptNumber}/{assessment.maxAttempts}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -520,7 +576,7 @@ export default function AssessmentResultsPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Submitted:</span>
                     <span className="font-medium">
-                      {new Date(latestAttempt.submittedAt).toLocaleString()}
+                      {new Date(latestAttempt.submittedAt!).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -578,7 +634,9 @@ export default function AssessmentResultsPage() {
                             Attempt {attempt.attempt}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {new Date(attempt.submittedAt).toLocaleDateString()}
+                            {new Date(
+                              attempt.submittedAt!
+                            ).toLocaleDateString()}
                           </div>
                         </div>
                         <div className="text-right">

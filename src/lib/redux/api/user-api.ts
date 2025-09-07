@@ -56,7 +56,9 @@ export const userApi = baseApi.injectEndpoints({
     // Profile management
     getUserProfile: builder.query<UserProfile, string>({
       query: userId => `/users/${userId}/profile`,
-      transformResponse: (response: ApiResponse<UserProfile>) => response.data!,
+      transformResponse: (response: any) => {
+        return response;
+      },
       providesTags: (result, error, userId) => [
         { type: 'User', id: `profile-${userId}` },
       ],
@@ -82,8 +84,11 @@ export const userApi = baseApi.injectEndpoints({
 
     getStudentProfile: builder.query<StudentProfile, string>({
       query: userId => `/users/${userId}/student-profile`,
-      transformResponse: (response: ApiResponse<StudentProfile>) =>
-        response.data!,
+      transformResponse: (response: any) => {
+        console.log('🔍 getStudentProfile transformed:', response);
+        // Backend returns direct data, not wrapped in ApiResponse
+        return response;
+      },
       providesTags: (result, error, userId) => [
         { type: 'User', id: `student-${userId}` },
       ],
@@ -136,10 +141,7 @@ export const userApi = baseApi.injectEndpoints({
       ],
     }),
 
-    uploadAvatar: builder.mutation<
-      { avatarUrl: string },
-      { file: File }
-    >({
+    uploadAvatar: builder.mutation<{ avatarUrl: string }, { file: File }>({
       query: ({ file }) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -156,10 +158,7 @@ export const userApi = baseApi.injectEndpoints({
       invalidatesTags: ['User'],
     }),
 
-    uploadCover: builder.mutation<
-      { coverUrl: string },
-      { file: File }
-    >({
+    uploadCover: builder.mutation<{ coverUrl: string }, { file: File }>({
       query: ({ file }) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -175,6 +174,42 @@ export const userApi = baseApi.injectEndpoints({
         response.data!,
       invalidatesTags: ['User'],
     }),
+
+    // Public Profile APIs
+    getUserByUsername: builder.query<User, string>({
+      query: username => `/users/username/${username}`,
+      transformResponse: (response: any) => {
+        console.log('🔍 getUserByUsername transformed:', response);
+        return response;
+      },
+      providesTags: (result, error, username) => [
+        { type: 'User', id: `username-${username}` },
+      ],
+    }),
+
+    getPublicProfile: builder.query<
+      {
+        user: User;
+        userProfile: UserProfile;
+        studentProfile?: StudentProfile;
+        teacherProfile?: TeacherProfile;
+      },
+      string
+    >({
+      query: userId => `/public/profile/${userId}`,
+      transformResponse: (
+        response: ApiResponse<{
+          user: User;
+          userProfile: UserProfile;
+          studentProfile?: StudentProfile;
+          teacherProfile?: TeacherProfile;
+        }>
+      ) => response.data!,
+      providesTags: (result, error, userId) => [
+        { type: 'User', id: `public-${userId}` },
+        { type: 'UserProfile', id: `public-${userId}` },
+      ],
+    }),
   }),
 });
 
@@ -187,6 +222,8 @@ export const {
   useUpdateUserProfileMutation,
   useGetStudentProfileQuery,
   useUpdateStudentProfileMutation,
+  useGetUserByUsernameQuery,
+  useGetPublicProfileQuery,
   useGetTeacherProfileQuery,
   useUpdateTeacherProfileMutation,
   useUploadAvatarMutation,

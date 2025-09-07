@@ -74,7 +74,9 @@ const levelColors = {
 
 export const LearningPathSelectionStep: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { selectedPath } = useAppSelector(state => state.onboarding);
+  const { selectedPath, assessmentResult } = useAppSelector(
+    state => state.onboarding
+  );
 
   const { data: recommendedPaths = [], isLoading: loadingRecommended } =
     useGetRecommendedLearningPathsQuery();
@@ -114,6 +116,10 @@ export const LearningPathSelectionStep: React.FC = () => {
 
   // Get path category for icon
   const getPathCategory = (path: LearningPath) => {
+    if (!path.skills || !Array.isArray(path.skills)) {
+      return 'default';
+    }
+
     const skills = path.skills.map(s => s.toLowerCase());
     if (skills.some(s => s.includes('programming') || s.includes('code')))
       return 'technology';
@@ -175,6 +181,80 @@ export const LearningPathSelectionStep: React.FC = () => {
                   on your assessment results.
                 </AlertDescription>
               </Alert>
+
+              {/* Assessment-based recommendations */}
+              {assessmentResult?.recommendations &&
+                assessmentResult.recommendations.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="h-5 w-5 text-yellow-500" />
+                      <h3 className="font-semibold">
+                        Based on Your Assessment
+                      </h3>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {assessmentResult.recommendations.map(
+                        (rec: any, index: number) => (
+                          <Card
+                            key={rec.id || index}
+                            className="border-yellow-200 bg-yellow-50/50"
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-base">
+                                  {rec.title}
+                                </CardTitle>
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-yellow-100 text-yellow-800"
+                                >
+                                  {rec.level}
+                                </Badge>
+                              </div>
+                              <CardDescription className="text-sm">
+                                {rec.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Priority: {rec.priority}</span>
+                                <span>Match: {rec.accuracyPercentage}</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => {
+                                  // Convert assessment recommendation to learning path format
+                                  const pathFromRec = {
+                                    id: rec.id,
+                                    title: rec.title,
+                                    description: rec.description,
+                                    level: rec.level,
+                                    courses: [rec],
+                                    skills: rec.skills || ['Web Development'], // Default skills if not provided
+                                    prerequisites: rec.prerequisites || [],
+                                    estimatedDuration:
+                                      rec.estimatedDuration || '3 months',
+                                    aiConfidence:
+                                      parseFloat(
+                                        rec.accuracyPercentage?.replace(
+                                          '%',
+                                          ''
+                                        ) || '0'
+                                      ) / 100,
+                                  };
+                                  handleSelectPath(pathFromRec);
+                                }}
+                              >
+                                Select This Path
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
 
               <div className="grid gap-6 md:grid-cols-2">
                 {recommendedPaths.map((path, index) => (

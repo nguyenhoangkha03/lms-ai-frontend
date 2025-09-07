@@ -2,6 +2,9 @@ export interface User {
   id: string;
   teacherProfile?: TeacherProfile;
   studentProfile?: StudentProfile;
+  userProfile?: UserProfile;
+  courses?: Course[];
+  profile?: TeacherProfile | StudentProfile | UserProfile;
   email: string;
   username: string;
   firstName: string;
@@ -22,6 +25,7 @@ export interface User {
     | 'banned'
     | 'deleted';
   avatarUrl?: string;
+  avatar?: string;
   coverUrl?: string;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
@@ -47,6 +51,7 @@ export interface UserProfile {
   skills?: string[];
   isPublic: boolean;
   isVerified: boolean;
+  user?: User;
 }
 
 export interface StudentProfile {
@@ -92,13 +97,16 @@ export interface TeacherProfile {
   totalTeachingHours: number;
   totalEarnings: number;
   isApproved: boolean;
+  approvedBy?: string;
   isActive: boolean;
   isFeatured: boolean;
   isVerified: boolean;
+  applicationData?: Record<string, any>;
   hourlyRate?: number;
   currency: string;
   acceptingStudents: boolean;
   maxStudentsPerClass?: number;
+  createdAt: string;
 }
 
 export interface Course {

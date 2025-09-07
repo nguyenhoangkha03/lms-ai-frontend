@@ -141,18 +141,6 @@ const WIZARD_STEPS = [
   },
 ];
 
-const CATEGORIES = [
-  'Technology',
-  'Business',
-  'Design',
-  'Marketing',
-  'Photography',
-  'Music',
-  'Health & Fitness',
-  'Language',
-  'Personal Development',
-];
-
 const LANGUAGES = [
   { code: CourseLanguage.VIETNAMESE, name: 'Tiếng Việt' },
   { code: CourseLanguage.ENGLISH, name: 'English' },
@@ -590,7 +578,10 @@ export default function ModernCourseCreationPage() {
         }).unwrap();
         console.log('✅ Course updated successfully');
       } catch (updateError: any) {
-        console.error('❌ Failed to update course before submission:', updateError);
+        console.error(
+          '❌ Failed to update course before submission:',
+          updateError
+        );
         toast({
           title: 'Update Failed',
           description:
@@ -609,7 +600,7 @@ export default function ModernCourseCreationPage() {
           'Course submitted for review! Admin will review and approve your course. 📋',
       });
 
-      // router.push(`/teacher/courses`);
+      router.push(`/teacher/courses`);
     } catch (error: any) {
       console.error('❌ Course submission failed:', error);
       toast({
@@ -1070,9 +1061,9 @@ export default function ModernCourseCreationPage() {
                     <p className="mt-2 text-xs text-slate-500">
                       Max size: 5MB. Recommended: 1200x600px
                       <br />
-                      <span className="text-emerald-600">
+                      {/* <span className="text-emerald-600">
                         ✓ Direct S3 Upload - No server memory usage
-                      </span>
+                      </span> */}
                     </p>
                   </div>
                 )}
@@ -1155,9 +1146,9 @@ export default function ModernCourseCreationPage() {
                     <p className="mt-2 text-xs text-slate-500">
                       Max size: 100MB. Recommended formats: MP4, WebM
                       <br />
-                      <span className="text-emerald-600">
+                      {/* <span className="text-emerald-600">
                         ✓ Direct S3 Upload - No server memory usage
-                      </span>
+                      </span> */}
                     </p>
                   </div>
                 )}

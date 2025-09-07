@@ -24,8 +24,8 @@ export interface Course {
   description: string;
   teacher: {
     id: string;
-    name: string;
-    avatar?: string;
+    displayName: string;
+    avatarUrl?: string;
     bio?: string;
     rating?: number;
     totalStudents?: number;
@@ -54,9 +54,26 @@ export interface Course {
   bestseller: boolean;
   isNew: boolean;
   hasCertificate: boolean;
+  lifetimeAccess: boolean;
+  accessDuration?: number;
+  enrollmentLimit?: number;
+  allowReviews: boolean;
+  allowDiscussions: boolean;
+  availableFrom?: string;
+  availableUntil?: string;
+  lastUpdatedAt?: string;
+  seoMeta?: {
+    title?: string;
+    description?: string;
+    keywords?: string[];
+    ogImage?: string;
+  };
+  settings?: Record<string, any>;
+  metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
+  isEnrolled?: boolean; // For UI state - indicates if current user is enrolled
 }
 
 export interface CourseDetail extends Course {
@@ -67,8 +84,8 @@ export interface CourseDetail extends Course {
   sections: CourseSection[];
   instructor: {
     id: string;
-    name: string;
-    avatar?: string;
+    displayName: string;
+    avatarUrl?: string;
     bio: string;
     rating: number;
     totalStudents: number;
@@ -156,20 +173,36 @@ export interface Enrollment {
   studentId: string;
   courseId: string;
   course: Course;
-  enrolledAt: string;
-  status: 'active' | 'completed' | 'paused' | 'cancelled';
-  progress: number;
+  enrollmentDate: string; // Match backend field name
+  enrolledAt: string; // Keep for backward compatibility
+  status:
+    | 'active'
+    | 'completed'
+    | 'paused'
+    | 'cancelled'
+    | 'in_progress'
+    | 'enrolled';
+  progressPercentage: number; // Match backend field name
+  progress: number; // Keep for backward compatibility
   lastAccessedAt?: string;
   lastAccessedLessonId?: string;
   completedAt?: string;
-  timeSpent: number;
+  totalTimeSpent: number; // Match backend field name
+  timeSpent: number; // Keep for backward compatibility
+  formattedTimeSpent?: string;
+  lessonsCompleted?: number;
+  totalLessons?: number;
   certificateIssued: boolean;
   certificateUrl?: string;
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   paymentAmount: number;
+  paymentTransactionId?: string;
   paymentMethod?: string;
   couponCode?: string;
   discountAmount?: number;
+  accessExpiresAt?: string;
+  sourceAttribution?: string;
+  rating?: number;
 }
 
 export interface Wishlist {
@@ -203,6 +236,7 @@ export interface CourseFilters {
   subcategory?: string;
   level?: string[];
   price?: 'free' | 'paid' | 'all';
+  isFree?: boolean; // For backend API
   priceRange?: { min: number; max: number };
   rating?: number;
   duration?: 'short' | 'medium' | 'long';

@@ -539,6 +539,27 @@ export const AdaptiveLearningPath: React.FC<AdaptiveLearningPathProps> = ({
     );
   }
 
+  // Safety check for learningPath and required properties
+  if (!learningPath || !learningPath.steps || !learningPath.progress) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+              <Brain className="h-4 w-4 text-gray-600" />
+            </div>
+            <div>
+              <CardTitle>Adaptive Learning Path</CardTitle>
+              <CardDescription>
+                No learning path data available
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   const currentStep = learningPath.steps.find(
     s => s.order === learningPath.progress.currentStep
   );

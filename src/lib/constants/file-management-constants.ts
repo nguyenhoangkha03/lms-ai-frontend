@@ -384,19 +384,19 @@ export const NOTIFICATION_TEMPLATES = {
 
 // API endpoints
 export const API_ENDPOINTS = {
-  UPLOAD: '/api/v1/files/upload',
-  UPLOAD_MULTIPLE: '/api/v1/files/upload/multiple',
-  DOWNLOAD: '/api/v1/files/download',
-  STREAM: '/api/v1/files/stream',
-  PROCESS_IMAGE: '/api/v1/files/{id}/process/image',
-  PROCESS_VIDEO: '/api/v1/files/{id}/process/video',
-  SECURITY_SCAN: '/api/v1/files/{id}/security-scan',
-  MODERATE: '/api/v1/files/{id}/moderate',
-  ACCESS_URL: '/api/v1/files/{id}/access-url',
-  BULK_DELETE: '/api/v1/files/bulk',
-  STATISTICS: '/api/v1/files/statistics/overview',
-  CDN_CONFIG: '/api/v1/cdn/configuration',
-  CDN_PURGE: '/api/v1/cdn/purge',
+  UPLOAD: '/files/upload',
+  UPLOAD_MULTIPLE: '/files/upload/multiple',
+  DOWNLOAD: '/files/download',
+  STREAM: '/files/stream',
+  PROCESS_IMAGE: '/files/{id}/process/image',
+  PROCESS_VIDEO: '/files/{id}/process/video',
+  SECURITY_SCAN: '/files/{id}/security-scan',
+  MODERATE: '/files/{id}/moderate',
+  ACCESS_URL: '/files/{id}/access-url',
+  BULK_DELETE: '/files/bulk',
+  STATISTICS: '/files/statistics/overview',
+  CDN_CONFIG: '/cdn/configuration',
+  CDN_PURGE: '/cdn/purge',
 } as const;
 
 // Default configurations for different user roles

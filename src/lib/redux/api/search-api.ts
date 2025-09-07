@@ -14,7 +14,7 @@ export const searchApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     universalSearch: builder.query<SearchResponse, SearchFilters>({
       query: filters => ({
-        url: '/api/v1/search',
+        url: '/search',
         params: filters,
       }),
       providesTags: ['Search'],
@@ -23,7 +23,7 @@ export const searchApi = baseApi.injectEndpoints({
     // Course-specific search
     searchCourses: builder.query<SearchResponse, SearchFilters>({
       query: filters => ({
-        url: '/api/v1/search/courses',
+        url: '/search/courses',
         params: filters,
       }),
       providesTags: ['Search', 'Course'],
@@ -32,7 +32,7 @@ export const searchApi = baseApi.injectEndpoints({
     // Instructor search
     searchInstructors: builder.query<SearchResponse, SearchFilters>({
       query: filters => ({
-        url: '/api/v1/search/instructors',
+        url: '/search/instructors',
         params: filters,
       }),
       providesTags: ['Search', 'User'],
@@ -41,7 +41,7 @@ export const searchApi = baseApi.injectEndpoints({
     // Forum search
     searchForum: builder.query<SearchResponse, SearchFilters>({
       query: filters => ({
-        url: '/api/v1/search/forum',
+        url: '/search/forum',
         params: filters,
       }),
       providesTags: ['Search', 'Forum'],
@@ -50,7 +50,7 @@ export const searchApi = baseApi.injectEndpoints({
     // Resource search
     searchResources: builder.query<SearchResponse, SearchFilters>({
       query: filters => ({
-        url: '/api/v1/search/resources',
+        url: '/search/resources',
         params: filters,
       }),
       providesTags: ['Search', 'Resource'],
@@ -64,7 +64,7 @@ export const searchApi = baseApi.injectEndpoints({
       AutocompleteRequest
     >({
       query: ({ query, ...params }) => ({
-        url: '/api/v1/search/autocomplete',
+        url: '/search/autocomplete',
         params: { q: query, ...params },
       }),
       keepUnusedDataFor: 300, // Cache for 5 minutes
@@ -81,7 +81,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/search/suggestions',
+        url: '/search/suggestions',
         params,
       }),
       providesTags: ['SearchSuggestions'],
@@ -97,7 +97,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/search/trending',
+        url: '/search/trending',
         params,
       }),
       providesTags: ['SearchTrending'],
@@ -108,7 +108,7 @@ export const searchApi = baseApi.injectEndpoints({
     // Intelligent search with NLP processing
     intelligentSearch: builder.mutation<IntelligentSearch, { query: string }>({
       query: ({ query }) => ({
-        url: '/api/v1/search/intelligent',
+        url: '/search/intelligent',
         method: 'POST',
         body: { query },
       }),
@@ -125,7 +125,7 @@ export const searchApi = baseApi.injectEndpoints({
       { query: string; context?: Record<string, any> }
     >({
       query: data => ({
-        url: '/api/v1/search/analyze-intent',
+        url: '/search/analyze-intent',
         method: 'POST',
         body: data,
       }),
@@ -137,7 +137,7 @@ export const searchApi = baseApi.injectEndpoints({
       SearchFilters & { usePersonalization?: boolean }
     >({
       query: filters => ({
-        url: '/api/v1/search/personalized',
+        url: '/search/personalized',
         params: filters,
       }),
       providesTags: ['Search', 'PersonalizedSearch'],
@@ -155,7 +155,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/discovery/smart',
+        url: '/discovery/smart',
         params,
       }),
       providesTags: ['SmartDiscovery'],
@@ -173,7 +173,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/discovery/recommendations',
+        url: '/discovery/recommendations',
         params,
       }),
       providesTags: ['ContentRecommendations'],
@@ -190,7 +190,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/discovery/similar',
+        url: '/discovery/similar',
         params,
       }),
       providesTags: ['SimilarContent'],
@@ -208,7 +208,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/search/facets',
+        url: '/search/facets',
         params,
       }),
       providesTags: ['SearchFacets'],
@@ -217,7 +217,7 @@ export const searchApi = baseApi.injectEndpoints({
     // Apply faceted filters to search
     applyFacetedSearch: builder.query<SearchResponse, SearchFilters>({
       query: filters => ({
-        url: '/api/v1/search/faceted',
+        url: '/search/faceted',
         params: filters,
       }),
       providesTags: ['Search', 'FacetedSearch'],
@@ -232,7 +232,7 @@ export const searchApi = baseApi.injectEndpoints({
       { query: string; currentFilters?: SearchFilters }
     >({
       query: ({ query, currentFilters }) => ({
-        url: '/api/v1/search/filter-suggestions',
+        url: '/search/filter-suggestions',
         params: { q: query, ...currentFilters },
       }),
     }),
@@ -250,7 +250,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/search/analytics/track',
+        url: '/search/analytics/track',
         method: 'POST',
         body: data,
       }),
@@ -284,7 +284,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/search/analytics',
+        url: '/search/analytics',
         params,
       }),
       providesTags: ['SearchAnalytics'],
@@ -300,7 +300,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: '/api/v1/search/optimization',
+        url: '/search/optimization',
         params,
       }),
       providesTags: ['SearchOptimization'],
@@ -337,7 +337,7 @@ export const searchApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/api/v1/search/admin/boost-rules',
+        url: '/search/admin/boost-rules',
         method: 'POST',
         body: data,
       }),
@@ -380,7 +380,7 @@ export const searchApi = baseApi.injectEndpoints({
       { contentTypes?: string[]; full?: boolean }
     >({
       query: data => ({
-        url: '/api/v1/search/admin/rebuild-index',
+        url: '/search/admin/rebuild-index',
         method: 'POST',
         body: data,
       }),

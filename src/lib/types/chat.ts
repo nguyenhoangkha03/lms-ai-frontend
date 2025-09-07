@@ -3,6 +3,8 @@ export interface ChatRoom {
   name: string;
   description?: string;
   roomType:
+    | 'group'
+    | 'direct'
     | 'general'
     | 'course'
     | 'lesson'
@@ -20,11 +22,16 @@ export interface ChatRoom {
   maxParticipants?: number;
   participantCount: number;
   messageCount: number;
+  lastMessage?: string;
   lastMessageAt?: string;
   lastMessageBy?: string;
+  lastActivityAt?: string;
   avatarUrl?: string;
-  settings: ChatRoomSettings;
-  moderationSettings: ModerationSettings;
+  unreadCount?: number;
+  settings?: ChatRoomSettings;
+  moderationSettings?: ModerationSettings;
+  analytics?: ChatRoomAnalytics;
+  metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -351,6 +358,7 @@ export interface JoinRoomRequest {
 
 export interface SendMessageRequest {
   content: string;
+  type?: ChatMessage['messageType'];
   messageType?: ChatMessage['messageType'];
   replyToId?: string;
   threadId?: string;

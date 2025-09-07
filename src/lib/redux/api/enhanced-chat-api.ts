@@ -780,8 +780,8 @@ export const enhancedChatApi = baseApi.injectEndpoints({
       },
     }),
 
-    // Update notification settings
-    updateNotificationSettings: builder.mutation<
+    // Update chat room notification settings
+    updateChatNotificationSettings: builder.mutation<
       { message: string },
       { roomId: string; settings: Partial<NotificationSettings> }
     >({
@@ -792,6 +792,69 @@ export const enhancedChatApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: ChatApiResponse<{ message: string }>) =>
         response.data,
+    }),
+
+    // =================== CONTACTS & DIRECT MESSAGES ===================
+
+    // Get suggested contacts
+    getSuggestedContacts: builder.query<
+      Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        avatar?: string;
+        role: string;
+        relationshipType: 'course_mate' | 'study_group_member' | 'teacher' | 'frequent_contact';
+        relationshipDetails: {
+          sharedCourses?: string[];
+          studyGroups?: string[];
+          messageCount?: number;
+          lastInteraction?: Date;
+        };
+        onlineStatus: 'online' | 'offline' | 'away';
+        canDirectMessage: boolean;
+      }>,
+      { limit?: number }
+    >({
+      query: (params = {}) => ({
+        url: '/chat/rooms/suggested-contacts',
+        params,
+      }),
+      transformResponse: (response: ChatApiResponse<{ suggestions: any[] }>) =>
+        response.data.suggestions,
+      providesTags: ['ChatRoom'],
+    }),
+
+    // Create or get direct message room
+    createDirectMessageRoom: builder.mutation<
+      ChatRoom,
+      { userId: string }
+    >({
+      query: ({ userId }) => ({
+        url: `/chat/rooms/direct-message/${userId}`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ChatApiResponse<{ room: ChatRoom }>) =>
+        response.data.room,
+      invalidatesTags: ['ChatRoom'],
+    }),
+
+    // Check direct message permission
+    checkDirectMessagePermission: builder.query<
+      {
+        canMessage: boolean;
+        reason?: string;
+        restrictions?: string[];
+        requiresApproval?: boolean;
+      },
+      { userId: string }
+    >({
+      query: ({ userId }) => ({
+        url: `/chat/rooms/direct-message-permission/${userId}`,
+      }),
+      transformResponse: (response: ChatApiResponse<{ permission: any }>) =>
+        response.data.permission,
     }),
   }),
 });
@@ -851,5 +914,10 @@ export const {
 
   // Notifications
   useMarkMessagesAsReadMutation,
-  useUpdateNotificationSettingsMutation,
+  useUpdateChatNotificationSettingsMutation,
+
+  // Contact & Direct Messages
+  useGetSuggestedContactsQuery,
+  useCreateDirectMessageRoomMutation,
+  useCheckDirectMessagePermissionQuery,
 } = enhancedChatApi;

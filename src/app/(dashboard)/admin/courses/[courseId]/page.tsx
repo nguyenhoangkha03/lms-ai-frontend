@@ -38,7 +38,7 @@ import {
   FileText,
   Video,
   Image,
-  Link,
+  Link as LinkIcon,
   CheckCircle,
   XCircle,
   Clock,

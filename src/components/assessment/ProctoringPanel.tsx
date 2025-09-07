@@ -239,7 +239,7 @@ export function ProctoringPanel({
       case 'multiple_faces':
         return { icon: Users, color: 'text-red-400', text: 'Multiple Faces' };
       default:
-        return { icon: Eye, color: 'text-gray-400', text: 'Detecting...' };
+        return { icon: Eye, color: 'text-gray-600', text: 'Detecting...' };
     }
   };
 
@@ -247,7 +247,7 @@ export function ProctoringPanel({
     // Compact monitoring view during assessment
     return (
       <div className={cn('space-y-3', className)}>
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-gray-300 bg-white">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Camera className="h-4 w-4 text-blue-400" />
@@ -267,14 +267,14 @@ export function ProctoringPanel({
               <canvas ref={canvasRef} className="hidden" />
 
               <div className="absolute right-2 top-2 flex gap-1">
-                <Badge className="bg-red-500 text-xs text-white">REC</Badge>
+                <Badge className="bg-red-500 text-xs text-gray-900">REC</Badge>
               </div>
             </div>
 
             {/* Status Indicators */}
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">Webcam:</span>
+                <span className="text-gray-600">Webcam:</span>
                 <div className="flex items-center gap-1">
                   {webcamStatus === 'active' ? (
                     <Video className="h-3 w-3 text-green-400" />
@@ -295,7 +295,7 @@ export function ProctoringPanel({
 
               {requirements.microphone && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Audio:</span>
+                  <span className="text-gray-600">Audio:</span>
                   <div className="flex items-center gap-1">
                     {microphoneStatus === 'active' ? (
                       <Mic className="h-3 w-3 text-green-400" />
@@ -312,7 +312,7 @@ export function ProctoringPanel({
 
               {requirements.faceDetection && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Face Detection:</span>
+                  <span className="text-gray-600">Face Detection:</span>
                   <div className="flex items-center gap-1">
                     {(() => {
                       const status = getFaceDetectionStatus();

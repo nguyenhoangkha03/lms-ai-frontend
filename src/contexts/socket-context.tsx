@@ -13,6 +13,8 @@ import { API_CONFIG, SOCKET_EVENTS } from '@/lib/constants/constants';
 import { useAuth } from './auth-context';
 import { toast } from 'sonner';
 
+import { AdvancedTokenManager } from '@/lib/auth/token-manager';
+
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
@@ -52,9 +54,10 @@ export function SocketProvider({
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  
 
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 1000;
+  const maxReconnectAttempts = 3; // Reduce to 3 attempts
+  const reconnectDelay = 5000; // Increase delay to 5 seconds
 
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
@@ -72,11 +75,22 @@ export function SocketProvider({
       return;
     }
 
+    const token = AdvancedTokenManager.getAccessToken();
+    if (!token) {
+      console.log('Socket connection skipped: no access token found');
+      return;
+    }
+
+    // Check if socket is disabled via environment variable
+    if (process.env.NEXT_PUBLIC_DISABLE_SOCKET === 'true') {
+      console.log('Socket connection disabled by environment variable');
+      return;
+    }
+
     try {
       const socket = io(`${API_CONFIG.socketURL}${namespace}`, {
         auth: {
-          userId: user.id,
-          userType: user.userType,
+          token,
         },
         transports: ['websocket', 'polling'],
         timeout: 20000,
@@ -84,6 +98,7 @@ export function SocketProvider({
         reconnection: true,
         reconnectionAttempts: maxReconnectAttempts,
         reconnectionDelay: reconnectDelay,
+        autoConnect: true,
       });
 
       socket.on('connect', () => {
@@ -104,22 +119,22 @@ export function SocketProvider({
       });
 
       socket.on('connect_error', err => {
-        console.error('Socket connection error:', err.message);
+        // Only log once per connection attempt
+        if (reconnectAttempts === 0) {
+          console.warn('Socket connection error:', err.message);
+          // Common causes: backend not running, CORS issue, or network problem
+          if (err.message === 'timeout') {
+            console.log('Socket timeout - backend might not be running or accessible');
+          }
+        }
         setError(err.message);
         setReconnectAttempts(prev => prev + 1);
-
-        if (reconnectAttempts >= maxReconnectAttempts) {
-          toast.error(
-            'Connection failed. Please check your internet connection.'
-          );
-        }
       });
 
       socket.on('reconnect', attemptNumber => {
         console.log('Socket reconnected after', attemptNumber, 'attempts');
         setConnected(true);
         setError(null);
-        setReconnectAttempts(0);
         toast.success('Connection restored');
       });
 
@@ -131,7 +146,7 @@ export function SocketProvider({
       socket.on('reconnect_failed', () => {
         console.error('Socket reconnection failed');
         setError('Reconnection failed');
-        toast.error('Unable to reconnect. Please refresh the page.');
+        toast.error('Unable to reconnect. Please check your connection and refresh the page.');
       });
 
       socket.on('auth_error', err => {
@@ -145,7 +160,7 @@ export function SocketProvider({
       console.error('Failed to create socket connection:', err);
       setError('Failed to initialize connection');
     }
-  }, [isAuthenticated, user, namespace, reconnectAttempts]);
+  }, [isAuthenticated, user, namespace]);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {

@@ -26,6 +26,11 @@ export interface Assessment {
   totalPoints: number;
   weight: number;
 
+  canTakeNow: boolean;
+  attemptCount: number;
+  isAvailable: boolean;
+  maxScore: number;
+
   randomizeQuestions: boolean;
   randomizeAnswers: boolean;
   showResults: boolean;
@@ -37,8 +42,8 @@ export interface Assessment {
 
   questions: Question[];
 
-  settings: AssessmentSettings;
-  antiCheatSettings: AntiCheatSettings;
+  settings: string;
+  antiCheatSettings: string;
 
   createdAt: string;
   updatedAt: string;
@@ -74,7 +79,8 @@ export interface Question {
   updatedBy: string;
 }
 
-export interface QuestionBankItem extends Omit<Question, 'assessmentId' | 'orderIndex'> {
+export interface QuestionBankItem
+  extends Omit<Question, 'assessmentId' | 'orderIndex'> {
   // Additional fields specific to question bank
   usageCount: number;
   averageRating?: number;
@@ -193,7 +199,7 @@ export interface AssessmentAttempt {
   assessmentId: string;
   attemptNumber: number;
   startedAt: string;
-  submittedAt?: string;
+  submittedAt?: Date;
   timeSpent: number;
   score: number;
   maxScore: number;
@@ -216,6 +222,14 @@ export interface AssessmentAttempt {
   gradedBy?: string;
   feedback?: string;
   manualReviewRequired: boolean;
+  autoGraded: boolean;
+  totalPoints: number;
+
+  sessionId: string;
+  attempt: number;
+  passed: boolean;
+  flagged: boolean;
+  flagReason?: string;
 
   createdAt: string;
   updatedAt: string;
@@ -495,4 +509,18 @@ export interface BulkGradingOperation {
       error: string;
     }>;
   };
+}
+
+export interface AssessmentSession {
+  id: string;
+  assessmentId: string;
+  studentId: string;
+  startedAt: string;
+  completedAt?: string;
+  status: 'active' | 'completed' | 'abandoned';
+  currentQuestionIndex: number;
+  questionsGraded: number;
+  totalQuestions: number;
+  timeSpent: number;
+  sessionToken: string;
 }

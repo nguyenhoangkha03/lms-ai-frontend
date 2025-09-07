@@ -78,7 +78,7 @@ const EmailVerificationContent: React.FC = () => {
 
             redirectUrl = hasCompletedOnboarding
               ? ROUTES.STUDENT_DASHBOARD
-              : '/student/onboarding';
+              : '/onboarding';
             break;
           case 'teacher':
             // Check teacher application status
@@ -240,7 +240,7 @@ const EmailVerificationContent: React.FC = () => {
 
                   redirectUrl = hasCompletedOnboarding
                     ? ROUTES.STUDENT_DASHBOARD
-                    : '/student/onboarding';
+                    : '/onboarding';
                   break;
                 case 'teacher':
                   // Check teacher application status

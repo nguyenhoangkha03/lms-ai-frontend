@@ -18,39 +18,39 @@ export function CourseSorting({ value, onChange }: CourseSortingProps) {
   const sortOptions = [
     {
       value: 'popularity',
-      label: 'Phổ biến nhất',
+      label: 'Most Popular',
       icon: TrendingUp,
-      description: 'Dựa trên số lượng đăng ký',
+      description: 'Based on enrollment count',
     },
     {
       value: 'rating',
-      label: 'Đánh giá cao nhất',
+      label: 'Highest Rated',
       icon: Star,
-      description: 'Dựa trên điểm đánh giá',
+      description: 'Based on rating score',
     },
     {
       value: 'newest',
-      label: 'Mới nhất',
+      label: 'Newest',
       icon: Calendar,
-      description: 'Khóa học mới được thêm',
+      description: 'Recently added courses',
     },
     {
       value: 'price_low',
-      label: 'Giá thấp đến cao',
+      label: 'Price: Low to High',
       icon: DollarSign,
-      description: 'Sắp xếp theo giá tăng dần',
+      description: 'Sort by ascending price',
     },
     {
       value: 'price_high',
-      label: 'Giá cao đến thấp',
+      label: 'Price: High to Low',
       icon: DollarSign,
-      description: 'Sắp xếp theo giá giảm dần',
+      description: 'Sort by descending price',
     },
     {
       value: 'duration',
-      label: 'Thời lượng',
+      label: 'Duration',
       icon: Clock,
-      description: 'Sắp xếp theo thời lượng khóa học',
+      description: 'Sort by course duration',
     },
   ];
 
@@ -61,7 +61,7 @@ export function CourseSorting({ value, onChange }: CourseSortingProps) {
       <SelectTrigger className="w-48">
         <div className="flex items-center gap-2">
           {selectedOption && <selectedOption.icon className="h-4 w-4" />}
-          <SelectValue placeholder="Sắp xếp theo" />
+          <SelectValue placeholder="Sort by" />
         </div>
       </SelectTrigger>
       <SelectContent>
@@ -75,9 +75,9 @@ export function CourseSorting({ value, onChange }: CourseSortingProps) {
               <option.icon className="h-4 w-4" />
               <div className="flex flex-col">
                 <span className="font-medium">{option.label}</span>
-                <span className="text-xs text-gray-500">
+                {/* <span className="text-xs text-gray-500">
                   {option.description}
-                </span>
+                </span> */}
               </div>
             </div>
           </SelectItem>

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 export const TeacherApplicationPending: React.FC = () => {
+  const [isClient, setIsClient] = useState(false);
   //   const { toast } = useToast();
   const {
     data: applicationStatus,
@@ -39,6 +40,25 @@ export const TeacherApplicationPending: React.FC = () => {
     isLoading,
     refetch,
   } = useGetTeacherApplicationStatusQuery();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC' // Force consistent timezone
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
 
   const handleRefreshStatus = async () => {
     try {
@@ -155,6 +175,18 @@ export const TeacherApplicationPending: React.FC = () => {
 
   if (!applicationStatus) {
     return null; // RTK Query will handle loading state
+  }
+
+  // Prevent hydration mismatch by only rendering on client
+  if (!isClient) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="space-y-4 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-muted-foreground">Loading application status...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -324,16 +356,7 @@ export const TeacherApplicationPending: React.FC = () => {
             <div className="space-y-2">
               <p className="font-medium">Submitted:</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(applicationStatus.submittedAt).toLocaleDateString(
-                  'en-US',
-                  {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }
-                )}
+                {formatDate(applicationStatus.submittedAt)}
               </p>
             </div>
 
@@ -341,16 +364,7 @@ export const TeacherApplicationPending: React.FC = () => {
               <div className="space-y-2">
                 <p className="font-medium">Reviewed:</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(applicationStatus.reviewedAt).toLocaleDateString(
-                    'en-US',
-                    {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }
-                  )}
+                  {formatDate(applicationStatus.reviewedAt)}
                 </p>
               </div>
             )}

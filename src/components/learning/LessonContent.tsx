@@ -1,19 +1,66 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { LessonContent as LessonContentType } from '@/types/learning';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Target, CheckCircle, Clock, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useTrackLearningActivityMutation } from '@/lib/redux/api/learning-api';
+import { useGetLessonAssessmentsQuery } from '@/lib/redux/api/assessment-api';
+import { AssessmentCard } from '@/components/assessment/AssessmentCard';
+import { BookOpen, Target, CheckCircle, Clock, FileText, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LessonContentProps {
   lesson: LessonContentType;
+  onComplete?: () => void;
   className?: string;
 }
 
-export function LessonContent({ lesson, className }: LessonContentProps) {
+export function LessonContent({ lesson, onComplete, className }: LessonContentProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [trackActivity] = useTrackLearningActivityMutation();
+  let scrollTimeout: NodeJS.Timeout;
+
+  // Get lesson assessments
+  const { data: lessonAssessments = [] } = useGetLessonAssessmentsQuery(lesson.id);
+
+  // Track scrolling activity
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      
+      scrollTimeout = setTimeout(() => {
+        if (contentRef.current) {
+          const element = contentRef.current;
+          const scrollPercentage = Math.round(
+            (element.scrollTop / (element.scrollHeight - element.clientHeight)) * 100
+          );
+          
+          trackActivity({
+            lessonId: lesson.id,
+            activityType: 'content_scroll',
+            metadata: { 
+              scrollPercentage,
+              timestamp: Date.now()
+            }
+          }).catch(console.error);
+        }
+      }, 500); // Throttle scroll events
+    };
+
+    const element = contentRef.current;
+    if (element) {
+      element.addEventListener('scroll', handleScroll);
+      return () => {
+        element.removeEventListener('scroll', handleScroll);
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+      };
+    }
+  }, [lesson.id, trackActivity]);
+
   return (
-    <div className={cn('space-y-6', className)}>
+    <div ref={contentRef} className={cn('space-y-6 max-h-screen overflow-y-auto', className)}>
       {/* Lesson Overview */}
       <Card>
         <CardHeader>
@@ -118,6 +165,48 @@ export function LessonContent({ lesson, className }: LessonContentProps) {
             <div className="prose prose-sm max-w-none whitespace-pre-wrap leading-relaxed text-gray-700">
               {lesson.transcript}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Lesson Assessments */}
+      {lessonAssessments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Bài kiểm tra liên quan ({lessonAssessments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Hoàn thành các bài kiểm tra này để củng cố kiến thức vừa học
+            </p>
+            <div className="space-y-3">
+              {lessonAssessments.map((assessment) => (
+                <AssessmentCard 
+                  key={assessment.id} 
+                  assessment={assessment} 
+                  compact={true}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Complete Lesson Button */}
+      {onComplete && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <h3 className="mb-2 text-lg font-semibold">Lesson Complete!</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Mark this lesson as complete to track your progress
+            </p>
+            <Button onClick={onComplete} className="w-full">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Mark as Complete
+            </Button>
           </CardContent>
         </Card>
       )}

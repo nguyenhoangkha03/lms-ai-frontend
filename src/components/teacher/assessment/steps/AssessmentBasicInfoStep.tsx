@@ -155,6 +155,7 @@ export const AssessmentBasicInfoStep: React.FC<
   const { data: lessonsData, isLoading: isLoadingLessons } = useGetLessonsQuery(
     {
       courseId: data.courseId,
+      limit: 100, // Get all lessons, not just the default limit
     },
     {
       skip: !data.courseId,

@@ -36,6 +36,7 @@ import {
   setCurrentQuestionIndex,
   setAssessmentTimeRemaining,
   completeAssessment,
+  markAssessmentResultsViewed,
 } from '@/lib/redux/slices/onboarding-slice';
 import {
   useGetSkillAssessmentQuery,
@@ -45,7 +46,20 @@ import {
   type AssessmentResponse,
 } from '@/lib/redux/api/onboarding-api';
 
-// Simplified - no props needed
+// Add proper type definitions for options
+interface QuestionOption {
+  id: number | string;
+  text: string;
+  isCorrect?: boolean;
+  feedback?: string;
+  orderIndex?: number;
+}
+
+// Extended type for AssessmentQuestion to handle options properly
+interface ExtendedAssessmentQuestion
+  extends Omit<AssessmentQuestion, 'options'> {
+  options?: string | QuestionOption[] | null;
+}
 
 const categoryIcons: Record<string, React.ReactNode> = {
   technical: <Brain className="h-5 w-5" />,
@@ -163,7 +177,7 @@ export const SkillAssessmentStep: React.FC = () => {
 
       dispatch(completeAssessment(result));
     } catch (error) {
-      console.error('Error submitting assessment:', error);
+      console.error('❌ Error submitting assessment:', error);
     }
   };
 
@@ -273,7 +287,7 @@ export const SkillAssessmentStep: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <QuestionInput
-              question={currentQuestion}
+              question={currentQuestion as ExtendedAssessmentQuestion}
               value={currentAnswer}
               onChange={handleAnswerChange}
             />
@@ -329,89 +343,107 @@ export const SkillAssessmentStep: React.FC = () => {
 };
 
 const QuestionInput: React.FC<{
-  question: AssessmentQuestion;
+  question: ExtendedAssessmentQuestion;
   value: string | number | string[];
   onChange: (value: string | number | string[]) => void;
 }> = ({ question, value, onChange }) => {
-  switch (question.type) {
-    case 'multiple_choice':
-      let parsedOptions = [];
-      if (typeof question.options === 'string') {
+  // Helper function to safely parse options
+  const parseOptions = (
+    options: string | QuestionOption[] | null | undefined
+  ): QuestionOption[] => {
+    if (!options) return [];
+
+    if (Array.isArray(options)) {
+      return options;
+    }
+
+    if (typeof options === 'string') {
+      try {
+        // Try to parse JSON directly first
+        const parsed = JSON.parse(options);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (error) {
+        console.log(
+          'Initial JSON parse failed, attempting to fix malformed JSON...'
+        );
+        console.log('Original options string:', options);
+
         try {
-          // Thử parse JSON trực tiếp trước
-          parsedOptions = JSON.parse(question.options);
-        } catch (error) {
-          console.log('Initial JSON parse failed, attempting to fix malformed JSON...');
-          console.log('Original options string:', question.options);
-          
+          // Try to fix malformed JSON
+          let fixedJson = options;
+
+          // Fix missing quotes around property names and values
+          if (!fixedJson.includes('"id"') && fixedJson.includes('id:')) {
+            fixedJson = fixedJson
+              // Add quotes around property names
+              .replace(/(\w+):/g, '"$1":')
+              // Add quotes around values (except boolean and number)
+              .replace(/:([^,}\]]+)/g, (match, value) => {
+                const trimmed = value.trim();
+                // Don't add quotes if already has quotes or is boolean/number
+                if (
+                  trimmed.startsWith('"') ||
+                  trimmed === 'true' ||
+                  trimmed === 'false' ||
+                  !isNaN(Number(trimmed))
+                ) {
+                  return ':' + trimmed;
+                }
+                return ':"' + trimmed + '"';
+              })
+              // Replace single quotes with double quotes
+              .replace(/'/g, '"');
+          }
+
+          console.log('Fixed JSON string:', fixedJson);
+          const parsedFixed = JSON.parse(fixedJson);
+          console.log('Successfully parsed fixed JSON:', parsedFixed);
+
+          if (Array.isArray(parsedFixed)) {
+            return parsedFixed;
+          }
+        } catch (secondError) {
+          console.error('Failed to parse even after fixing:', secondError);
+
+          // Fallback: extract text content from malformed JSON
           try {
-            // Thử sửa JSON bị lỗi format
-            let fixedJson = question.options;
-            
-            // Fix thiếu dấu ngoặc kép quanh property names và values  
-            if (!fixedJson.includes('"id"') && fixedJson.includes('id:')) {
-              fixedJson = fixedJson
-                // Thêm dấu ngoặc kép quanh property names
-                .replace(/(\w+):/g, '"$1":')
-                // Thêm dấu ngoặc kép quanh values (trừ boolean và number)
-                .replace(/:([^,}\]]+)/g, (match, value) => {
-                  const trimmed = value.trim();
-                  // Không thêm ngoặc kép nếu đã có hoặc là boolean/number
-                  if (trimmed.startsWith('"') || trimmed === 'true' || trimmed === 'false' || !isNaN(trimmed)) {
-                    return ':' + trimmed;
-                  }
-                  return ':"' + trimmed + '"';
-                })
-                // Replace single quotes với double quotes
-                .replace(/'/g, '"');
+            const textMatches = options.match(/text:([^,}]+)/g);
+            if (textMatches) {
+              return textMatches.map((match, index) => {
+                const text = match
+                  .replace('text:', '')
+                  .trim()
+                  .replace(/['"]/g, '');
+                return {
+                  id: index + 1,
+                  text: text,
+                  isCorrect: false,
+                  feedback: '',
+                  orderIndex: index,
+                };
+              });
             }
-            
-            console.log('Fixed JSON string:', fixedJson);
-            parsedOptions = JSON.parse(fixedJson);
-            console.log('Successfully parsed fixed JSON:', parsedOptions);
-            
-          } catch (secondError) {
-            console.error('Failed to parse even after fixing:', secondError);
-            console.error('Fixed string was:', fixedJson);
-            
-            // Fallback: extract text content từ malformed JSON
-            try {
-              const textMatches = question.options.match(/text:([^,}]+)/g);
-              if (textMatches) {
-                parsedOptions = textMatches.map((match, index) => {
-                  const text = match.replace('text:', '').trim();
-                  return {
-                    id: index + 1,
-                    text: text,
-                    isCorrect: false,
-                    feedback: '',
-                    orderIndex: index
-                  };
-                });
-                console.log('Extracted options from malformed JSON:', parsedOptions);
-              } else {
-                // Final fallback
-                parsedOptions = [
-                  { id: 1, text: 'Option A', isCorrect: false },
-                  { id: 2, text: 'Option B', isCorrect: false },
-                  { id: 3, text: 'Option C', isCorrect: false },
-                  { id: 4, text: 'Option D', isCorrect: false }
-                ];
-              }
-            } catch (finalError) {
-              console.error('Final fallback also failed:', finalError);
-              parsedOptions = [
-                { id: 1, text: 'Option A', isCorrect: false },
-                { id: 2, text: 'Option B', isCorrect: false },
-                { id: 3, text: 'Option C', isCorrect: false },
-                { id: 4, text: 'Option D', isCorrect: false }
-              ];
-            }
+          } catch (finalError) {
+            console.error('Final fallback also failed:', finalError);
           }
         }
-      } else if (Array.isArray(question.options)) {
-        parsedOptions = question.options;
       }
+    }
+
+    // Final fallback - return default options
+    return [
+      { id: 1, text: 'Option A', isCorrect: false },
+      { id: 2, text: 'Option B', isCorrect: false },
+      { id: 3, text: 'Option C', isCorrect: false },
+      { id: 4, text: 'Option D', isCorrect: false },
+    ];
+  };
+
+  switch (question.type) {
+    case 'multiple_choice':
+      const parsedOptions = parseOptions(question.options);
 
       return (
         <RadioGroup
@@ -419,11 +451,20 @@ const QuestionInput: React.FC<{
           onValueChange={onChange}
           className="space-y-3"
         >
-          {parsedOptions.map((option: any, index: number) => (
-            <div key={option.id || index} className="flex items-center space-x-2">
-              <RadioGroupItem value={option.text} id={`option-${option.id || index}`} />
-              <Label htmlFor={`option-${option.id || index}`} className="cursor-pointer">
-                {option.text || option}
+          {parsedOptions.map((option, index) => (
+            <div
+              key={option.id || index}
+              className="flex items-center space-x-2"
+            >
+              <RadioGroupItem
+                value={option.text}
+                id={`option-${option.id || index}`}
+              />
+              <Label
+                htmlFor={`option-${option.id || index}`}
+                className="cursor-pointer"
+              >
+                {option.text}
               </Label>
             </div>
           ))}
@@ -555,72 +596,95 @@ const PreAssessmentScreen: React.FC<{
 const AssessmentResults: React.FC<{
   result: any;
   onRetake: () => void;
-}> = ({ result, onRetake }) => (
-  <div className="space-y-8">
-    <div className="space-y-4 text-center">
-      <div className="inline-flex items-center justify-center rounded-full bg-green-100 p-4">
-        <CheckCircle className="h-12 w-12 text-green-600" />
-      </div>
-      <div>
-        <h3 className="mb-2 text-2xl font-bold">Assessment Complete!</h3>
-        <p className="text-muted-foreground">
-          Great job! Here are your results and personalized recommendations.
-        </p>
-      </div>
-    </div>
+}> = ({ result, onRetake }) => {
+  const dispatch = useAppDispatch();
 
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Skill Profile</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="rounded-lg bg-primary/5 p-6 text-center">
-          <div className="mb-1 text-3xl font-bold text-primary">
-            {Math.round(result.overallScore)}/100
-          </div>
-          <p className="text-sm text-muted-foreground">Overall Score</p>
+  const handleContinue = () => {
+    dispatch(markAssessmentResultsViewed());
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="space-y-4 text-center">
+        <div className="inline-flex items-center justify-center rounded-full bg-green-100 p-4">
+          <CheckCircle className="h-12 w-12 text-green-600" />
         </div>
+        <div>
+          <h3 className="mb-2 text-2xl font-bold">Assessment Complete!</h3>
+          <p className="text-muted-foreground">
+            Great job! Here are your results and personalized recommendations.
+          </p>
+        </div>
+      </div>
 
-        <div className="space-y-4">
-          <h4 className="font-medium">Skill Breakdown</h4>
-          {Object.entries(result.skillScores).map(([skill, score]) => (
-            <div key={skill} className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="capitalize">{skill.replace('_', ' ')}</span>
-                <span className="font-medium">
-                  {Math.round(score as number)}/100
-                </span>
-              </div>
-              <Progress value={score as number} className="h-2" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Skill Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="rounded-lg bg-primary/5 p-6 text-center">
+            <div className="mb-1 text-3xl font-bold text-primary">
+              {Math.round(result.overallScore)}/100
             </div>
-          ))}
+            <p className="text-sm text-muted-foreground">Overall Score</p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-medium">Skill Breakdown</h4>
+            {Object.entries(result.skillScores).map(([skill, score]) => (
+              <div key={skill} className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="capitalize">{skill.replace('_', ' ')}</span>
+                  <span className="font-medium">
+                    {Math.round(score as number)}/100
+                  </span>
+                </div>
+                <Progress value={score as number} className="h-2" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Recommendations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {(result.recommendations || []).map((rec: any, index: number) => (
+              <li key={index} className="flex items-start space-x-2">
+                <div className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {rec.title || 'Untitled Course'}
+                  </div>
+                  <div className="text-gray-600">
+                    {rec.description || 'No description available'}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    Level: {rec.level || 'N/A'} | Priority:{' '}
+                    {rec.priority || 'N/A'} | Accuracy:{' '}
+                    {rec.accuracyPercentage || 'N/A'}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <div className="text-center">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="mb-2 font-medium text-blue-800">
+            🎉 Assessment Completed!
+          </div>
+          <div className="text-sm text-blue-600">
+            Your personalized learning recommendations are ready. Use the "Next"
+            button below to proceed to the next step.
+          </div>
         </div>
-      </CardContent>
-    </Card>
-
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Recommendations</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-2">
-          {result.recommendations.map((rec: string, index: number) => (
-            <li key={index} className="flex items-start space-x-2">
-              <div className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
-              <span className="text-sm">{rec}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-
-    <div className="flex justify-center">
-      <Button variant="outline" onClick={onRetake}>
-        Retake Assessment
-      </Button>
+      </div>
     </div>
-    <div className="text-center text-sm text-muted-foreground">
-      Assessment completed! Click "Next" below to continue.
-    </div>
-  </div>
-);
+  );
+};

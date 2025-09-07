@@ -8,6 +8,7 @@ import {
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
   useIsInWishlistQuery,
+  useGetEnrollmentStatusQuery,
 } from '@/lib/redux/api/course-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
   BookOpen,
   Award,
   TrendingUp,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
@@ -43,6 +45,10 @@ export function CourseCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const { data: wishlistStatus } = useIsInWishlistQuery(course.id, {
+    skip: !user,
+  });
+
+  const { data: enrollmentStatus } = useGetEnrollmentStatusQuery(course.id, {
     skip: !user,
   });
 
@@ -86,7 +92,7 @@ export function CourseCard({
   };
 
   const formatPrice = () => {
-    if (course.isFree) return 'Miễn phí';
+    if (course.isFree) return 'Free';
 
     const formatter = new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -114,15 +120,15 @@ export function CourseCard({
   const getLevelText = () => {
     switch (course.level) {
       case 'beginner':
-        return 'Cơ bản';
+        return 'Beginner';
       case 'intermediate':
-        return 'Trung cấp';
+        return 'Intermediate';
       case 'advanced':
-        return 'Nâng cao';
+        return 'Advanced';
       case 'expert':
-        return 'Chuyên gia';
+        return 'Expert';
       case 'all_levels':
-        return 'Mọi cấp độ';
+        return 'All Levels';
       default:
         return course.level;
     }
@@ -137,8 +143,8 @@ export function CourseCard({
         )}
       >
         <div className="flex flex-col md:flex-row">
-          <div className="relative h-48 md:h-auto md:w-80">
-            <Link href={`/courses/${course.slug}`}>
+          <div className="relative h-48 md:h-auto md:w-80 overflow-hidden">
+            <Link href={`/student/courses/${course.slug}`}>
               <Image
                 src={course.thumbnailUrl}
                 alt={course.title}
@@ -152,22 +158,33 @@ export function CourseCard({
               )}
             </Link>
 
-            {/* Badges */}
+            {/* Enrolled Ribbon */}
+            {enrollmentStatus?.isEnrolled && (
+              <div className="absolute -right-8 top-6 z-20">
+                <div className="relative">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-10 py-1.5 text-xs font-bold text-white shadow-lg transform rotate-45 origin-center min-w-[120px] text-center">
+                    ENROLLED
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Other Badges */}
             <div className="absolute left-3 top-3 flex flex-col gap-2">
               {course.featured && (
                 <Badge className="bg-yellow-500 text-white">
                   <Star className="mr-1 h-3 w-3" />
-                  Nổi bật
+                  Featured
                 </Badge>
               )}
               {course.bestseller && (
                 <Badge className="bg-orange-500 text-white">
                   <TrendingUp className="mr-1 h-3 w-3" />
-                  Bán chạy
+                  Bestseller
                 </Badge>
               )}
               {course.isNew && (
-                <Badge className="bg-green-500 text-white">Mới</Badge>
+                <Badge className="bg-green-500 text-white">New</Badge>
               )}
             </div>
 
@@ -216,7 +233,7 @@ export function CourseCard({
               </div>
             </div>
 
-            <Link href={`/courses/${course.slug}`}>
+            <Link href={`/student/courses/${course.slug}`}>
               <h3 className="mb-2 line-clamp-2 text-lg font-semibold transition-colors hover:text-blue-600">
                 {course.title}
               </h3>
@@ -250,20 +267,24 @@ export function CourseCard({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image
-                  src={course.teacher.avatar || '/images/default-avatar.png'}
-                  alt={course.teacher.name}
+                  className="h-[50px] w-[50px] rounded-full border border-gray-200 object-cover"
+                  src={
+                    course.teacher?.avatarUrl || '/images/default-avatar.png'
+                  }
+                  alt={course.teacher?.displayName || 'Teacher'}
                   width={32}
                   height={32}
-                  className="rounded-full"
                 />
                 <div>
-                  <p className="text-sm font-medium">{course.teacher.name}</p>
-                  {course.teacher.rating && (
+                  <p className="text-sm font-medium">
+                    {course.teacher?.displayName || 'Unknown Teacher'}
+                  </p>
+                  {course.teacher?.rating && (
                     <div className="flex items-center gap-1">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                       <span className="text-xs text-gray-600">
-                        {course.teacher.rating} ({course.teacher.totalStudents}{' '}
-                        học viên)
+                        {course.teacher.rating} (
+                        {course.teacher.totalStudents || 0} học viên)
                       </span>
                     </div>
                   )}
@@ -295,8 +316,8 @@ export function CourseCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative h-48">
-        <Link href={`/courses/${course.slug}`}>
+      <div className="relative h-48 overflow-hidden">
+        <Link href={`/student/courses/${course.slug}`}>
           <Image
             src={course.thumbnailUrl}
             alt={course.title}
@@ -315,22 +336,33 @@ export function CourseCard({
           )}
         </Link>
 
-        {/* Badges */}
+        {/* Enrolled Ribbon */}
+        {enrollmentStatus?.isEnrolled && (
+          <div className="absolute -right-8 top-6 z-20">
+            <div className="relative">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-10 py-1.5 text-xs font-bold text-white shadow-lg transform rotate-45 origin-center min-w-[120px] text-center">
+                ENROLLED
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Other Badges */}
         <div className="absolute left-3 top-3 flex flex-col gap-2">
           {course.featured && (
             <Badge className="bg-yellow-500 text-white">
               <Star className="mr-1 h-3 w-3" />
-              Nổi bật
+              Featured
             </Badge>
           )}
           {course.bestseller && (
             <Badge className="bg-orange-500 text-white">
               <TrendingUp className="mr-1 h-3 w-3" />
-              Bán chạy
+              Bestseller
             </Badge>
           )}
           {course.isNew && (
-            <Badge className="bg-green-500 text-white">Mới</Badge>
+            <Badge className="bg-green-500 text-white">New</Badge>
           )}
         </div>
 
@@ -363,7 +395,7 @@ export function CourseCard({
       <CardContent className="p-4">
         <div className="mb-2 flex items-start justify-between">
           <div className="flex-1">
-            <Link href={`/courses/${course.slug}`}>
+            <Link href={`/student/courses/${course.slug}`}>
               <h3 className="mb-1 line-clamp-2 text-lg font-semibold transition-colors hover:text-blue-600">
                 {course.title}
               </h3>
@@ -393,14 +425,14 @@ export function CourseCard({
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Image
-              src={course.teacher.avatar || '/images/default-avatar.png'}
-              alt={course.teacher.name}
+              src={course.teacher?.avatarUrl || '/images/default-avatar.png'}
+              alt={course.teacher?.displayName || 'Teacher'}
               width={24}
               height={24}
-              className="rounded-full"
+              className="h-[40px] w-[40px] rounded-full border border-gray-200 object-cover"
             />
-            <span className="truncate text-sm text-gray-600">
-              {course.teacher.name}
+            <span className="text-sm text-gray-600">
+              {course.teacher?.displayName || 'Unknown Teacher'}
             </span>
           </div>
 
@@ -434,7 +466,7 @@ export function CourseCard({
           </div>
 
           <Button size="sm" asChild>
-            <Link href={`/courses/${course.slug}`}>Xem chi tiết</Link>
+            <Link href={`/student/courses/${course.slug}`}>View details</Link>
           </Button>
         </div>
       </CardContent>

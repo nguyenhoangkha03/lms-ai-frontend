@@ -55,6 +55,7 @@ export interface AssessmentResult {
   overallScore: number;
   recommendations: string[];
   completedAt: string;
+  hasViewedResults?: boolean;
 }
 
 export interface LearningPreferences {
@@ -151,7 +152,11 @@ export const onboardingApi = baseApi.injectEndpoints({
         method: 'POST',
         body: { responses, categoryId },
       }),
-      invalidatesTags: ['AssessmentResult', 'OnboardingProgress'],
+      transformResponse: (response: any) => {
+        console.log('🔍 submitSkillAssessment API response:', response);
+        return response;
+      },
+      invalidatesTags: ['AssessmentResult'],
     }),
 
     getAssessmentResult: builder.query<AssessmentResult, string>({

@@ -1,28 +1,31 @@
+import { Course } from '../types';
+
 export interface CartItem {
   id: string;
   courseId: string;
   courseName: string;
   courseSlug: string;
-  thumbnailUrl: string;
-  teacherName: string;
+  thumbnailUrl?: string;
+  teacherName?: string;
   originalPrice: number;
   discountedPrice?: number;
   currency: string;
-  level: string;
-  rating: number;
-  totalRatings: number;
-  durationHours: number;
-  totalLessons: number;
+  course: Course;
+  level?: string;
+  rating?: number;
+  totalRatings?: number;
+  durationHours?: number;
+  totalLessons?: number;
   addedAt: string;
   pricingModel: 'paid' | 'subscription' | 'freemium';
   subscriptionType?: 'monthly' | 'yearly';
 }
 
 export interface CartSummary {
-  subtotal: number;
-  discount: number;
+  finalPrice: number;
+  totalDiscount: number;
   tax: number;
-  total: number;
+  totalValue: number;
   currency: string;
   appliedCoupon?: {
     code: string;

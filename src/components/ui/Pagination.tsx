@@ -74,9 +74,9 @@ export function Pagination({
       {/* Page Info */}
       {showInfo && (
         <div className="text-center text-sm text-gray-600">
-          Hiển thị <span className="font-medium">{showInfo.start}</span> đến{' '}
-          <span className="font-medium">{showInfo.end}</span> trong{' '}
-          <span className="font-medium">{showInfo.total}</span> kết quả
+          Show <span className="font-medium">{showInfo.start}</span> from{' '}
+          <span className="font-medium">{showInfo.end}</span> of{' '}
+          <span className="font-medium">{showInfo.total}</span> results
         </div>
       )}
 
@@ -101,7 +101,7 @@ export function Pagination({
           disabled={currentPage === 1}
         >
           <ChevronLeft className="h-4 w-4" />
-          <span className="ml-1 hidden sm:inline">Trước</span>
+          <span className="ml-1 hidden sm:inline">Previous</span>
         </Button>
 
         {/* Page Numbers */}
@@ -137,7 +137,7 @@ export function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
-          <span className="mr-1 hidden sm:inline">Sau</span>
+          <span className="mr-1 hidden sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
 
@@ -155,7 +155,7 @@ export function Pagination({
 
       {/* Mobile Page Info */}
       <div className="text-center text-sm text-gray-600 sm:hidden">
-        Trang {currentPage} / {totalPages}
+        Page {currentPage} / {totalPages}
       </div>
     </div>
   );

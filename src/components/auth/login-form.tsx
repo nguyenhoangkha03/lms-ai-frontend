@@ -38,6 +38,7 @@ export const LoginForm: React.FC = () => {
   const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   const redirectUrl = searchParams.get('redirect');
 
@@ -56,8 +57,6 @@ export const LoginForm: React.FC = () => {
     try {
       setError(null);
       const result = await login(data).unwrap();
-      console.log('✅ Login successful:', result);
-      console.log('🔍 Processing login result...');
 
       if (result.twoFactorEnabled) {
         console.log('🔐 2FA required, redirecting...');
@@ -96,16 +95,12 @@ export const LoginForm: React.FC = () => {
         switch (result.user?.userType) {
           case 'admin':
             finalRedirectUrl = ROUTES.ADMIN_DASHBOARD;
-            console.log('👑 Admin login - redirecting to admin dashboard');
             break;
           case 'teacher':
             const isApproved = result.user?.teacherProfile?.isApproved;
             finalRedirectUrl = isApproved
               ? ROUTES.TEACHER_DASHBOARD
               : '/teacher-application-pending';
-            console.log(
-              `🎓 Teacher login - Approved: ${isApproved}, redirecting to: ${finalRedirectUrl}`
-            );
             break;
           case 'student':
           default:
@@ -113,13 +108,9 @@ export const LoginForm: React.FC = () => {
             const hasCompletedOnboarding =
               result.user?.studentProfile?.onboardingCompleted || false; // Primary method
             // result.user?.lastLoginAt !== null; // Fallback: if has logged in before
-            console.log('hasCompletedOnboarding', hasCompletedOnboarding);
             finalRedirectUrl = hasCompletedOnboarding
-              ? '/dashboard' // Unified dashboard route
+              ? '/student' // Unified dashboard route
               : '/onboarding';
-            console.log(
-              `🎓 Student login - Onboarding completed: ${hasCompletedOnboarding}, redirecting to: ${finalRedirectUrl}`
-            );
             break;
         }
       } else if (result.user?.userType === 'teacher') {
@@ -127,30 +118,43 @@ export const LoginForm: React.FC = () => {
         const isApproved = result.user?.teacherProfile?.isApproved;
         if (!isApproved) {
           finalRedirectUrl = '/teacher-application-pending';
-          console.log(
-            `🎓 Teacher login - Not approved, overriding redirect to: ${finalRedirectUrl}`
-          );
         }
       }
 
-      console.log('🚀 Final redirect URL:', finalRedirectUrl);
-
-      console.log('🚀 Executing immediate redirect to:', finalRedirectUrl);
-
       router.push(finalRedirectUrl);
     } catch (error: any) {
-      console.log('❌ Login failed:', error);
+      // Improved error message for better UX - following Facebook/Google pattern
       const errorMessage =
         error?.data?.message ||
         error?.message ||
-        'Login failed. Please try again.';
-      setError(errorMessage);
+        'Email or password is incorrect. Please try again.';
+
+      // Set user-friendly error message
+      if (
+        errorMessage.toLowerCase().includes('invalid credentials') ||
+        errorMessage.toLowerCase().includes('unauthorized')
+      ) {
+        setError(
+          'Email or password is incorrect. Please check your login information again.'
+        );
+      } else if (errorMessage.toLowerCase().includes('account is suspended')) {
+        setError(
+          'Your account has been temporarily locked. Please contact support.'
+        );
+      } else if (errorMessage.toLowerCase().includes('account is inactive.')) {
+        setError(
+          'Account not activated. Please check your verification email.'
+        );
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
-      console.log(`🔄 Initiating ${provider} OAuth login...`);
+      setSocialLoading(true);
+      setError(null);
 
       // Get the correct OAuth URL from config
       const oauthUrl =
@@ -170,6 +174,7 @@ export const LoginForm: React.FC = () => {
     } catch (error) {
       console.error(`❌ Failed to initiate ${provider} login:`, error);
       setError(`Failed to login with ${provider}. Please try again.`);
+      setSocialLoading(false);
     }
   };
 
@@ -179,7 +184,7 @@ export const LoginForm: React.FC = () => {
       <SocialLoginButtons
         onGoogleLogin={() => handleSocialLogin('google')}
         onFacebookLogin={() => handleSocialLogin('facebook')}
-        isLoading={isLoading}
+        isLoading={socialLoading}
       />
 
       <div className="relative">
@@ -197,9 +202,12 @@ export const LoginForm: React.FC = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+            <Alert
+              variant="destructive"
+              className="border-red-200 bg-red-50 text-red-800"
+            >
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
 

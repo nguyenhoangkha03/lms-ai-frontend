@@ -252,7 +252,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     // Get comprehensive progress dashboard data
     getProgressDashboard: builder.query<ProgressDashboardData, void>({
-      query: () => '/student/analytics/dashboard',
+      query: () => '/analytics/student/dashboard',
       providesTags: ['StudentAnalytics', 'LearningGoals', 'Achievements'],
     }),
 
@@ -266,7 +266,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
       }
     >({
       query: ({ courseId, period = 'month', limit = 30 }) => ({
-        url: '/student/analytics',
+        url: '/analytics/student',
         params: { courseId, period, limit },
       }),
       providesTags: ['StudentAnalytics'],
@@ -278,7 +278,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
       { period?: string; courseIds?: string[] }
     >({
       query: ({ period = 'month', courseIds }) => ({
-        url: '/student/analytics/performance',
+        url: '/analytics/student/performance',
         params: { period, courseIds: courseIds?.join(',') },
       }),
       providesTags: ['StudentAnalytics'],
@@ -290,7 +290,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
       { status?: string; category?: string }
     >({
       query: ({ status, category }) => ({
-        url: '/student/goals',
+        url: '/student/dashboard/goals',
         params: { status, category },
       }),
       providesTags: ['LearningGoals'],
@@ -298,7 +298,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
 
     createLearningGoal: builder.mutation<LearningGoal, Partial<LearningGoal>>({
       query: goalData => ({
-        url: '/student/goals',
+        url: '/student/dashboard/goals',
         method: 'POST',
         body: goalData,
       }),
@@ -331,14 +331,14 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
       { category?: string; unlocked?: boolean }
     >({
       query: ({ category, unlocked }) => ({
-        url: '/student/achievements',
+        url: '/student/dashboard/achievements',
         params: { category, unlocked },
       }),
       providesTags: ['Achievements'],
     }),
 
     getAchievementProgress: builder.query<Achievement[], void>({
-      query: () => '/student/achievements/progress',
+      query: () => '/student/dashboard/achievements',
       providesTags: ['Achievements'],
     }),
 
@@ -352,13 +352,13 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
 
     // Study Streak
     getStudyStreak: builder.query<StudyStreak, void>({
-      query: () => '/student/analytics/streak',
+      query: () => '/analytics/student/streak',
       providesTags: ['StudentAnalytics'],
     }),
 
     updateStreakGoal: builder.mutation<StudyStreak, { goal: number }>({
       query: ({ goal }) => ({
-        url: '/student/analytics/streak/goal',
+        url: '/analytics/student/streak/goal',
         method: 'PATCH',
         body: { goal },
       }),
@@ -371,7 +371,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
       { type?: string; limit?: number }
     >({
       query: ({ type, limit = 5 }) => ({
-        url: '/student/analytics/ai-insights',
+        url: '/analytics/student/ai-insights',
         params: { type, limit },
       }),
       providesTags: ['AIInsights'],
@@ -382,7 +382,7 @@ export const studentAnalyticsApi = baseApi.injectEndpoints({
       { analysisType?: string[] }
     >({
       query: ({ analysisType }) => ({
-        url: '/student/analytics/ai-insights/generate',
+        url: '/analytics/student/ai-insights/generate',
         method: 'POST',
         body: { analysisType },
       }),

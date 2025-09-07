@@ -11,7 +11,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Star } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Star,
+  Filter,
+  RotateCcw,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CourseFiltersProps {
@@ -42,128 +48,186 @@ export function CourseFilters({
   };
 
   const levels = [
-    { value: 'beginner', label: 'Cơ bản' },
-    { value: 'intermediate', label: 'Trung cấp' },
-    { value: 'advanced', label: 'Nâng cao' },
-    { value: 'expert', label: 'Chuyên gia' },
-    { value: 'all_levels', label: 'Mọi cấp độ' },
+    { value: 'beginner', label: 'Beginner' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'advanced', label: 'Advanced' },
+    { value: 'expert', label: 'Expert' },
+    { value: 'all_levels', label: 'All Levels' },
   ];
 
   const durations = [
-    { value: 'short', label: 'Ngắn (< 3 giờ)' },
-    { value: 'medium', label: 'Trung bình (3-10 giờ)' },
-    { value: 'long', label: 'Dài (> 10 giờ)' },
+    { value: 'short', label: 'Short', subtitle: '< 3 hours' },
+    { value: 'medium', label: 'Medium', subtitle: '3-10 hours' },
+    { value: 'long', label: 'Long', subtitle: '> 10 hours' },
   ];
 
   const features = [
-    { value: 'certificate', label: 'Có chứng chỉ' },
-    { value: 'captions', label: 'Có phụ đề' },
-    { value: 'assignments', label: 'Có bài tập' },
-    { value: 'downloadable', label: 'Tải tài liệu được' },
-    { value: 'lifetime_access', label: 'Truy cập trọn đời' },
+    { value: 'certificate', label: 'Certificate included' },
+    { value: 'captions', label: 'Subtitles available' },
+    { value: 'assignments', label: 'Has assignments' },
+    { value: 'downloadable', label: 'Downloadable resources' },
+    { value: 'lifetime_access', label: 'Lifetime access' },
   ];
 
   const FilterSection = ({
     title,
     children,
     sectionKey,
+    count,
   }: {
     title: string;
     children: React.ReactNode;
     sectionKey: keyof typeof expandedSections;
+    count?: number;
   }) => (
-    <Collapsible
-      open={expandedSections[sectionKey]}
-      onOpenChange={() => toggleSection(sectionKey)}
-    >
-      <CollapsibleTrigger className="flex w-full items-center justify-between py-3 text-left font-medium hover:text-blue-600">
-        {title}
-        {expandedSections[sectionKey] ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pb-4">{children}</CollapsibleContent>
-    </Collapsible>
+    <div className="rounded-xl border border-gray-100 bg-white transition-all duration-200 hover:border-gray-200 hover:shadow-sm">
+      <Collapsible
+        open={expandedSections[sectionKey]}
+        onOpenChange={() => toggleSection(sectionKey)}
+      >
+        <CollapsibleTrigger className="group flex w-full items-center justify-between p-4 text-left">
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-gray-900">{title}</span>
+            {count !== undefined && (
+              <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                {count}
+              </span>
+            )}
+          </div>
+          <div
+            className={cn(
+              'rounded-lg p-1.5 transition-all duration-200',
+              expandedSections[sectionKey]
+                ? 'bg-gray-100 text-gray-700'
+                : 'text-gray-400 group-hover:bg-gray-50 group-hover:text-gray-600'
+            )}
+          >
+            {expandedSections[sectionKey] ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="px-4 pb-4">
+          <div className="space-y-2">{children}</div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 
+  // Debug categories data
+  console.log('📂 Categories Data:', categories);
+  console.log('🔍 Filters:', filters);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-1">
+      {/* Header */}
+      <div className="mb-6 flex items-center gap-2">
+        <Filter className="h-5 w-5 text-gray-600" />
+        <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+      </div>
+
       {/* Categories */}
-      <FilterSection title="Danh mục" sectionKey="category">
-        <div className="max-h-60 space-y-2 overflow-y-auto">
-          <div className="flex items-center space-x-2">
+      <FilterSection
+        title="Category"
+        sectionKey="category"
+        count={categories?.filter(cat => cat.isActive !== false).length || 0}
+      >
+        <div className="max-h-60 space-y-1 overflow-y-auto">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50">
             <Checkbox
               id="all-categories"
               checked={!filters.category}
               onCheckedChange={() => onFiltersChange({ category: undefined })}
+              className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
             />
-            <Label htmlFor="all-categories" className="text-sm">
-              Tất cả danh mục
-            </Label>
-          </div>
-          {categories
-            .filter(cat => cat.isActive && cat.courseCount > 0)
-            .map(category => (
-              <div key={category.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`category-${category.id}`}
-                  checked={filters.category === category.slug}
-                  onCheckedChange={checked =>
-                    onFiltersChange({
-                      category: checked ? category.slug : undefined,
-                    })
-                  }
-                />
-                <Label
-                  htmlFor={`category-${category.id}`}
-                  className="flex w-full items-center justify-between text-sm"
+            <span className="text-sm font-medium text-gray-700">
+              All Categories
+            </span>
+          </label>
+          {categories && categories.length > 0 ? (
+            categories
+              .filter(cat => cat.isActive !== false)
+              .map(category => (
+                <label
+                  key={category.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
                 >
-                  <span>{category.name}</span>
-                  <span className="text-xs text-gray-500">
-                    ({category.courseCount})
-                  </span>
-                </Label>
-              </div>
-            ))}
+                  <Checkbox
+                    id={`category-${category.id}`}
+                    checked={filters.category === category.slug}
+                    onCheckedChange={checked =>
+                      onFiltersChange({
+                        category: checked ? category.slug : undefined,
+                      })
+                    }
+                    className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
+                  />
+                  <div className="flex w-full items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      {category.name}
+                    </span>
+                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                      {category.courseCount || 0}
+                    </span>
+                  </div>
+                </label>
+              ))
+          ) : (
+            <div className="rounded-lg bg-gray-50 p-3 text-center text-sm text-gray-500">
+              No categories available
+            </div>
+          )}
         </div>
       </FilterSection>
 
       {/* Price */}
-      <FilterSection title="Giá" sectionKey="price">
+      <FilterSection title="Price" sectionKey="price">
         <RadioGroup
           value={filters.price || 'all'}
           onValueChange={value =>
             onFiltersChange({ price: value as 'free' | 'paid' | 'all' })
           }
+          className="space-y-1"
         >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="all" id="price-all" />
-            <Label htmlFor="price-all" className="text-sm">
-              Tất cả
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="free" id="price-free" />
-            <Label htmlFor="price-free" className="text-sm">
-              Miễn phí
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="paid" id="price-paid" />
-            <Label htmlFor="price-paid" className="text-sm">
-              Có phí
-            </Label>
-          </div>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50">
+            <RadioGroupItem
+              value="all"
+              id="price-all"
+              className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              All Prices
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-green-50">
+            <RadioGroupItem
+              value="free"
+              id="price-free"
+              className="data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600"
+            />
+            <span className="text-sm font-medium text-green-700">Free</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-blue-50">
+            <RadioGroupItem
+              value="paid"
+              id="price-paid"
+              className="data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+            />
+            <span className="text-sm font-medium text-blue-700">Paid</span>
+          </label>
         </RadioGroup>
       </FilterSection>
 
       {/* Level */}
-      <FilterSection title="Cấp độ" sectionKey="level">
-        <div className="space-y-2">
+      <FilterSection title="Level" sectionKey="level">
+        <div className="space-y-1">
           {levels.map(level => (
-            <div key={level.value} className="flex items-center space-x-2">
+            <label
+              key={level.value}
+              className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
+            >
               <Checkbox
                 id={`level-${level.value}`}
                 checked={filters.level?.includes(level.value) || false}
@@ -172,20 +236,24 @@ export function CourseFilters({
                     level: checked ? [level.value] : undefined,
                   })
                 }
+                className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
               />
-              <Label htmlFor={`level-${level.value}`} className="text-sm">
+              <span className="text-sm font-medium text-gray-700">
                 {level.label}
-              </Label>
-            </div>
+              </span>
+            </label>
           ))}
         </div>
       </FilterSection>
 
       {/* Rating */}
-      <FilterSection title="Đánh giá" sectionKey="rating">
-        <div className="space-y-2">
+      <FilterSection title="Rating" sectionKey="rating">
+        <div className="space-y-1">
           {[5, 4, 3, 2].map(rating => (
-            <div key={rating} className="flex items-center space-x-2">
+            <label
+              key={rating}
+              className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
+            >
               <Checkbox
                 id={`rating-${rating}`}
                 checked={filters.rating === rating}
@@ -194,36 +262,39 @@ export function CourseFilters({
                     rating: checked ? rating : undefined,
                   })
                 }
+                className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
               />
-              <Label
-                htmlFor={`rating-${rating}`}
-                className="flex items-center gap-1 text-sm"
-              >
+              <div className="flex items-center gap-2">
                 <div className="flex items-center">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
                       className={cn(
-                        'h-3 w-3',
+                        'h-4 w-4',
                         i < rating
                           ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
+                          : 'fill-gray-200 text-gray-200'
                       )}
                     />
                   ))}
                 </div>
-                <span>từ {rating} sao trở lên</span>
-              </Label>
-            </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {rating}+ stars
+                </span>
+              </div>
+            </label>
           ))}
         </div>
       </FilterSection>
 
       {/* Duration */}
-      <FilterSection title="Thời lượng" sectionKey="duration">
-        <div className="space-y-2">
+      <FilterSection title="Duration" sectionKey="duration">
+        <div className="space-y-1">
           {durations.map(duration => (
-            <div key={duration.value} className="flex items-center space-x-2">
+            <label
+              key={duration.value}
+              className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
+            >
               <Checkbox
                 id={`duration-${duration.value}`}
                 checked={filters.duration === duration.value}
@@ -232,40 +303,50 @@ export function CourseFilters({
                     duration: checked ? (duration.value as any) : undefined,
                   })
                 }
+                className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
               />
-              <Label htmlFor={`duration-${duration.value}`} className="text-sm">
-                {duration.label}
-              </Label>
-            </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-700">
+                  {duration.label}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {duration.subtitle}
+                </span>
+              </div>
+            </label>
           ))}
         </div>
       </FilterSection>
 
       {/* Features */}
-      <FilterSection title="Tính năng" sectionKey="features">
-        <div className="space-y-2">
+      <FilterSection title="Features" sectionKey="features">
+        <div className="space-y-1">
           {features.map(feature => (
-            <div key={feature.value} className="flex items-center space-x-2">
+            <label
+              key={feature.value}
+              className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
+            >
               <Checkbox
                 id={`feature-${feature.value}`}
                 checked={false} // You can implement this based on your needs
                 onCheckedChange={checked => {
                   // Handle features filter
                 }}
+                className="data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
               />
-              <Label htmlFor={`feature-${feature.value}`} className="text-sm">
+              <span className="text-sm font-medium text-gray-700">
                 {feature.label}
-              </Label>
-            </div>
+              </span>
+            </label>
           ))}
         </div>
       </FilterSection>
 
       {/* Clear All Button */}
-      <div className="border-t pt-4">
+      <div className="pt-4">
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full border-gray-200 text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
           onClick={() =>
             onFiltersChange({
               category: undefined,
@@ -276,7 +357,8 @@ export function CourseFilters({
             })
           }
         >
-          Xóa tất cả bộ lọc
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Clear All Filters
         </Button>
       </div>
     </div>

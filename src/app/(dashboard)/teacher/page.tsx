@@ -26,6 +26,9 @@ import {
   Settings,
   Bell,
   Search,
+  Sparkles,
+  Heart,
+  Plus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +52,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
+import { cn } from '@/lib/utils';
 
 // Import teacher dashboard components
 import { ClassOverviewWidget } from '@/components/teacher/dashboard/class-overview-widget';
@@ -92,7 +96,7 @@ export default function TeacherDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [timeFilter, setTimeFilter] = useState('week');
 
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, checkAuth } = useAuth();
 
   console.log('🔍 Auth Debug in Dashboard:', {
     user: user,
@@ -105,12 +109,38 @@ export default function TeacherDashboardPage() {
   const currentUser = user;
   const isApproved = currentUser?.teacherProfile?.isApproved;
 
+  // Add refresh handler for debugging
+  const handleRefreshAuth = async () => {
+    console.log('🔄 Manually refreshing auth data...');
+    try {
+      await checkAuth();
+      console.log('✅ Auth data refreshed');
+    } catch (error) {
+      console.error('❌ Failed to refresh auth:', error);
+    }
+  };
+
   // Only redirect if we have confirmed user data and teacher is not approved
   // Prevent redirect during auth loading or token refresh
   if (currentUser && !isLoading && isApproved === false) {
     console.log('🚫 Teacher not approved, redirecting to pending page');
-    router.push('/teacher-application-pending');
-    return null;
+    console.log('🔍 Current teacherProfile:', currentUser.teacherProfile);
+    
+    // Add a temp button to refresh auth before redirecting
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p>Teacher approval status mismatch detected</p>
+          <Button onClick={handleRefreshAuth}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh Auth Data
+          </Button>
+          <Button variant="outline" onClick={() => router.push('/teacher-application-pending')}>
+            Go to Pending Page
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Show loading while checking approval status or during auth loading
@@ -227,246 +257,100 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Improved Clean Header */}
-      <div className="sticky top-0 z-40 border-b border-white/20 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80">
-        {/* Top Row - Logo and Welcome */}
-        <div className="container mx-auto border-b border-slate-200/50 px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md">
-                <GraduationCap className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800 dark:text-white">
-                  LMS Teacher Portal
-                </h1>
-              </div>
-            </div>
+    <div className="space-y-8">
+      {/* Welcome Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-8 text-white shadow-2xl"
+      >
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+        
+        {/* Floating Elements */}
+        <motion.div
+          className="absolute right-8 top-8 h-32 w-32 rounded-full bg-white/10 blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.2, 0.1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
+        <motion.div
+          className="absolute bottom-8 left-8 h-24 w-24 rounded-full bg-white/10 blur-2xl"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.15, 0.3, 0.15],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: 1,
+          }}
+        />
 
-            <div className="flex items-center space-x-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Welcome back,{' '}
-                <span className="font-medium">
-                  {currentUser?.firstName || 'Teacher'}
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row - Navigation and Actions */}
-        <div className="container mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
-            {/* Main Navigation */}
-            <nav className="flex items-center space-x-1">
-              <Button
-                onClick={() => router.push('/teacher/courses')}
-                variant="ghost"
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+        <div className="relative">
+          <div className="mb-6 flex items-center space-x-4">
+            <motion.div
+              whileHover={{ rotate: 15, scale: 1.1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Avatar className="h-20 w-20 border-4 border-white/20 shadow-xl">
+                <AvatarImage src={currentUser?.avatarUrl} />
+                <AvatarFallback className="bg-white/10 text-2xl font-bold backdrop-blur">
+                  {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+            </motion.div>
+            
+            <div>
+              <motion.h1
+                className="text-4xl font-bold"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                <BookOpen className="mr-2 h-4 w-4" />
-                Courses
-              </Button>
-              <Button
-                onClick={() => router.push('/teacher/students')}
-                variant="ghost"
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+                Welcome back, {currentUser?.firstName}! 👋
+              </motion.h1>
+              <motion.p
+                className="text-xl text-purple-100"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
               >
-                <Users className="mr-2 h-4 w-4" />
-                Students
-              </Button>
-              <Button
-                onClick={() => router.push('/teacher/assignments')}
-                variant="ghost"
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-              >
-                <ClipboardList className="mr-2 h-4 w-4" />
-                Assignments
-              </Button>
-              <Button
-                onClick={() => router.push('/teacher/submissions')}
-                variant="ghost"
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-              >
-                <FileCheck className="mr-2 h-4 w-4" />
-                Submissions
-              </Button>
-              <Button
-                onClick={() => router.push('/teacher/analytics')}
-                variant="ghost"
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Analytics
-              </Button>
-            </nav>
-
-            {/* Right side - Search, Time Filter, Actions */}
-            <div className="flex items-center space-x-3">
-              {/* Search Bar */}
-              <div className="relative hidden lg:flex">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search courses, students..."
-                  className="w-64 rounded-lg border border-slate-200 bg-white/80 py-2 pl-10 pr-4 text-sm backdrop-blur-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Time Filter */}
-              <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="h-9 w-32 border-slate-200 bg-white/80 text-sm shadow-sm backdrop-blur-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="quarter">This Quarter</SelectItem>
-                  <SelectItem value="year">This Year</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Quick Actions */}
-              <div className="flex items-center space-x-2">
-                {/* Messages */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative p-2 hover:bg-slate-100/70"
-                  onClick={() => router.push('/teacher/messages')}
-                >
-                  <MessageSquare className="h-4 w-4 text-slate-600" />
-                  <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-blue-500 p-0 text-xs text-white">
-                    2
-                  </Badge>
-                </Button>
-
-                {/* Notifications */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative p-2 hover:bg-slate-100/70"
-                >
-                  <Bell className="h-4 w-4 text-slate-600" />
-                  <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-red-500 p-0 text-xs text-white">
-                    3
-                  </Badge>
-                </Button>
-
-                {/* Settings Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-2 hover:bg-slate-100/70"
-                    >
-                      <Settings className="h-4 w-4 text-slate-600" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/profile')}
-                    >
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      <span>Profile Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/settings')}
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>App Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/gradebook')}
-                    >
-                      <Award className="mr-2 h-4 w-4" />
-                      <span>Gradebook</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/live-sessions')}
-                    >
-                      <Video className="mr-2 h-4 w-4" />
-                      <span>Live Sessions</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/files')}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>File Manager</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Profile Avatar */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="relative p-1 hover:bg-slate-100/70"
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentUser?.avatarUrl} />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-600 text-xs text-white">
-                          {currentUser?.firstName?.[0]}
-                          {currentUser?.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="flex items-center justify-start gap-3 p-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={currentUser?.avatarUrl} />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-violet-600 text-white">
-                          {currentUser?.firstName?.[0]}
-                          {currentUser?.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium">
-                          {currentUser?.firstName} {currentUser?.lastName}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          {currentUser?.email}
-                        </p>
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/profile')}
-                    >
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      <span>View Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => router.push('/teacher/settings')}
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Account Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <span>Sign Out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Primary Action Button */}
-                <Button
-                  onClick={() => router.push('/teacher/live-sessions/create')}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 px-3 py-2 text-sm shadow-md hover:from-blue-600 hover:to-indigo-700"
-                >
-                  <Video className="mr-2 h-4 w-4" />
-                  Start Live Class
-                </Button>
-              </div>
+                Ready to inspire minds today?
+              </motion.p>
             </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm"
+            >
+              <span className="flex items-center text-sm font-medium">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Level {Math.floor(Math.random() * 10) + 1} Educator
+              </span>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="rounded-full bg-white/20 px-4 py-2 backdrop-blur-sm"
+            >
+              <span className="flex items-center text-sm font-medium">
+                <Heart className="mr-2 h-4 w-4" />
+                {dashboardStats?.totalStudents || 0} Happy Students
+              </span>
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Dashboard Content */}
       <motion.div
@@ -475,158 +359,192 @@ export default function TeacherDashboardPage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Enhanced Stats Cards with Glass Effect */}
+        {/* Modern Stats Cards */}
         <motion.div
           variants={itemVariants}
           className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
         >
-          <Card className="border-white/30 bg-gradient-to-br from-white/90 to-white/60 shadow-xl backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Total Students
-                  </p>
-                  <p className="text-3xl font-bold text-slate-800 dark:text-white">
-                    {dashboardStats?.totalStudents || 0}
-                  </p>
-                  <div className="flex items-center space-x-1">
-                    <TrendingUp className="h-3 w-3 text-emerald-500" />
-                    <p className="text-xs font-medium text-emerald-600">
-                      +{dashboardStats?.thisMonthEnrollments || 0} this month
+          {/* Total Students Card */}
+          <motion.div
+            whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="group relative overflow-hidden border-0 bg-white shadow-xl">
+              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-500/30" />
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+                      <p className="text-sm font-medium text-slate-600">Students</p>
+                    </div>
+                    <p className="text-4xl font-bold text-slate-900">
+                      {dashboardStats?.totalStudents || 0}
+                    </p>
+                    <div className="mt-2 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3 text-emerald-500" />
+                      <span className="text-sm text-emerald-600 font-medium">
+                        +{dashboardStats?.thisMonthEnrollments || 0} this month
+                      </span>
+                    </div>
+                  </div>
+                  <motion.div
+                    className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg"
+                    whileHover={{ rotate: 5, scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Users className="h-8 w-8 text-white" />
+                  </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Active Courses Card */}
+          <motion.div
+            whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="group relative overflow-hidden border-0 bg-white shadow-xl">
+              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-gradient-to-br from-emerald-400/20 to-green-500/30" />
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                      <p className="text-sm font-medium text-slate-600">Courses</p>
+                    </div>
+                    <p className="text-4xl font-bold text-slate-900">
+                      {dashboardStats?.activeCourses || 0}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      of {dashboardStats?.totalCourses || 0} total courses
                     </p>
                   </div>
+                  <motion.div
+                    className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg"
+                    whileHover={{ rotate: 5, scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <BookOpen className="h-8 w-8 text-white" />
+                  </motion.div>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
-                  <Users className="h-7 w-7 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card className="border-white/30 bg-gradient-to-br from-white/90 to-white/60 shadow-xl backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Active Courses
-                  </p>
-                  <p className="text-3xl font-bold text-slate-800 dark:text-white">
-                    {dashboardStats?.activeCourses || 0}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    of {dashboardStats?.totalCourses || 0} total courses
-                  </p>
-                </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg">
-                  <BookOpen className="h-7 w-7 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/30 bg-gradient-to-br from-white/90 to-white/60 shadow-xl backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Pending Grading
-                  </p>
-                  <p className="text-3xl font-bold text-slate-800 dark:text-white">
-                    {dashboardStats?.pendingGrading || 0}
-                  </p>
-                  <div className="flex items-center space-x-1">
-                    <Target className="h-3 w-3 text-amber-500" />
-                    <p className="text-xs font-medium text-amber-600">
-                      {dashboardStats?.completedAssignments || 0} completed
+          {/* Pending Grading Card */}
+          <motion.div
+            whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="group relative overflow-hidden border-0 bg-white shadow-xl">
+              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-gradient-to-br from-amber-400/20 to-orange-500/30" />
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <motion.div 
+                        className="h-2 w-2 rounded-full bg-amber-500"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      <p className="text-sm font-medium text-slate-600">To Grade</p>
+                    </div>
+                    <p className="text-4xl font-bold text-slate-900">
+                      {dashboardStats?.pendingGrading || 0}
                     </p>
+                    <div className="mt-2 flex items-center gap-1">
+                      <Target className="h-3 w-3 text-green-500" />
+                      <span className="text-sm text-green-600 font-medium">
+                        {dashboardStats?.completedAssignments || 0} completed
+                      </span>
+                    </div>
                   </div>
+                  <motion.div
+                    className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg"
+                    whileHover={{ rotate: 5, scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ClipboardList className="h-8 w-8 text-white" />
+                  </motion.div>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
-                  <ClipboardList className="h-7 w-7 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card className="border-white/30 bg-gradient-to-br from-white/90 to-white/60 shadow-xl backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Class Performance
-                  </p>
-                  <p className="text-3xl font-bold text-slate-800 dark:text-white">
-                    {Math.round(dashboardStats?.averageClassPerformance || 0)}%
-                  </p>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-3 w-3 text-violet-500" />
-                    <p className="text-xs font-medium text-violet-600">
-                      Average score
+          {/* Class Performance Card */}
+          <motion.div
+            whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="group relative overflow-hidden border-0 bg-white shadow-xl">
+              <div className="absolute right-0 top-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-gradient-to-br from-violet-400/20 to-purple-500/30" />
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-violet-500" />
+                      <p className="text-sm font-medium text-slate-600">Performance</p>
+                    </div>
+                    <p className="text-4xl font-bold text-slate-900">
+                      {Math.round(dashboardStats?.averageClassPerformance || 0)}%
                     </p>
+                    <div className="mt-2 flex items-center gap-1">
+                      <Star className="h-3 w-3 text-violet-500" />
+                      <span className="text-sm text-violet-600 font-medium">
+                        Class average
+                      </span>
+                    </div>
                   </div>
+                  <motion.div
+                    className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg"
+                    whileHover={{ rotate: 5, scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <TrendingUp className="h-8 w-8 text-white" />
+                  </motion.div>
                 </div>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
-                  <TrendingUp className="h-7 w-7 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
 
-        {/* Enhanced Tabs with Modern Design */}
+
+        {/* Modern Tabs */}
         <motion.div variants={itemVariants}>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <div className="rounded-2xl border border-white/30 bg-white/80 p-2 shadow-lg backdrop-blur-xl">
-              <TabsList className="grid w-full grid-cols-2 gap-1 bg-transparent lg:grid-cols-6">
-                <TabsTrigger
-                  value="overview"
-                  className="flex items-center gap-2 rounded-xl transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+          <div className="mb-6 flex flex-wrap gap-2">
+            {[
+              { id: 'overview', label: 'Overview', icon: BarChart3, gradient: 'from-blue-500 to-indigo-600' },
+              { id: 'classes', label: 'Classes', icon: BookOpen, gradient: 'from-emerald-500 to-green-600' },
+              { id: 'students', label: 'Students', icon: Users, gradient: 'from-purple-500 to-violet-600' },
+              { id: 'grading', label: 'Grading', icon: ClipboardList, gradient: 'from-amber-500 to-orange-600' },
+              { id: 'insights', label: 'AI Insights', icon: Brain, gradient: 'from-pink-500 to-rose-600' },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              
+              return (
+                <motion.button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? `bg-gradient-to-r ${tab.gradient} text-white shadow-lg scale-105`
+                      : "bg-white text-slate-600 hover:bg-slate-50 hover:scale-105 shadow-md"
+                  )}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <BarChart3 className="h-4 w-4" />
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger
-                  value="classes"
-                  className="flex items-center gap-2 rounded-xl transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Classes
-                </TabsTrigger>
-                <TabsTrigger
-                  value="students"
-                  className="flex items-center gap-2 rounded-xl transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  <Users className="h-4 w-4" />
-                  Students
-                </TabsTrigger>
-                <TabsTrigger
-                  value="grading"
-                  className="flex items-center gap-2 rounded-xl transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  Grading
-                </TabsTrigger>
-                <TabsTrigger
-                  value="analytics"
-                  className="flex items-center gap-2 rounded-xl transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  <TrendingUp className="h-4 w-4" />
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger
-                  value="insights"
-                  className="flex items-center gap-2 rounded-xl transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  <Brain className="h-4 w-4" />
-                  AI Insights
-                </TabsTrigger>
-              </TabsList>
-            </div>
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
             {/* Enhanced Tab Content */}
             <div className="mt-6">

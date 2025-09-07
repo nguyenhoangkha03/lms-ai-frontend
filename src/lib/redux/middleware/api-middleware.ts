@@ -26,15 +26,34 @@ interface RTKQueryError {
 apiMiddleware.startListening({
   matcher: isRejectedWithValue,
   effect: async (action, _listenerApi) => {
-    const { error, meta } = action as {
+    const { error, meta, payload } = action as {
       error: RTKQueryError;
       meta: RTKQueryMeta;
+      payload: any;
     };
 
-    const silentEndpoints = ['/auth/check-auth', '/auth/refresh'];
-    const endpoint = meta?.arg?.endpointName;
+    // Debug: Log api middleware actions  
+    console.log('🔍 API middleware caught action:', { endpoint: meta?.arg?.endpointName, error, payload });
 
-    if (silentEndpoints.some(path => endpoint?.includes(path))) {
+    // Check if this is a auth request by examining various indicators
+    const endpoint = meta?.arg?.endpointName;
+    const isAuthEndpoint = endpoint && (endpoint.includes('login') || endpoint.includes('register') || endpoint.includes('auth'));
+    const isAuthPath = payload?.data?.path === '/api/v1/auth/login' || payload?.data?.path === '/api/v1/auth/register';
+    const isAuthRequest = isAuthEndpoint || isAuthPath;
+
+    // Silent endpoints - don't show toast notifications for these
+    const silentEndpoints = [
+      '/auth/check-auth', 
+      '/auth/refresh', 
+      '/auth/login',    // Don't show toast for login errors - form handles them
+      '/auth/register', // Don't show toast for register errors - form handles them
+      'login',          // Also catch login mutations by name
+      'register'        // Also catch register mutations by name
+    ];
+
+    // Skip toast notifications for silent endpoints or auth requests
+    if (silentEndpoints.some(path => endpoint?.includes(path)) || isAuthRequest) {
+      console.log('⏭️ API middleware skipping:', { endpoint, isAuthRequest });
       return;
     }
 

@@ -204,12 +204,6 @@ export const CategorySelectionStep: React.FC<CategorySelectionStepProps> = ({
                   <CardTitle className="text-lg font-semibold">
                     {category.name}
                   </CardTitle>
-                  
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {category.courseCount} courses
-                    </Badge>
-                  </div>
                 </CardHeader>
                 
                 {category.description && (

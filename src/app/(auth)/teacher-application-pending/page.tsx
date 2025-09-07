@@ -24,7 +24,9 @@ export default function TeacherApplicationPendingPage() {
       description="Your instructor application is being reviewed by our team"
       showBackButton={false}
     >
-      <TeacherApplicationPending />
+      <div>
+        <TeacherApplicationPending />
+      </div>
     </AuthLayout>
   );
 }

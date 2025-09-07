@@ -263,8 +263,9 @@ export const RegisterForm: React.FC = () => {
             </Alert>
           )}
 
-          {/* Form Validation Errors */}
-          {form.formState.errors &&
+          {/* Form Validation Errors - Only show when no server error */}
+          {!apiError &&
+            form.formState.errors &&
             Object.keys(form.formState.errors).length > 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

@@ -27,7 +27,7 @@ export default function OAuthSuccessPage() {
     const processOAuthSuccess = async () => {
       try {
         console.log('🔄 Processing OAuth success...');
-        
+
         // Wait for auth check to complete
         if (isLoading) {
           console.log('⏳ Waiting for auth check...');
@@ -44,18 +44,21 @@ export default function OAuthSuccessPage() {
         console.log('✅ OAuth success - user authenticated:', authData.user);
 
         // Update Redux store with user data
-        dispatch(loginSuccess({
-          user: authData.user,
-          accessToken: '', // Token is in httpOnly cookies
-          refreshToken: '', // Token is in httpOnly cookies
-          expiresIn: 900, // Default expiration
-          twoFactorEnabled: false,
-        }));
+        dispatch(
+          loginSuccess({
+            user: authData.user!,
+            accessToken: '', // Token is in httpOnly cookies
+            refreshToken: '', // Token is in httpOnly cookies
+            expiresIn: 900, // Default expiration
+            twoFactorEnabled: false,
+          })
+        );
 
         // Show success message
         toast({
           title: 'Welcome!',
-          description: 'You have been successfully logged in with your social account.',
+          description:
+            'You have been successfully logged in with your social account.',
         });
 
         // Determine redirect URL based on user type
@@ -67,27 +70,27 @@ export default function OAuthSuccessPage() {
             break;
           case 'teacher':
             const isApproved = authData.user?.teacherProfile?.isApproved;
-            redirectUrl = isApproved 
-              ? ROUTES.TEACHER_DASHBOARD 
+            redirectUrl = isApproved
+              ? ROUTES.TEACHER_DASHBOARD
               : '/teacher-application-pending';
             break;
           case 'student':
           default:
             // Check if onboarding is completed for OAuth users
-            const hasCompletedOnboarding = authData.user?.studentProfile?.onboardingCompleted || false;
+            const hasCompletedOnboarding =
+              authData.user?.studentProfile?.onboardingCompleted || false;
             redirectUrl = hasCompletedOnboarding
-              ? '/dashboard' // Unified dashboard route
+              ? '/student' // Unified dashboard route
               : '/onboarding'; // Unified onboarding route
             break;
         }
 
         console.log('🚀 Redirecting to:', redirectUrl);
-        
+
         // Small delay to show success message
         setTimeout(() => {
           router.replace(redirectUrl);
         }, 1500);
-
       } catch (error: any) {
         console.error('❌ OAuth processing failed:', error);
         setError(error.message || 'Failed to process login. Please try again.');
@@ -104,7 +107,7 @@ export default function OAuthSuccessPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
@@ -112,7 +115,7 @@ export default function OAuthSuccessPage() {
             </div>
             <CardTitle className="mt-4">Authentication Failed</CardTitle>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
+          <CardContent className="space-y-4 text-center">
             <p className="text-sm text-muted-foreground">{error}</p>
             <Button onClick={handleRetry} className="w-full">
               Try Again
@@ -124,12 +127,12 @@ export default function OAuthSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             {isProcessing ? (
-              <Loader2 className="h-6 w-6 text-green-600 animate-spin" />
+              <Loader2 className="h-6 w-6 animate-spin text-green-600" />
             ) : (
               <CheckCircle className="h-6 w-6 text-green-600" />
             )}
@@ -140,10 +143,9 @@ export default function OAuthSuccessPage() {
         </CardHeader>
         <CardContent className="text-center">
           <p className="text-sm text-muted-foreground">
-            {isProcessing 
+            {isProcessing
               ? 'Please wait while we complete your sign in...'
-              : 'Redirecting you to your dashboard...'
-            }
+              : 'Redirecting you to your dashboard...'}
           </p>
         </CardContent>
       </Card>

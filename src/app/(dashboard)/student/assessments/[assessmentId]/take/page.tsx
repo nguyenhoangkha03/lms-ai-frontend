@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   useGetAssessmentQuery,
   useStartAssessmentMutation,
-  useGetAssessmentSessionQuery,
   useSubmitAnswerMutation,
   useSessionHeartbeatMutation,
   useReportSecurityEventMutation,
@@ -14,7 +13,6 @@ import {
 import { AssessmentTimer } from '@/components/assessment/AssessmentTimer';
 import { QuestionRenderer } from '@/components/assessment/QuestionRenderer';
 import { AssessmentNavigation } from '@/components/assessment/AssessmentNavigation';
-import { SecurityMonitor } from '@/components/assessment/SecurityMonitor';
 import { ProctoringPanel } from '@/components/assessment/ProctoringPanel';
 import { AssessmentProgress } from '@/components/assessment/AssessmentProgress';
 import { Button } from '@/components/ui/button';
@@ -24,7 +22,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Shield,
   Camera,
-  Monitor,
   Clock,
   AlertTriangle,
   CheckCircle,
@@ -59,10 +56,9 @@ export default function TakeAssessmentPage() {
   // API hooks
   const { data: assessment, isLoading: assessmentLoading } =
     useGetAssessmentQuery(assessmentId);
-  const { data: session } = useGetAssessmentSessionQuery(sessionId || '', {
-    skip: !sessionId,
-    pollingInterval: 5000, // Poll every 5 seconds
-  });
+  const antiCheatSettings = JSON.parse(assessment?.antiCheatSettings || '{}');
+  const settings = JSON.parse(assessment?.settings || '{}');
+
 
   const [startAssessment] = useStartAssessmentMutation();
   const [submitAnswer] = useSubmitAnswerMutation();
@@ -86,7 +82,7 @@ export default function TakeAssessmentPage() {
         setSecurityWarnings(prev => [...prev, `Security event: ${eventType}`]);
 
         // Check if we should auto-flag the session
-        if (assessment?.antiCheatSettings.autoFlagHighRisk) {
+        if (antiCheatSettings?.violations?.autoSubmitOnViolation) {
           const highRiskEvents = [
             'copy_attempt',
             'paste_attempt',
@@ -105,18 +101,19 @@ export default function TakeAssessmentPage() {
     [
       sessionId,
       reportSecurityEvent,
-      assessment?.antiCheatSettings.autoFlagHighRisk,
+      antiCheatSettings?.violations?.autoSubmitOnViolation || false,
     ]
   );
 
   // Anti-cheat measures
   const setupAntiCheatMeasures = useCallback(() => {
-    if (!assessment?.antiCheatSettings.enabled) return;
-
-    const settings = assessment.antiCheatSettings;
+    if (!antiCheatSettings?.proctoring?.enabled) return;
 
     // Fullscreen requirement
-    if (settings.requireFullscreen) {
+    if (
+      settings?.security?.requireFullscreen ||
+      antiCheatSettings?.lockdown?.fullscreenMode
+    ) {
       const enterFullscreen = async () => {
         try {
           await document.documentElement.requestFullscreen();
@@ -147,15 +144,13 @@ export default function TakeAssessmentPage() {
         );
       };
     }
-  }, [assessment?.antiCheatSettings, reportSecurityViolation, router]);
+  }, [antiCheatSettings, reportSecurityViolation, router]);
 
   const setupEventListeners = useCallback(() => {
-    if (!assessment?.antiCheatSettings.enabled) return;
-
-    const settings = assessment.antiCheatSettings;
+    if (!antiCheatSettings?.proctoring?.enabled) return;
 
     // Tab switching detection
-    if (settings.detectTabSwitching) {
+    if (antiCheatSettings?.lockdown?.preventTabSwitching) {
       const handleVisibilityChange = () => {
         if (document.hidden) {
           tabSwitchCount.current += 1;
@@ -163,9 +158,12 @@ export default function TakeAssessmentPage() {
             count: tabSwitchCount.current,
           });
 
-          if (tabSwitchCount.current > settings.maxTabSwitches) {
+          if (
+            tabSwitchCount.current >
+            (antiCheatSettings?.violations?.warningSystem?.maxWarnings || 5)
+          ) {
             toast.error(
-              `Too many tab switches detected (${tabSwitchCount.current}/${settings.maxTabSwitches})`
+              `Too many tab switches detected (${tabSwitchCount.current}/${antiCheatSettings?.violations?.warningSystem?.maxWarnings || 5})`
             );
           }
         }
@@ -196,10 +194,14 @@ export default function TakeAssessmentPage() {
         window.removeEventListener('focus', handleWindowFocus);
       };
     }
-  }, [assessment?.antiCheatSettings, reportSecurityViolation]);
+  }, [antiCheatSettings, reportSecurityViolation]);
 
   const setupCopyPasteBlocking = useCallback(() => {
-    if (!assessment?.antiCheatSettings.blockCopyPaste) return;
+    if (
+      !settings?.security?.preventCopyPaste &&
+      !antiCheatSettings?.monitoring?.trackCopyPaste
+    )
+      return;
 
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
@@ -228,10 +230,14 @@ export default function TakeAssessmentPage() {
       document.removeEventListener('paste', handlePaste);
       document.removeEventListener('cut', handleCut);
     };
-  }, [assessment?.antiCheatSettings.blockCopyPaste, reportSecurityViolation]);
+  }, [
+    settings?.security?.preventCopyPaste,
+    antiCheatSettings?.monitoring?.trackCopyPaste,
+    reportSecurityViolation,
+  ]);
 
   const setupRightClickBlocking = useCallback(() => {
-    if (!assessment?.antiCheatSettings.blockRightClick) return;
+    if (!settings?.security?.preventRightClick) return;
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -244,10 +250,10 @@ export default function TakeAssessmentPage() {
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [assessment?.antiCheatSettings.blockRightClick, reportSecurityViolation]);
+  }, [settings?.security?.preventRightClick, reportSecurityViolation]);
 
   const setupKeyboardMonitoring = useCallback(() => {
-    if (!assessment?.antiCheatSettings.monitorKeystrokes) return;
+    if (!antiCheatSettings?.monitoring?.trackKeystrokes) return;
 
     const suspiciousKeyCombinations = [
       ['Control', 'Shift', 'I'], // DevTools
@@ -286,13 +292,10 @@ export default function TakeAssessmentPage() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [
-    assessment?.antiCheatSettings.monitorKeystrokes,
-    reportSecurityViolation,
-  ]);
+  }, [antiCheatSettings?.monitoring?.trackKeystrokes, reportSecurityViolation]);
 
   const setupMouseMonitoring = useCallback(() => {
-    if (!assessment?.antiCheatSettings.monitorMouseMovement) return;
+    if (!antiCheatSettings?.monitoring?.trackMouseMovement) return;
 
     const handleMouseMove = () => {
       mouseMovements.current += 1;
@@ -303,7 +306,7 @@ export default function TakeAssessmentPage() {
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [assessment?.antiCheatSettings.monitorMouseMovement]);
+  }, [antiCheatSettings?.monitoring?.trackMouseMovement]);
 
   // Session heartbeat
   const startHeartbeat = useCallback(() => {
@@ -339,7 +342,7 @@ export default function TakeAssessmentPage() {
         antiCheatConfig: assessment.antiCheatSettings,
       }).unwrap();
 
-      setSessionId(result.id);
+      setSessionId(result.sessionToken);
       sessionStartTime.current = Date.now();
       toast.success('Assessment started successfully');
     } catch (error) {
@@ -527,7 +530,7 @@ export default function TakeAssessmentPage() {
                 <div className="rounded-lg bg-green-50 p-4 text-center">
                   <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-600" />
                   <div className="font-semibold">
-                    {assessment.totalQuestions}
+                    {assessment.questions.length}
                   </div>
                   <div className="text-sm text-gray-600">Questions</div>
                 </div>
@@ -552,7 +555,7 @@ export default function TakeAssessmentPage() {
               </div>
 
               {/* Security Requirements */}
-              {assessment.antiCheatSettings.enabled && (
+              {antiCheatSettings?.proctoring?.enabled && (
                 <Alert>
                   <Shield className="h-4 w-4" />
                   <AlertDescription>
@@ -560,19 +563,21 @@ export default function TakeAssessmentPage() {
                       Security Requirements:
                     </div>
                     <ul className="space-y-1 text-sm">
-                      {assessment.antiCheatSettings.requireFullscreen && (
+                      {(settings?.security?.requireFullscreen ||
+                        antiCheatSettings?.lockdown?.fullscreenMode) && (
                         <li>• Fullscreen mode is required</li>
                       )}
-                      {assessment.antiCheatSettings.detectTabSwitching && (
+                      {antiCheatSettings?.lockdown?.preventTabSwitching && (
                         <li>• Tab switching will be monitored</li>
                       )}
-                      {assessment.antiCheatSettings.blockCopyPaste && (
+                      {(settings?.security?.preventCopyPaste ||
+                        antiCheatSettings?.monitoring?.trackCopyPaste) && (
                         <li>• Copy/paste operations are disabled</li>
                       )}
-                      {assessment.antiCheatSettings.requireWebcam && (
+                      {antiCheatSettings?.proctoring?.requireWebcam && (
                         <li>• Webcam access is required</li>
                       )}
-                      {assessment.antiCheatSettings.enableProctoring && (
+                      {antiCheatSettings?.proctoring?.enabled && (
                         <li>• Session will be proctored</li>
                       )}
                     </ul>
@@ -581,13 +586,14 @@ export default function TakeAssessmentPage() {
               )}
 
               {/* Proctoring Setup */}
-              {assessment.antiCheatSettings.requireWebcam && (
+              {antiCheatSettings?.proctoring?.requireWebcam && (
                 <ProctoringPanel
                   onSetupComplete={success => setProctoringActive(success)}
                   requirements={{
-                    webcam: assessment.antiCheatSettings.requireWebcam,
-                    microphone: assessment.antiCheatSettings.audioRecording,
-                    faceDetection: assessment.antiCheatSettings.faceDetection,
+                    webcam: antiCheatSettings?.proctoring?.requireWebcam,
+                    microphone:
+                      antiCheatSettings?.proctoring?.requireMicrophone,
+                    faceDetection: antiCheatSettings?.proctoring?.faceDetection,
                   }}
                 />
               )}
@@ -598,7 +604,7 @@ export default function TakeAssessmentPage() {
                   size="lg"
                   onClick={handleStartAssessment}
                   disabled={
-                    assessment.antiCheatSettings.requireWebcam &&
+                    antiCheatSettings?.proctoring?.requireWebcam &&
                     !proctoringActive
                   }
                   className="px-8"
@@ -626,38 +632,33 @@ export default function TakeAssessmentPage() {
   return (
     <div
       className={cn(
-        'min-h-screen bg-gray-900 text-white',
-        isFullscreen && 'fixed inset-0 z-50'
+        'min-h-screen bg-gray-50 text-gray-900',
+        isFullscreen && 'fixed inset-0 z-50 overflow-auto'
       )}
     >
       {/* Security Header */}
-      <div className="border-b border-gray-700 bg-gray-800 p-4">
+      <div className="border-b border-gray-300 bg-white p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-green-400" />
-              <span className="text-sm font-medium">Secure Mode</span>
+              <Shield className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-gray-900">
+                Secure Mode
+              </span>
             </div>
-            {assessment.antiCheatSettings.enableProctoring && (
+            {antiCheatSettings?.proctoring?.enabled && (
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-red-400" />
-                <span className="text-sm">Recording</span>
+                <Camera className="h-4 w-4 text-red-600" />
+                <span className="text-sm text-gray-900">Recording</span>
               </div>
             )}
-            <SecurityMonitor
-              sessionId={sessionId}
-              tabSwitchCount={tabSwitchCount.current}
-              windowBlurCount={windowBlurCount.current}
-              securityWarnings={securityWarnings}
-            />
           </div>
 
           <div className="flex items-center gap-4">
-            <AssessmentTimer
-              timeLimit={assessment.timeLimit}
-              timeSpent={timeSpent}
-              onTimeUp={handleSubmitAssessment}
-            />
+            <div className="text-sm text-gray-600">
+              Progress: {Object.keys(answers).length}/
+              {assessment.questions.length} answered
+            </div>
             <Button
               variant="destructive"
               size="sm"
@@ -669,72 +670,156 @@ export default function TakeAssessmentPage() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-73px)]">
+      {/* Main Container */}
+      <div className="flex min-h-[calc(100vh-73px)]">
         {/* Main Assessment Area */}
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
           {/* Progress Bar */}
-          <div className="border-b border-gray-700 p-4">
+          <div className="border-b border-gray-300 bg-white p-4 shadow-sm">
             <AssessmentProgress
               currentQuestion={currentQuestionIndex + 1}
-              totalQuestions={assessment.totalQuestions}
+              totalQuestions={assessment.questions.length}
               answered={Object.keys(answers).length}
-              showProgress={assessment.settings.showProgressBar}
+              showProgress={settings.navigation.showProgress}
             />
           </div>
 
           {/* Question Area */}
           <div className="flex-1 overflow-y-auto p-6">
-            {currentQuestion && (
-              <QuestionRenderer
-                question={currentQuestion}
-                questionNumber={currentQuestionIndex + 1}
-                answer={answers[currentQuestion.id]}
-                onAnswerChange={answer => {
-                  setAnswers(prev => ({
-                    ...prev,
-                    [currentQuestion.id]: answer,
-                  }));
-                }}
-                onSubmit={answer =>
-                  handleAnswerSubmit(currentQuestion.id, answer)
-                }
-                showQuestionNumbers={assessment.settings.showQuestionNumbers}
-                isSecureMode={assessment.antiCheatSettings.enabled}
-              />
-            )}
+            <div className="mx-auto max-w-4xl">
+              {currentQuestion && (
+                <QuestionRenderer
+                  question={currentQuestion}
+                  questionNumber={currentQuestionIndex + 1}
+                  answer={answers[currentQuestion.id]}
+                  onAnswerChange={answer => {
+                    setAnswers(prev => ({
+                      ...prev,
+                      [currentQuestion.id]: answer,
+                    }));
+                  }}
+                  onSubmit={answer =>
+                    handleAnswerSubmit(currentQuestion.id, answer)
+                  }
+                  showQuestionNumbers={settings.display.showQuestionNumbers}
+                  isSecureMode={antiCheatSettings?.proctoring?.enabled}
+                />
+              )}
+            </div>
           </div>
 
           {/* Navigation */}
-          <div className="border-t border-gray-700 p-4">
-            <AssessmentNavigation
-              currentQuestion={currentQuestionIndex}
-              totalQuestions={assessment.totalQuestions}
-              onPrevious={() =>
-                setCurrentQuestionIndex(prev => Math.max(0, prev - 1))
-              }
-              onNext={() =>
-                setCurrentQuestionIndex(prev =>
-                  Math.min(assessment.totalQuestions - 1, prev + 1)
-                )
-              }
-              onSubmit={handleSubmitAssessment}
-              allowBackNavigation={assessment.settings.allowBackNavigation}
-              isLastQuestion={isLastQuestion}
-              hasAnsweredCurrent={!!answers[currentQuestion?.id]}
-            />
+          <div className="border-t border-gray-300 bg-white p-4 shadow-sm">
+            <div className="mx-auto max-w-4xl">
+              <AssessmentNavigation
+                currentQuestion={currentQuestionIndex}
+                totalQuestions={assessment.questions.length}
+                onPrevious={() =>
+                  setCurrentQuestionIndex(prev => Math.max(0, prev - 1))
+                }
+                onNext={() =>
+                  setCurrentQuestionIndex(prev =>
+                    Math.min(assessment.questions.length - 1, prev + 1)
+                  )
+                }
+                onSubmit={handleSubmitAssessment}
+                allowBackNavigation={settings.navigation.allowBackward}
+                isLastQuestion={isLastQuestion}
+                hasAnsweredCurrent={!!answers[currentQuestion?.id]}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Proctoring Sidebar */}
-        {assessment.antiCheatSettings.enableProctoring && (
-          <div className="w-80 border-l border-gray-700 bg-gray-800">
-            <ProctoringPanel
-              sessionId={sessionId}
-              showPreview={true}
-              onSecurityEvent={reportSecurityViolation}
+        {/* Right Sidebar - Security & Proctoring */}
+        <div className="w-80 overflow-y-auto border-l border-gray-300 bg-white">
+          {/* Security Monitor - Compact */}
+          <div className="border-b border-gray-200 p-4">
+            <div className="mb-3">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <Shield className="h-4 w-4 text-green-600" />
+                Security Monitor
+              </h3>
+            </div>
+
+            {/* Compact Security Stats */}
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Tab Switches:</span>
+                <span
+                  className={cn(
+                    'font-medium',
+                    tabSwitchCount.current > 3
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                  )}
+                >
+                  {tabSwitchCount.current}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Focus Loss:</span>
+                <span
+                  className={cn(
+                    'font-medium',
+                    windowBlurCount.current > 5
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                  )}
+                >
+                  {windowBlurCount.current}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Security Events:</span>
+                <span
+                  className={cn(
+                    'font-medium',
+                    securityWarnings.length > 0
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                  )}
+                >
+                  {securityWarnings.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Security Warnings */}
+            {securityWarnings.length > 0 && (
+              <div className="mt-3 space-y-1">
+                <div className="text-xs font-medium text-red-600">
+                  Recent Events:
+                </div>
+                {securityWarnings.slice(-2).map((warning, index) => (
+                  <div key={index} className="text-xs text-red-600 opacity-75">
+                    • {warning}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Proctoring Panel */}
+          {antiCheatSettings?.proctoring?.enabled && (
+            <div className="p-4">
+              <ProctoringPanel
+                sessionId={sessionId}
+                showPreview={true}
+                onSecurityEvent={reportSecurityViolation}
+              />
+            </div>
+          )}
+
+          {/* Timer Display */}
+          <div className="border-t border-gray-200 p-4">
+            <AssessmentTimer
+              timeLimit={assessment.timeLimit}
+              timeSpent={timeSpent}
+              onTimeUp={handleSubmitAssessment}
             />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   useGetLessonNotesQuery,
   useCreateNoteMutation,
@@ -44,7 +44,7 @@ export function NotesPanel({ lessonId, className }: NotesPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
-    data: notes = [],
+    data: notesData,
     isLoading,
     error,
   } = useGetLessonNotesQuery({ lessonId, includePrivate: true });
@@ -53,9 +53,38 @@ export function NotesPanel({ lessonId, className }: NotesPanelProps) {
   const [updateNote, { isLoading: updating }] = useUpdateNoteMutation();
   const [deleteNote, { isLoading: deleting }] = useDeleteNoteMutation();
 
+  // Extract notes from API response - convert to array format if needed
+  const notes = React.useMemo(() => {
+    console.log('📝 NotesPanel API response:', notesData);
+    
+    if (!notesData) return [];
+    
+    // If API returns single note string, convert to array format
+    if (notesData.notes && typeof notesData.notes === 'string') {
+      return [{
+        id: `note-${Date.now()}`,
+        content: notesData.notes,
+        timestamp: Date.now(),
+        isPrivate: true
+      }];
+    }
+    
+    // If API returns array of notes, use as is
+    if (Array.isArray(notesData)) {
+      return notesData;
+    }
+    
+    // If notes is already an array in the data
+    if (Array.isArray(notesData.notes)) {
+      return notesData.notes;
+    }
+    
+    return [];
+  }, [notesData]);
+
   // Filter notes based on search term
   const filteredNotes = notes.filter(note =>
-    note.content.toLowerCase().includes(searchTerm.toLowerCase())
+    note.content?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleCreateNote = async () => {

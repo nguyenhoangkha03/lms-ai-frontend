@@ -4,6 +4,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import {
+  useGetNotificationsQuery,
+  useMarkNotificationsMutation,
+  useMarkAllAsReadMutation,
+  useDeleteNotificationsMutation,
+  useToggleFavoriteMutation,
+  useBulkActionNotificationsMutation,
+  useGetNotificationSettingsQuery,
+  useUpdateNotificationSettingsMutation,
+} from '@/lib/redux/api/notification-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -122,8 +132,36 @@ export default function StudentNotificationsPage() {
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Mock notification settings
-  const [settings, setSettings] = useState<NotificationSettings>({
+  // API hooks
+  const {
+    data: notificationsData,
+    isLoading: notificationsLoading,
+    refetch: refetchNotifications
+  } = useGetNotificationsQuery({
+    page: 1,
+    limit: 50,
+    category: activeTab === 'all' ? undefined : activeTab,
+    isRead: activeTab === 'unread' ? false : undefined,
+    isImportant: activeTab === 'important' ? true : undefined,
+    isFavorite: activeTab === 'favorites' ? true : undefined,
+    search: searchQuery || undefined,
+    sortBy,
+  });
+
+  const {
+    data: settingsData,
+    isLoading: settingsLoading
+  } = useGetNotificationSettingsQuery();
+
+  const [markNotifications] = useMarkNotificationsMutation();
+  const [markAllAsRead] = useMarkAllAsReadMutation();
+  const [deleteNotifications] = useDeleteNotificationsMutation();
+  const [toggleFavorite] = useToggleFavoriteMutation();
+  const [bulkAction] = useBulkActionNotificationsMutation();
+  const [updateSettings] = useUpdateNotificationSettingsMutation();
+
+  const notifications = notificationsData?.notifications || [];
+  const settings = settingsData || {
     emailNotifications: true,
     pushNotifications: true,
     smsNotifications: false,
@@ -138,133 +176,75 @@ export default function StudentNotificationsPage() {
       startTime: '22:00',
       endTime: '07:00',
     },
-    frequency: 'instant',
-  });
-
-  // Mock notifications data
-  const mockNotifications: Notification[] = [
-    {
-      id: '1',
-      title: 'Bài tập mới được giao',
-      message: 'Bạn có bài tập mới "JavaScript ES6 Features" cần hoàn thành trước ngày 25/01/2024',
-      type: 'assignment',
-      category: 'assignment',
-      isRead: false,
-      isImportant: true,
-      isFavorite: false,
-      actionUrl: '/student/assignments/1',
-      actionText: 'Xem bài tập',
-      courseId: 'course-1',
-      courseName: 'Lập trình JavaScript từ cơ bản đến nâng cao',
-      senderId: 'teacher-1',
-      senderName: 'GV. Nguyễn Văn A',
-      createdAt: '2024-01-15T10:30:00Z',
-    },
-    {
-      id: '2',
-      title: 'Điểm số đã được cập nhật',
-      message: 'Điểm bài kiểm tra "React Hooks" của bạn đã được chấm: 85/100',
-      type: 'grade',
-      category: 'grade',
-      isRead: false,
-      isImportant: false,
-      isFavorite: true,
-      actionUrl: '/student/grades',
-      actionText: 'Xem điểm',
-      courseId: 'course-2',
-      courseName: 'React.js Complete Course',
-      senderId: 'teacher-2',
-      senderName: 'GV. Trần Thị B',
-      createdAt: '2024-01-15T09:15:00Z',
-    },
-    {
-      id: '3',
-      title: 'Tin nhắn mới từ giảng viên',
-      message: 'GV. Lê Văn C đã gửi tin nhắn cho bạn về dự án cuối khóa',
-      type: 'message',
-      category: 'message',
-      isRead: true,
-      isImportant: false,
-      isFavorite: false,
-      actionUrl: '/student/messages/3',
-      actionText: 'Xem tin nhắn',
-      senderId: 'teacher-3',
-      senderName: 'GV. Lê Văn C',
-      createdAt: '2024-01-14T16:45:00Z',
-      readAt: '2024-01-14T17:00:00Z',
-    },
-    {
-      id: '4',
-      title: 'Chúc mừng! Bạn đã hoàn thành khóa học',
-      message: 'Bạn đã hoàn thành 100% khóa học "HTML/CSS Fundamentals" và nhận được chứng chỉ',
-      type: 'success',
-      category: 'achievement',
-      isRead: true,
-      isImportant: true,
-      isFavorite: true,
-      actionUrl: '/student/certificates',
-      actionText: 'Xem chứng chỉ',
-      courseId: 'course-3',
-      courseName: 'HTML/CSS Fundamentals',
-      createdAt: '2024-01-13T14:20:00Z',
-      readAt: '2024-01-13T14:25:00Z',
-    },
-    {
-      id: '5',
-      title: 'Nhắc nhở: Hạn nộp bài tập sắp đến',
-      message: 'Bài tập "CSS Grid Layout" sẽ hết hạn nộp vào ngày mai (16/01/2024)',
-      type: 'warning',
-      category: 'reminder',
-      isRead: false,
-      isImportant: true,
-      isFavorite: false,
-      actionUrl: '/student/assignments/2',
-      actionText: 'Nộp bài',
-      courseId: 'course-2',
-      courseName: 'Frontend Development',
-      createdAt: '2024-01-14T08:00:00Z',
-    },
-  ];
-
-  const notifications = mockNotifications;
-
-  const handleMarkAsRead = (notificationIds: string[]) => {
-    toast.success(`Đã đánh dấu ${notificationIds.length} thông báo là đã đọc`);
+    frequency: 'instant' as const,
   };
 
-  const handleMarkAsUnread = (notificationIds: string[]) => {
-    toast.success(`Đã đánh dấu ${notificationIds.length} thông báo là chưa đọc`);
-  };
+  // Use actual API data or fallback to empty array
 
-  const handleDelete = (notificationIds: string[]) => {
-    toast.success(`Đã xóa ${notificationIds.length} thông báo`);
-  };
-
-  const handleToggleFavorite = (notificationId: string) => {
-    const notification = notifications.find(n => n.id === notificationId);
-    if (notification) {
-      toast.success(notification.isFavorite ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
+  const handleMarkAsRead = async (notificationIds: string[]) => {
+    try {
+      await markNotifications({ notificationIds, isRead: true }).unwrap();
+      toast.success(`Đã đánh dấu ${notificationIds.length} thông báo là đã đọc`);
+      refetchNotifications();
+    } catch (error) {
+      toast.error('Không thể đánh dấu thông báo');
     }
   };
 
-  const handleBulkAction = (action: 'read' | 'unread' | 'delete') => {
+  const handleMarkAsUnread = async (notificationIds: string[]) => {
+    try {
+      await markNotifications({ notificationIds, isRead: false }).unwrap();
+      toast.success(`Đã đánh dấu ${notificationIds.length} thông báo là chưa đọc`);
+      refetchNotifications();
+    } catch (error) {
+      toast.error('Không thể đánh dấu thông báo');
+    }
+  };
+
+  const handleDelete = async (notificationIds: string[]) => {
+    try {
+      await deleteNotifications({ notificationIds }).unwrap();
+      toast.success(`Đã xóa ${notificationIds.length} thông báo`);
+      refetchNotifications();
+    } catch (error) {
+      toast.error('Không thể xóa thông báo');
+    }
+  };
+
+  const handleToggleFavorite = async (notificationId: string) => {
+    try {
+      const notification = notifications.find(n => n.id === notificationId);
+      if (notification) {
+        await toggleFavorite({ 
+          notificationId, 
+          isFavorite: !notification.isFavorite 
+        }).unwrap();
+        toast.success(notification.isFavorite ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
+        refetchNotifications();
+      }
+    } catch (error) {
+      toast.error('Không thể cập nhật trạng thái yêu thích');
+    }
+  };
+
+  const handleBulkAction = async (action: 'read' | 'unread' | 'delete') => {
     if (selectedNotifications.length === 0) {
       toast.error('Vui lòng chọn ít nhất một thông báo');
       return;
     }
 
-    switch (action) {
-      case 'read':
-        handleMarkAsRead(selectedNotifications);
-        break;
-      case 'unread':
-        handleMarkAsUnread(selectedNotifications);
-        break;
-      case 'delete':
-        handleDelete(selectedNotifications);
-        break;
+    try {
+      await bulkAction({ 
+        action: action as any, 
+        notificationIds: selectedNotifications 
+      }).unwrap();
+      
+      toast.success(`Đã thực hiện thành công với ${selectedNotifications.length} thông báo`);
+      setSelectedNotifications([]);
+      refetchNotifications();
+    } catch (error) {
+      toast.error('Không thể thực hiện hành động');
     }
-    setSelectedNotifications([]);
   };
 
   const handleSelectAll = () => {

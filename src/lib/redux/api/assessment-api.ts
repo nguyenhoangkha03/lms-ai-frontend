@@ -8,13 +8,7 @@ import {
 
 export interface StartAssessmentRequest {
   assessmentId: string;
-  antiCheatConfig?: {
-    requireFullscreen: boolean;
-    detectTabSwitching: boolean;
-    enableProctoring: boolean;
-    requireWebcam: boolean;
-    blockCopyPaste: boolean;
-  };
+  antiCheatConfig?: string;
 }
 
 export interface SubmitAnswerRequest {
@@ -55,12 +49,54 @@ export interface SecurityEventRequest {
 
 export const assessmentApi = baseApi.injectEndpoints({
   endpoints: builder => ({
+    // Student Access Endpoints
+    getCourseAssessments: builder.query<Assessment[], string>({
+      query: courseId => `/assessments/course/${courseId}`,
+      providesTags: (_result, _error, courseId) => [
+        { type: 'Assessment', id: `course-${courseId}` },
+      ],
+      transformResponse: (response: any) => {
+        return response.data;
+      },
+    }),
+
+    getLessonAssessments: builder.query<Assessment[], string>({
+      query: lessonId => `/assessments/lesson/${lessonId}`,
+      providesTags: (_result, _error, lessonId) => [
+        { type: 'Assessment', id: `lesson-${lessonId}` },
+      ],
+    }),
+
+    checkAssessmentAvailability: builder.query<
+      {
+        available: boolean;
+        reason?: string;
+        details: {
+          isPublished: boolean;
+          isInTimeWindow: boolean;
+          hasAttemptsLeft: boolean;
+          attemptCount: number;
+          maxAttempts: number;
+        };
+      },
+      string
+    >({
+      query: assessmentId => `/assessments/${assessmentId}/availability`,
+      providesTags: (_result, _error, assessmentId) => [
+        { type: 'AssessmentAvailability', id: assessmentId },
+      ],
+    }),
+
     // Get assessment details
     getAssessment: builder.query<Assessment, string>({
       query: assessmentId => `/assessments/${assessmentId}`,
       providesTags: (_result, _error, assessmentId) => [
         { type: 'Assessment', id: assessmentId },
       ],
+      transformResponse: (response: any) => {
+        console.log(`Assessment: `, response);
+        return response.data;
+      },
     }),
 
     // Start assessment session
@@ -69,11 +105,14 @@ export const assessmentApi = baseApi.injectEndpoints({
       StartAssessmentRequest
     >({
       query: data => ({
-        url: '/assessments/start',
+        url: `/assessments/${data.assessmentId}/start`,
         method: 'POST',
-        body: data,
+        body: {},
       }),
       invalidatesTags: ['AssessmentSession'],
+      transformResponse: (response: any) => {
+        return response.data;
+      },
     }),
 
     // Get current session
@@ -99,9 +138,14 @@ export const assessmentApi = baseApi.injectEndpoints({
       SubmitAnswerRequest
     >({
       query: data => ({
-        url: '/assessments/submit-answer',
+        url: `/assessments/sessions/${data.sessionId}/answers`,
         method: 'POST',
-        body: data,
+        body: {
+          questionId: data.questionId,
+          answer: data.answer,
+          timeSpent: data.timeSpent,
+          confidence: data.confidence,
+        },
       }),
       invalidatesTags: ['AssessmentSession'],
     }),
@@ -158,9 +202,9 @@ export const assessmentApi = baseApi.injectEndpoints({
       }
     >({
       query: data => ({
-        url: '/assessments/submit',
+        url: `/assessments/sessions/${data.sessionId}/submit`,
         method: 'POST',
-        body: data,
+        body: { confirmSubmission: data.confirmSubmission },
       }),
       invalidatesTags: ['AssessmentSession', 'Assessment'],
     }),
@@ -191,6 +235,10 @@ export const assessmentApi = baseApi.injectEndpoints({
       providesTags: (_result, _error, assessmentId) => [
         { type: 'AssessmentAttempt', id: assessmentId },
       ],
+      transformResponse: (response: any) => {
+        console.log('Attempts API response:', response);
+        return response.data;
+      },
     }),
 
     // Flag session for review
@@ -229,6 +277,12 @@ export const assessmentApi = baseApi.injectEndpoints({
 });
 
 export const {
+  // Student Access Hooks
+  useGetCourseAssessmentsQuery,
+  useGetLessonAssessmentsQuery,
+  useCheckAssessmentAvailabilityQuery,
+
+  // Assessment Taking Hooks
   useGetAssessmentQuery,
   useStartAssessmentMutation,
   useGetAssessmentSessionQuery,

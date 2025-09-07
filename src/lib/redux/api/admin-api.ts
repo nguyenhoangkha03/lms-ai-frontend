@@ -18,8 +18,15 @@ interface User {
   lastName?: string;
   displayName?: string;
   phone?: string;
+  profile?: TeacherProfile;
   userType: 'student' | 'teacher' | 'admin';
-  status: 'pending' | 'active' | 'inactive' | 'suspended' | 'banned' | 'deleted';
+  status:
+    | 'pending'
+    | 'active'
+    | 'inactive'
+    | 'suspended'
+    | 'banned'
+    | 'deleted';
   avatarUrl?: string;
   coverUrl?: string;
   emailVerified: boolean;
@@ -36,7 +43,7 @@ interface User {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
-  
+
   // Relationships
   userProfile?: any;
   studentProfile?: any;
@@ -44,7 +51,7 @@ interface User {
   socials?: any[];
   roles?: Role[];
   permissions?: Permission[];
-  
+
   // Virtual properties
   fullName?: string;
   isLocked?: boolean;
@@ -106,7 +113,13 @@ interface UpdateUserDto {
   username?: string;
   phone?: string;
   userType?: 'student' | 'teacher' | 'admin';
-  status?: 'pending' | 'active' | 'inactive' | 'suspended' | 'banned' | 'deleted';
+  status?:
+    | 'pending'
+    | 'active'
+    | 'inactive'
+    | 'suspended'
+    | 'banned'
+    | 'deleted';
   avatarUrl?: string;
   coverUrl?: string;
   preferredLanguage?: string;
@@ -386,12 +399,13 @@ export const adminApi = baseApi.injectEndpoints({
       providesTags: ['UserStats'],
     }),
 
-    getUserById: builder.query<
-      User,
-      string
-    >({
+    getUserById: builder.query<User, string>({
       query: userId => `/admin/users/${userId}`,
-      transformResponse: (response: { success: boolean; message: string; user: User }) => response.user,
+      transformResponse: (response: {
+        success: boolean;
+        message: string;
+        user: User;
+      }) => response.user,
       providesTags: (result, error, userId) => [{ type: 'User', id: userId }],
     }),
 
@@ -575,9 +589,7 @@ export const adminApi = baseApi.injectEndpoints({
       string
     >({
       query: userId => `/admin/users/${userId}/permissions`,
-      providesTags: (result, error, userId) => [
-        { type: 'User', id: userId },
-      ],
+      providesTags: (result, error, userId) => [{ type: 'User', id: userId }],
     }),
 
     // File Upload
@@ -690,6 +702,10 @@ export const adminApi = baseApi.injectEndpoints({
         params,
       }),
       providesTags: ['Courses'],
+      transformResponse: (response: any) => {
+        console.log('response', response);
+        return response;
+      },
     }),
 
     getCourseStats: builder.query<CourseStatsResponse, void>({
@@ -766,9 +782,17 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     // ==================== CATEGORIES MANAGEMENT ==================== //
-    
+
     getCategories: builder.query<
-      { success: boolean; message: string; data?: any[]; categories?: any[]; total?: number; totalPages?: number; meta?: any },
+      {
+        success: boolean;
+        message: string;
+        data?: any[];
+        categories?: any[];
+        total?: number;
+        totalPages?: number;
+        meta?: any;
+      },
       {
         parentId?: string;
         level?: number;
@@ -898,9 +922,9 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     getCategoryStats: builder.query<
-      { 
-        success: boolean; 
-        message: string; 
+      {
+        success: boolean;
+        message: string;
         stats: {
           totalCourses: number;
           activeCourses: number;
@@ -911,7 +935,9 @@ export const adminApi = baseApi.injectEndpoints({
       string
     >({
       query: id => `/categories/${id}/stats`,
-      providesTags: (_result, _error, id) => [{ type: 'Categories', id: `${id}-stats` }],
+      providesTags: (_result, _error, id) => [
+        { type: 'Categories', id: `${id}-stats` },
+      ],
     }),
 
     // ==================== PROFILE MANAGEMENT ====================
@@ -1010,28 +1036,28 @@ export const {
   useDeleteUserMutation,
   useResetUserPasswordMutation,
   useImpersonateUserMutation,
-  
+
   // User Status Management hooks
   useActivateUserMutation,
   useDeactivateUserMutation,
   useSuspendUserMutation,
   useVerifyUserEmailMutation,
-  
+
   // Role & Permission Management hooks
   useAssignUserRolesMutation,
   useRemoveUserRolesMutation,
   useAssignUserPermissionsMutation,
   useGetUserPermissionsQuery,
-  
+
   // File Upload hooks
   useUploadUserAvatarMutation,
   useUploadUserCoverMutation,
-  
+
   // Bulk Operations hooks
   useBulkUpdateUserStatusMutation,
   useBulkAssignUserRolesMutation,
   useBulkDeleteUsersMutation,
-  
+
   // Import/Export hooks
   useImportUsersMutation,
   useExportUsersQuery,

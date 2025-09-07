@@ -36,6 +36,37 @@ export interface InteractiveResponse {
 
 export const learningApi = baseApi.injectEndpoints({
   endpoints: builder => ({
+    // Lesson Details
+    getLesson: builder.query<
+      {
+        id: string;
+        title: string;
+        description?: string;
+        lessonType: 'video' | 'text' | 'quiz' | 'interactive' | 'assignment';
+        videoUrl?: string;
+        thumbnailUrl?: string;
+        content?: string;
+        transcript?: string;
+        estimatedDuration: number;
+        orderIndex: number;
+        isPreview: boolean;
+        isMandatory: boolean;
+        previousLessonId?: string;
+        nextLessonId?: string;
+        section?: {
+          id: string;
+          title: string;
+        };
+        objectives?: string[];
+        prerequisites?: string[];
+      },
+      string
+    >({
+      query: lessonId => `/lessons/${lessonId}`,
+      providesTags: (_result, _error, lessonId) => [
+        { type: 'Lesson', id: lessonId },
+      ],
+    }),
     startLearningSession: builder.mutation<
       LearningSession,
       {
@@ -214,14 +245,32 @@ export const learningApi = baseApi.injectEndpoints({
     trackLearningActivity: builder.mutation<
       void,
       {
+        studentId?: string; // Optional, auto-assigned by backend if not provided
         sessionId?: string;
         lessonId: string;
         activityType:
           | 'video_start'
           | 'video_pause'
+          | 'video_resume'
+          | 'video_seek'
           | 'video_complete'
+          | 'video_speed_change'
+          | 'video_quality_change'
+          | 'lesson_start'
+          | 'lesson_complete'
+          | 'content_scroll'
+          | 'content_focus'
+          | 'content_blur'
           | 'note_created'
-          | 'interactive_completed';
+          | 'note_updated'
+          | 'bookmark_created'
+          | 'resource_download'
+          | 'interactive_completed'
+          | 'quiz_started'
+          | 'quiz_completed'
+          | 'tab_switch'
+          | 'window_blur'
+          | 'window_focus';
         metadata?: Record<string, any>;
       }
     >({
@@ -299,6 +348,7 @@ export const learningApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetLessonQuery,
   useStartLearningSessionMutation,
   useEndLearningSessionMutation,
   useUpdateLessonProgressMutation,

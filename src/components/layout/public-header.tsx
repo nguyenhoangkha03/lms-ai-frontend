@@ -9,6 +9,7 @@ import { ROUTES, APP_CONFIG } from '@/lib/constants/constants';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 const navigation = [
+  { name: 'Courses', href: '/courses' },
   { name: 'Features', href: ROUTES.FEATURES },
   { name: 'Pricing', href: ROUTES.PRICING },
   { name: 'About', href: ROUTES.ABOUT },

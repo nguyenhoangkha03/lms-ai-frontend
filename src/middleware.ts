@@ -71,6 +71,11 @@ const routeConfigs: RouteConfig[] = [
     allowedRoles: [USER_ROLES.STUDENT],
     requiresAuth: true,
   },
+  {
+    path: '/student/ai-chat',
+    allowedRoles: [USER_ROLES.STUDENT],
+    requiresAuth: true,
+  },
 
   {
     path: '/teacher',

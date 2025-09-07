@@ -24,6 +24,13 @@ import {
   UserCircle,
   FolderOpen,
   TrendingUp,
+  Trophy,
+  Heart,
+  CreditCard,
+  Receipt,
+  Lightbulb,
+  Bell,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, IconButton } from '@/components/ui/enhanced-button';
@@ -55,33 +62,148 @@ interface NavItem {
 const navigation: NavItem[] = [
   {
     title: 'Dashboard',
-    href: '/dashboard',
+    href: '/student',
     icon: <Home className="h-4 w-4" />,
   },
   // Student Navigation
   {
     title: 'My Courses',
-    href: '/courses',
+    href: '/my-courses',
     icon: <BookOpen className="h-4 w-4" />,
     badge: '3',
     roles: ['student'],
   },
   {
+    title: 'Browse Courses',
+    href: '/student/courses',
+    icon: <BookOpen className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Cart',
+    href: '/student/cart',
+    icon: <Download className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
     title: 'Learning Path',
-    href: '/learning-path',
+    href: '/student/learning-path',
     icon: <Brain className="h-4 w-4" />,
     roles: ['student'],
   },
   {
+    title: 'AI Tutor',
+    href: '/student/ai-tutor',
+    icon: <MessageSquare className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Analytics',
+    href: '/student/analytics',
+    icon: <BarChart3 className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
     title: 'Schedule',
-    href: '/schedule',
+    href: '/student/schedule',
     icon: <Calendar className="h-4 w-4" />,
   },
   {
     title: 'Messages',
-    href: '/messages',
+    href: '/student/messages',
     icon: <MessageSquare className="h-4 w-4" />,
     badge: '2',
+    roles: ['student'],
+  },
+  {
+    title: 'Assignments',
+    href: '/student/assignments',
+    icon: <ClipboardList className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Assessments',
+    href: '/student/assessments',
+    icon: <FileText className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Progress',
+    href: '/student/progress',
+    icon: <TrendingUp className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Grades',
+    href: '/student/grades',
+    icon: <Trophy className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Achievements',
+    href: '/student/achievements',
+    icon: <Award className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Certificates',
+    href: '/student/certificates',
+    icon: <Award className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Notes',
+    href: '/student/notes',
+    icon: <BookOpen className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Downloads',
+    href: '/student/downloads',
+    icon: <Download className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Wishlist',
+    href: '/student/wishlist',
+    icon: <Heart className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Subscriptions',
+    href: '/student/subscriptions',
+    icon: <CreditCard className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Purchase History',
+    href: '/student/purchase-history',
+    icon: <Receipt className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Recommendations',
+    href: '/student/recommendations',
+    icon: <Lightbulb className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Notifications',
+    href: '/student/notifications',
+    icon: <Bell className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Profile',
+    href: '/student/profile',
+    icon: <User className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Settings',
+    href: '/student/settings',
+    icon: <Settings className="h-4 w-4" />,
+    roles: ['student'],
   },
   // Teacher Navigation
   {
@@ -188,21 +310,33 @@ const navigation: NavItem[] = [
     children: [
       {
         title: 'Take Quiz',
-        href: '/assessments/quiz',
+        href: '/student/assessments/quiz',
         icon: <FileText className="h-4 w-4" />,
         badge: 'New',
       },
       {
         title: 'Results',
-        href: '/assessments/results',
+        href: '/student/assessments/results',
         icon: <BarChart3 className="h-4 w-4" />,
       },
     ],
   },
   {
     title: 'Achievements',
-    href: '/achievements',
+    href: '/student/achievements',
     icon: <Award className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Wishlist',
+    href: '/student/wishlist',
+    icon: <Award className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
+    title: 'Purchase History',
+    href: '/student/purchase-history',
+    icon: <FileText className="h-4 w-4" />,
     roles: ['student'],
   },
   {
@@ -222,9 +356,16 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    title: 'Profile',
+    href: '/profile',
+    icon: <UserCircle className="h-4 w-4" />,
+    roles: ['student'],
+  },
+  {
     title: 'Settings',
-    href: '/settings',
+    href: '/student/settings',
     icon: <Settings className="h-4 w-4" />,
+    roles: ['student'],
   },
 ];
 
@@ -247,10 +388,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     dispatch(setSidebarCollapsed(true));
   };
 
-  const filteredNavigation = navigation.filter(item => {
-    if (!item.roles) return true;
-    return item.roles.includes(user?.userType || '');
-  });
+  const filteredNavigation = navigation;
 
   const renderNavItem = (item: NavItem, level = 0) => {
     const hasChildren = item.children && item.children.length > 0;
@@ -299,18 +437,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     }
 
     return (
-      <Button
-        key={item.title}
-        variant={isActive ? 'secondary' : 'ghost'}
-        className={cn(
-          'h-9 w-full justify-start gap-2',
-          level > 0 && 'pl-8',
-          sidebarCollapsed && 'justify-center px-2',
-          isActive && 'bg-accent text-accent-foreground'
-        )}
-        asChild
-      >
-        <Link href={item.href || '#'}>
+      <Link key={item.title} href={item.href || '#'}>
+        <Button
+          variant={isActive ? 'secondary' : 'ghost'}
+          className={cn(
+            'h-9 w-full justify-start gap-2',
+            level > 0 && 'pl-8',
+            sidebarCollapsed && 'justify-center px-2',
+            isActive && 'bg-accent text-accent-foreground'
+          )}
+        >
           {item.icon}
           {!sidebarCollapsed && (
             <>
@@ -322,8 +458,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
               )}
             </>
           )}
-        </Link>
-      </Button>
+        </Button>
+      </Link>
     );
   };
 

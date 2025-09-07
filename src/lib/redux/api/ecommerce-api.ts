@@ -12,30 +12,63 @@ import type {
 
 export const ecommerceApi = baseApi.injectEndpoints({
   endpoints: builder => ({
-    // Cart Management
-    getCart: builder.query<{ items: CartItem[]; summary: CartSummary }, void>({
-      query: () => '/cart',
+    getCart: builder.query<
+      {
+        success: boolean;
+        items: CartItem[];
+        stats?: CartSummary;
+        message?: string;
+      },
+      {
+        includeCourseDetails?: boolean;
+        includeTeacher?: boolean;
+        includeStats?: boolean;
+      }
+    >({
+      query: (params = {}) => ({
+        url: '/cart',
+        params: {
+          includeCourseDetails: params.includeCourseDetails ?? true,
+          includeTeacher: params.includeTeacher ?? true,
+          includeStats: params.includeStats ?? true,
+        },
+      }),
       providesTags: ['Cart'],
+      transformResponse: (response: any) => {
+        console.log('response', response);
+        return response;
+      },
     }),
 
     addToCart: builder.mutation<
       CartItem,
-      { courseId: string; pricingModel?: string; subscriptionType?: string }
+      { courseId: string; metadata?: Record<string, any> }
     >({
       query: data => ({
-        url: '/cart/items',
+        url: '/cart',
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Cart'],
+      invalidatesTags: (result, error, { courseId }) => [
+        'Cart',
+        'CartCount', 
+        { type: 'CartCheck', id: courseId }
+      ],
     }),
 
-    removeFromCart: builder.mutation<void, string>({
-      query: itemId => ({
-        url: `/cart/items/${itemId}`,
+    removeFromCart: builder.mutation<
+      { success: boolean; message: string },
+      string
+    >({
+      query: courseId => ({
+        url: `/cart/items/${courseId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Cart'],
+      invalidatesTags: (result, error, courseId) => [
+        'Cart',
+        'CartCount',
+        { type: 'CartCheck', id: courseId }
+      ],
     }),
 
     applyCoupon: builder.mutation<CartSummary, { couponCode: string }>({
@@ -44,7 +77,7 @@ export const ecommerceApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Cart'],
+      invalidatesTags: ['Cart', 'CartCount'],
     }),
 
     removeCoupon: builder.mutation<CartSummary, void>({
@@ -52,21 +85,210 @@ export const ecommerceApi = baseApi.injectEndpoints({
         url: '/cart/remove-coupon',
         method: 'POST',
       }),
-      invalidatesTags: ['Cart'],
+      invalidatesTags: ['Cart', 'CartCount'],
     }),
 
-    clearCart: builder.mutation<void, void>({
+    clearCart: builder.mutation<{ success: boolean; message: string }, void>({
       query: () => ({
-        url: '/cart/clear',
-        method: 'POST',
+        url: '/cart',
+        method: 'DELETE',
       }),
-      invalidatesTags: ['Cart'],
+      invalidatesTags: ['Cart', 'CartCount'],
+    }),
+
+    // New cart endpoints to match backend
+    getCartCount: builder.query<{ count: number; success: boolean }, void>({
+      query: () => '/cart/count',
+      providesTags: ['Cart', 'CartCount'],
+    }),
+
+    checkInCart: builder.query<{ inCart: boolean; success: boolean }, string>({
+      query: courseId => `/cart/check/${courseId}`,
+      providesTags: (result, error, courseId) => [
+        { type: 'CartCheck', id: courseId },
+      ],
+    }),
+
+    bulkAddToCart: builder.mutation<
+      { success: boolean; added: number; failed: string[] },
+      { courseIds: string[]; metadata?: Record<string, any> }
+    >({
+      query: data => ({
+        url: '/cart/bulk/add',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Cart', 'CartCount'],
+    }),
+
+    bulkRemoveFromCart: builder.mutation<
+      { success: boolean; removed: number; failed: string[] },
+      { courseIds: string[] }
+    >({
+      query: data => ({
+        url: '/cart/bulk/remove',
+        method: 'DELETE',
+        body: data,
+      }),
+      invalidatesTags: ['Cart', 'CartCount'],
     }),
 
     // Payment Methods
     getPaymentMethods: builder.query<PaymentMethod[], void>({
       query: () => '/payment/methods',
       providesTags: ['PaymentMethods'],
+    }),
+
+    createPaymentFromCart: builder.mutation<
+      {
+        paymentUrl: string;
+        orderCode: string;
+        paymentId: string;
+        expiredAt: string;
+      },
+      {
+        paymentMethod: 'momo' | 'stripe';
+        couponCode?: string;
+        description?: string;
+        metadata?: any;
+      }
+    >({
+      query: data => ({
+        url: '/payment/create-from-cart',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Cart', 'Payments'],
+    }),
+
+    getPaymentByOrderCode: builder.query<
+      {
+        id: string;
+        orderCode: string;
+        paymentMethod: string;
+        status: string;
+        totalAmount: number;
+        discountAmount: number;
+        finalAmount: number;
+        currency: string;
+        description: string;
+        createdAt: string;
+        paidAt: string;
+        items: Array<{
+          id: string;
+          courseId: string;
+          courseTitle: string;
+          courseThumbnail: string;
+          price: number;
+          originalPrice: number;
+          discountAmount: number;
+          currency: string;
+          hasDiscount: boolean;
+          discountPercent: number;
+        }>;
+      },
+      string
+    >({
+      query: orderCode => ({
+        url: `/payment/order/${orderCode}`,
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, orderCode) => [
+        { type: 'Payment', id: orderCode },
+      ],
+    }),
+
+    createPayment: builder.mutation<
+      {
+        paymentUrl: string;
+        orderCode: string;
+        paymentId: string;
+        expiredAt: string;
+      },
+      {
+        paymentMethod: 'vnpay' | 'momo' | 'zalopay';
+        items: {
+          courseId: string;
+          price: number;
+          originalPrice?: number;
+          currency?: string;
+        }[];
+        couponCode?: string;
+        description?: string;
+        metadata?: any;
+      }
+    >({
+      query: data => ({
+        url: '/payment/create',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Payments'],
+    }),
+
+    getPayment: builder.query<
+      {
+        id: string;
+        orderCode: string;
+        paymentMethod: string;
+        status: string;
+        totalAmount: number;
+        discountAmount?: number;
+        finalAmount: number;
+        currency: string;
+        description?: string;
+        createdAt: string;
+        paidAt?: string;
+        items: {
+          id: string;
+          courseId: string;
+          courseTitle?: string;
+          courseThumbnail?: string;
+          price: number;
+          originalPrice?: number;
+          discountAmount?: number;
+          currency: string;
+          hasDiscount: boolean;
+          discountPercent: number;
+        }[];
+      },
+      string
+    >({
+      query: paymentId => `/payment/${paymentId}`,
+      providesTags: (result, error, paymentId) => [
+        { type: 'Payment', id: paymentId },
+      ],
+    }),
+
+    getUserPayments: builder.query<
+      {
+        payments: Array<{
+          id: string;
+          orderCode: string;
+          paymentMethod: string;
+          status: string;
+          totalAmount: number;
+          finalAmount: number;
+          currency: string;
+          createdAt: string;
+          paidAt?: string;
+        }>;
+        total: number;
+      },
+      {
+        status?: string;
+        paymentMethod?: string;
+        page?: number;
+        limit?: number;
+        startDate?: string;
+        endDate?: string;
+      }
+    >({
+      query: params => ({
+        url: '/payment/my-payments',
+        params,
+      }),
+      providesTags: ['Payments'],
     }),
 
     processPayment: builder.mutation<
@@ -236,6 +458,74 @@ export const ecommerceApi = baseApi.injectEndpoints({
         params,
       }),
     }),
+
+    // MoMo Payment endpoints
+    getMoMoInstructions: builder.query<
+      {
+        success: boolean;
+        payment: {
+          orderCode: string;
+          amount: number;
+          currency: string;
+          status: string;
+        };
+        instructions: {
+          steps: string[];
+          manualInfo: {
+            phone: string;
+            name: string;
+            amount: number;
+            note: string;
+          };
+          qrInfo: {
+            data: string;
+            description: string;
+          };
+        };
+      },
+      string
+    >({
+      query: orderCode => `/payment/momo/instructions/${orderCode}`,
+      providesTags: (result, error, orderCode) => [
+        { type: 'Payment', id: orderCode },
+      ],
+    }),
+
+    markMoMoPaid: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        orderCode: string;
+      },
+      string
+    >({
+      query: orderCode => ({
+        url: `/payment/momo/mark-paid/${orderCode}`,
+        method: 'POST',
+      }),
+      invalidatesTags: (result, error, orderCode) => [
+        { type: 'Payment', id: orderCode },
+      ],
+    }),
+
+    verifyMoMoPayment: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        result?: any;
+      },
+      { orderCode: string; transactionCode: string }
+    >({
+      query: ({ orderCode, transactionCode }) => ({
+        url: `/payment/momo/verify/${orderCode}`,
+        method: 'POST',
+        body: { transactionCode },
+      }),
+      invalidatesTags: (result, error, { orderCode }) => [
+        { type: 'Payment', id: orderCode },
+        'Payments',
+      ],
+    }),
   }),
 });
 
@@ -247,9 +537,18 @@ export const {
   useApplyCouponMutation,
   useRemoveCouponMutation,
   useClearCartMutation,
+  useGetCartCountQuery,
+  useCheckInCartQuery,
+  useBulkAddToCartMutation,
+  useBulkRemoveFromCartMutation,
 
   // Payment hooks
   useGetPaymentMethodsQuery,
+  useCreatePaymentFromCartMutation,
+  useGetPaymentByOrderCodeQuery,
+  useCreatePaymentMutation,
+  useGetPaymentQuery,
+  useGetUserPaymentsQuery,
   useProcessPaymentMutation,
 
   // Purchase hooks
@@ -270,4 +569,9 @@ export const {
   // Pricing hooks
   useGetPricingPlansQuery,
   useValidateCouponQuery,
+
+  // MoMo Payment hooks
+  useGetMoMoInstructionsQuery,
+  useMarkMoMoPaidMutation,
+  useVerifyMoMoPaymentMutation,
 } = ecommerceApi;

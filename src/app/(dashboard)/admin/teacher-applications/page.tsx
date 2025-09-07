@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,12 +35,17 @@ import {
   XCircle,
   AlertCircle,
 } from 'lucide-react';
-import { useGetTeacherApplicationsQuery, useGetApprovalStatsQuery } from '@/lib/redux/api/admin-api';
+import {
+  useGetTeacherApplicationsQuery,
+  useGetApprovalStatsQuery,
+  useGetUsersQuery,
+} from '@/lib/redux/api/admin-api';
 import { TeacherApplicationQuery } from '@/lib/types';
 import Link from 'next/link';
 
 export default function TeacherApplicationsPage() {
   const [currentTab, setCurrentTab] = useState('pending');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('submittedAt');
@@ -58,24 +63,53 @@ export default function TeacherApplicationsPage() {
   const {
     data: applicationsData,
     isLoading: applicationsLoading,
+    error: applicationsError,
     refetch: refetchApplications,
   } = useGetTeacherApplicationsQuery(queryParams);
 
+  // Try alternative approach - get all teachers
   const {
-    data: statsData,
-    isLoading: statsLoading,
-  } = useGetApprovalStatsQuery();
+    data: allTeachersData,
+    isLoading: teachersLoading,
+    error: teachersError,
+  } = useGetUsersQuery({
+    userType: 'teacher',
+    page: 1,
+    limit: 50,
+  });
+
+  console.log('all', allTeachersData);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Pending</Badge>;
+        return (
+          <Badge variant="secondary">
+            <Clock className="mr-1 h-3 w-3" />
+            Pending
+          </Badge>
+        );
       case 'approved':
-        return <Badge variant="default" className="bg-green-100 text-green-700"><CheckCircle className="mr-1 h-3 w-3" />Approved</Badge>;
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-700">
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Approved
+          </Badge>
+        );
       case 'rejected':
-        return <Badge variant="destructive"><XCircle className="mr-1 h-3 w-3" />Rejected</Badge>;
+        return (
+          <Badge variant="destructive">
+            <XCircle className="mr-1 h-3 w-3" />
+            Rejected
+          </Badge>
+        );
       case 'under_review':
-        return <Badge variant="outline"><AlertCircle className="mr-1 h-3 w-3" />Under Review</Badge>;
+        return (
+          <Badge variant="outline">
+            <AlertCircle className="mr-1 h-3 w-3" />
+            Under Review
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -91,12 +125,89 @@ export default function TeacherApplicationsPage() {
     });
   };
 
+  // Process teachers data to create applications list
+  const processedApplications = useMemo(() => {
+    if (!allTeachersData?.users) return [];
+
+    return allTeachersData.users
+      .filter(user => {
+        // Filter based on approval status to match currentTab
+        // Backend returns teacherProfile as 'profile' field
+        const isApproved = user.profile?.isApproved;
+        const approvedBy = user.profile?.approvedBy;
+
+        // Handle both boolean and number values for isApproved
+        const isApprovedBool = isApproved === true;
+        const isRejected = isApproved === false;
+
+        switch (currentTab) {
+          case 'pending':
+            return !isApprovedBool && !approvedBy;
+          case 'approved':
+            return isApprovedBool;
+          //   case 'rejected':
+          //     return isRejected && approvedBy; // Rejected by someone
+          case 'under_review':
+            return !isApprovedBool && approvedBy; // Being reviewed
+          default:
+            return true;
+        }
+      })
+      .filter(user => {
+        // Apply search filter
+        if (!searchTerm) return true;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          user.firstName?.toLowerCase().includes(searchLower) ||
+          user.lastName?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.profile?.specializations
+            ?.join(',')
+            .toLowerCase()
+            .includes(searchLower)
+        );
+      });
+  }, [allTeachersData?.users, currentTab, searchTerm]);
+
+  // Calculate stats from processed data
+  const calculatedStats = useMemo(() => {
+    if (!allTeachersData?.users)
+      return { pending: 0, approved: 0, rejected: 0, total: 0 };
+
+    return allTeachersData.users.reduce(
+      (stats, user) => {
+        // Backend returns teacherProfile as 'profile' field
+        const isApproved = user.profile?.isApproved;
+        const approvedBy = user.profile?.approvedBy;
+
+        // Handle both boolean and number values for isApproved
+        const isApprovedBool = isApproved === true;
+        const isRejected = isApproved === false;
+
+        stats.total++;
+
+        if (!isApprovedBool && !approvedBy) {
+          stats.pending++;
+        } else if (isApprovedBool) {
+          stats.approved++;
+        } else if (isRejected && approvedBy) {
+          stats.rejected++;
+        }
+
+        return stats;
+      },
+      { pending: 0, approved: 0, rejected: 0, total: 0 }
+    );
+  }, [allTeachersData?.users]);
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6 p-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Teacher Applications</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Teacher Applications
+          </h1>
           <p className="text-muted-foreground">
             Manage and review teacher application requests
           </p>
@@ -110,13 +221,13 @@ export default function TeacherApplicationsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-orange-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold">{statsData?.stats?.pending || 0}</p>
+                <p className="text-2xl font-bold">{calculatedStats.pending}</p>
                 <p className="text-xs text-muted-foreground">Pending Review</p>
               </div>
             </div>
@@ -128,7 +239,7 @@ export default function TeacherApplicationsPage() {
             <div className="flex items-center">
               <UserCheck className="h-8 w-8 text-green-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold">{statsData?.stats?.approved || 0}</p>
+                <p className="text-2xl font-bold">{calculatedStats.approved}</p>
                 <p className="text-xs text-muted-foreground">Approved</p>
               </div>
             </div>
@@ -140,7 +251,7 @@ export default function TeacherApplicationsPage() {
             <div className="flex items-center">
               <UserX className="h-8 w-8 text-red-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold">{statsData?.stats?.rejected || 0}</p>
+                <p className="text-2xl font-bold">{calculatedStats.rejected}</p>
                 <p className="text-xs text-muted-foreground">Rejected</p>
               </div>
             </div>
@@ -152,8 +263,10 @@ export default function TeacherApplicationsPage() {
             <div className="flex items-center">
               <Users className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-2xl font-bold">{statsData?.stats?.total || 0}</p>
-                <p className="text-xs text-muted-foreground">Total Applications</p>
+                <p className="text-2xl font-bold">{calculatedStats.total}</p>
+                <p className="text-xs text-muted-foreground">
+                  Total Applications
+                </p>
               </div>
             </div>
           </CardContent>
@@ -166,14 +279,14 @@ export default function TeacherApplicationsPage() {
           <CardTitle className="text-lg">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4 md:flex-row">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, email, or specialization..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -191,7 +304,10 @@ export default function TeacherApplicationsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'ASC' | 'DESC')}>
+            <Select
+              value={sortOrder}
+              onValueChange={value => setSortOrder(value as 'ASC' | 'DESC')}
+            >
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Order" />
               </SelectTrigger>
@@ -210,22 +326,20 @@ export default function TeacherApplicationsPage() {
           <Tabs value={currentTab} onValueChange={setCurrentTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="pending">
-                Pending ({statsData?.stats?.pending || 0})
+                Pending ({calculatedStats.pending})
               </TabsTrigger>
-              <TabsTrigger value="under_review">
-                Under Review ({statsData?.stats?.underReview || 0})
-              </TabsTrigger>
+              <TabsTrigger value="under_review">Under Review (0)</TabsTrigger>
               <TabsTrigger value="approved">
-                Approved ({statsData?.stats?.approved || 0})
+                Approved ({calculatedStats.approved})
               </TabsTrigger>
               <TabsTrigger value="rejected">
-                Rejected ({statsData?.stats?.rejected || 0})
+                Rejected ({calculatedStats.rejected})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value={currentTab} className="mt-6">
-              {applicationsLoading ? (
-                <div className="flex justify-center items-center py-8">
+              {teachersLoading ? (
+                <div className="flex items-center justify-center py-8">
                   <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                 </div>
               ) : (
@@ -242,56 +356,95 @@ export default function TeacherApplicationsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {applicationsData?.applications?.map((application) => (
-                        <TableRow key={application.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {application.user.firstName} {application.user.lastName}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {application.user.email}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {application.teacherProfile.specializations || 'Not specified'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {application.teacherProfile.yearsExperience} years
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {formatDate(application.teacherProfile.submittedAt)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(application.status)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Link href={`/dashboard/admin/teacher-applications/${application.id}`}>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </Link>
-                              <Button variant="ghost" size="sm">
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                            </div>
+                      {teachersError && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="py-8 text-center text-red-600"
+                          >
+                            Error loading teachers: {teachersError?.toString()}
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
+
+                      {!teachersError && processedApplications.length === 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="py-8 text-center text-muted-foreground"
+                          >
+                            No teacher applications found for status "
+                            {currentTab}"
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {processedApplications.map(user => {
+                        // Backend returns teacherProfile as 'profile' field
+                        const isApproved = user.profile?.isApproved;
+                        const isApprovedBool = isApproved === true;
+                        const isRejected = isApproved === false;
+
+                        const status = isApprovedBool
+                          ? 'approved'
+                          : isRejected
+                            ? 'pending'
+                            : 'pending';
+
+                        return (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {user.email}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {user.profile?.specializations ||
+                                  'Not specified'}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {user.profile?.yearsExperience || 0} years
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {formatDate(
+                                  user.profile?.createdAt || user.createdAt
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(status)}</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Link
+                                  href={`/admin/teacher-applications/${user.id}`}
+                                >
+                                  <Button variant="ghost" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                                <Button variant="ghost" size="sm">
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
 
                   {/* Pagination */}
                   {applicationsData && applicationsData.totalPages > 1 && (
-                    <div className="flex justify-center items-center space-x-2 mt-6">
+                    <div className="mt-6 flex items-center justify-center space-x-2">
                       <Button
                         variant="outline"
                         disabled={currentPage === 1}

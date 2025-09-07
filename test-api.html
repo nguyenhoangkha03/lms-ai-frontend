@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI API</title>
+</head>
+<body>
+    <h1>AI API Test</h1>
+    <button id="testBtn">Test AI Chat API</button>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('🔄 Testing AI API...');
+                
+                const response = await fetch('http://127.0.0.1:5000/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Hello from browser test',
+                        conversationId: 'test-123',
+                    }),
+                });
+                
+                console.log('📡 Response status:', response.status);
+                console.log('📋 Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <p><strong>Message:</strong> ${data.data.message}</p>
+                        <p><strong>Conversation ID:</strong> ${data.data.conversationId}</p>
+                        <p><strong>Timestamp:</strong> ${data.data.timestamp}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ API Error</h3><p>${data.message || data.error}</p>`;
+                }
+                
+            } catch (error) {
+                console.error('Network error:', error);
+                resultDiv.innerHTML = `<h3>🔌 Network Error</h3><p>${error.message}</p>`;
+            }
+        });
+        
+        // Test CORS preflight
+        console.log('🌐 Current origin:', window.location.origin);
+    </script>
+</body>
+</html>

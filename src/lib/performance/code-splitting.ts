@@ -99,17 +99,9 @@ export const LazyPages = {
     () => import('@/app/(dashboard)/admin/content/moderation/page')
   ),
 
-  CourseList: createLazyComponent(
-    () => import('@/app/(marketplace)/courses/page')
-  ),
+  CourseList: createLazyComponent(() => import('@/app/(public)/courses/page')),
   CourseDetail: createLazyComponent(
-    () => import('@/app/(marketplace)/courses/[slug]/page')
-  ),
-  LessonPage: createLazyComponent(
-    () =>
-      import(
-        '@/app/(dashboard)/student/courses/[courseId]/lessons/[lessonId]/page'
-      )
+    () => import('@/app/(public)/courses/[slug]/page')
   ),
 
   AssessmentTake: createLazyComponent(

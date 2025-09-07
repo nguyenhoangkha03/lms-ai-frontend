@@ -25,12 +25,14 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface InteractiveElementsProps {
-  lessonId: string;
+  lesson: any;
+  onComplete?: () => void;
   className?: string;
 }
 
 export function InteractiveElements({
-  lessonId,
+  lesson,
+  onComplete,
   className,
 }: InteractiveElementsProps) {
   const [responses, setResponses] = useState<Record<string, any>>({});
@@ -43,7 +45,7 @@ export function InteractiveElements({
     data: elements = [],
     isLoading,
     error,
-  } = useGetInteractiveElementsQuery(lessonId);
+  } = useGetInteractiveElementsQuery(lesson.id);
 
   const [submitResponse, { isLoading: submitting }] =
     useSubmitInteractiveResponseMutation();
@@ -73,7 +75,16 @@ export function InteractiveElements({
 
       const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-      setCompletedElements(prev => new Set([...prev, element.id]));
+      setCompletedElements(prev => {
+        const newCompleted = new Set([...prev, element.id]);
+        
+        // Check if all elements are completed
+        if (newCompleted.size === elements.length && onComplete) {
+          setTimeout(() => onComplete(), 2000); // Call onComplete after 2 seconds
+        }
+        
+        return newCompleted;
+      });
       setShowFeedback(prev => ({ ...prev, [element.id]: true }));
 
       if (result.isCorrect) {

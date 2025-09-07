@@ -54,12 +54,12 @@ import {
   Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { 
-  useGetAdminCoursesQuery, 
+import {
+  useGetAdminCoursesQuery,
   useGetCourseStatsQuery,
   useUpdateCourseStatusMutation,
   useBulkCourseActionsMutation,
-  useDeleteAdminCourseMutation 
+  useDeleteAdminCourseMutation,
 } from '@/lib/redux/api/admin-api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -81,8 +81,14 @@ export default function AdminCoursesPage() {
   });
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
 
-  const { data: coursesData, isLoading, refetch } = useGetAdminCoursesQuery(queryState);
+  const {
+    data: coursesData,
+    isLoading,
+    refetch,
+  } = useGetAdminCoursesQuery(queryState);
   const { data: statsData } = useGetCourseStatsQuery();
+  console.log('coursesData', coursesData);
+  console.log('statsData', statsData);
   const [updateCourseStatus] = useUpdateCourseStatusMutation();
   const [bulkCourseActions] = useBulkCourseActionsMutation();
   const [deleteAdminCourse] = useDeleteAdminCourseMutation();
@@ -90,7 +96,11 @@ export default function AdminCoursesPage() {
   const courses = coursesData?.courses || [];
   const stats = statsData?.stats;
 
-  const handleStatusChange = async (courseId: string, status: string, notes?: string) => {
+  const handleStatusChange = async (
+    courseId: string,
+    status: string,
+    notes?: string
+  ) => {
     try {
       await updateCourseStatus({ courseId, status, notes }).unwrap();
       toast.success('Course status updated successfully');
@@ -121,7 +131,11 @@ export default function AdminCoursesPage() {
   };
 
   const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete this course? This action cannot be undone.'
+      )
+    ) {
       return;
     }
 
@@ -184,7 +198,9 @@ export default function AdminCoursesPage() {
         </div>
         <div className="flex items-center space-x-3">
           <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className={cn('mr-2 h-4 w-4', isLoading && 'animate-spin')} />
+            <RefreshCw
+              className={cn('mr-2 h-4 w-4', isLoading && 'animate-spin')}
+            />
             Refresh
           </Button>
           <Button variant="outline">
@@ -201,7 +217,9 @@ export default function AdminCoursesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Courses</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Courses
+                  </p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
                 <BookOpen className="h-8 w-8 text-blue-600" />
@@ -213,7 +231,9 @@ export default function AdminCoursesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Published</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Published
+                  </p>
                   <p className="text-2xl font-bold">{stats.published}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
@@ -225,7 +245,9 @@ export default function AdminCoursesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Pending Review
+                  </p>
                   <p className="text-2xl font-bold">{stats.pendingReview}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
@@ -237,8 +259,12 @@ export default function AdminCoursesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Enrollments</p>
-                  <p className="text-2xl font-bold">{stats.totalEnrollments?.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Enrollments
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {stats.totalEnrollments?.toLocaleString()}
+                  </p>
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
               </div>
@@ -249,8 +275,12 @@ export default function AdminCoursesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Avg Rating</p>
-                  <p className="text-2xl font-bold">{stats.averageRating?.toFixed(1)}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Avg Rating
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {stats.averageRating?.toFixed(1)}
+                  </p>
                 </div>
                 <Star className="h-8 w-8 text-orange-600" />
               </div>
@@ -264,23 +294,31 @@ export default function AdminCoursesPage() {
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 items-center space-x-4">
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative max-w-sm flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search courses..."
                   value={queryState.search || ''}
-                  onChange={(e) => setQueryState(prev => ({ ...prev, search: e.target.value, page: 1 }))}
+                  onChange={e =>
+                    setQueryState(prev => ({
+                      ...prev,
+                      search: e.target.value,
+                      page: 1,
+                    }))
+                  }
                   className="pl-10"
                 />
               </div>
 
               <Select
                 value={queryState.status || 'all'}
-                onValueChange={(value) => setQueryState(prev => ({ 
-                  ...prev, 
-                  status: value === 'all' ? undefined : value, 
-                  page: 1 
-                }))}
+                onValueChange={value =>
+                  setQueryState(prev => ({
+                    ...prev,
+                    status: value === 'all' ? undefined : value,
+                    page: 1,
+                  }))
+                }
               >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Status" />
@@ -296,11 +334,13 @@ export default function AdminCoursesPage() {
 
               <Select
                 value={queryState.category || 'all'}
-                onValueChange={(value) => setQueryState(prev => ({ 
-                  ...prev, 
-                  category: value === 'all' ? undefined : value, 
-                  page: 1 
-                }))}
+                onValueChange={value =>
+                  setQueryState(prev => ({
+                    ...prev,
+                    category: value === 'all' ? undefined : value,
+                    page: 1,
+                  }))
+                }
               >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Category" />
@@ -362,7 +402,10 @@ export default function AdminCoursesPage() {
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox
-                      checked={selectedCourses.length === courses.length && courses.length > 0}
+                      checked={
+                        selectedCourses.length === courses.length &&
+                        courses.length > 0
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
@@ -380,61 +423,88 @@ export default function AdminCoursesPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
-                      <TableCell><div className="h-4 w-4 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-40 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-32 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-20 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-16 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-16 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-20 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-24 animate-pulse bg-gray-200 rounded"></div></TableCell>
-                      <TableCell><div className="h-4 w-4 animate-pulse bg-gray-200 rounded"></div></TableCell>
+                      <TableCell>
+                        <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-40 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-16 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-16 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-4 animate-pulse rounded bg-gray-200"></div>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : courses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={9} className="py-8 text-center">
                       <div className="flex flex-col items-center space-y-2">
                         <BookOpen className="h-8 w-8 text-muted-foreground" />
-                        <p className="text-muted-foreground">No courses found</p>
+                        <p className="text-muted-foreground">
+                          No courses found
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  courses.map((course) => {
+                  courses.map(course => {
                     const StatusIcon = getStatusIcon(course.status);
                     return (
                       <TableRow key={course.id}>
                         <TableCell>
                           <Checkbox
                             checked={selectedCourses.includes(course.id)}
-                            onCheckedChange={(checked) => {
+                            onCheckedChange={checked => {
                               if (checked) {
-                                setSelectedCourses(prev => [...prev, course.id]);
+                                setSelectedCourses(prev => [
+                                  ...prev,
+                                  course.id,
+                                ]);
                               } else {
-                                setSelectedCourses(prev => prev.filter(id => id !== course.id));
+                                setSelectedCourses(prev =>
+                                  prev.filter(id => id !== course.id)
+                                );
                               }
                             }}
                           />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <div className="h-12 w-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                            <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
                               {course.thumbnail ? (
-                                <img 
-                                  src={course.thumbnail} 
+                                <img
+                                  src={course.thumbnail}
                                   alt={course.title}
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <div className="h-full w-full flex items-center justify-center">
+                                <div className="flex h-full w-full items-center justify-center">
                                   <BookOpen className="h-6 w-6 text-gray-400" />
                                 </div>
                               )}
                             </div>
                             <div>
-                              <p className="font-medium line-clamp-1">{course.title}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-1">
+                              <p className="line-clamp-1 font-medium">
+                                {course.title}
+                              </p>
+                              <p className="line-clamp-1 text-sm text-muted-foreground">
                                 {course.description}
                               </p>
                             </div>
@@ -448,11 +518,18 @@ export default function AdminCoursesPage() {
                                 {course.instructor.name?.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{course.instructor.name}</span>
+                            <span className="text-sm">
+                              {course.instructor.name}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={cn('text-xs', getStatusColor(course.status))}>
+                          <Badge
+                            className={cn(
+                              'text-xs',
+                              getStatusColor(course.status)
+                            )}
+                          >
                             <StatusIcon className="mr-1 h-3 w-3" />
                             {course.status.replace('_', ' ')}
                           </Badge>
@@ -465,7 +542,7 @@ export default function AdminCoursesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-1">
-                            <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                            <Star className="h-4 w-4 fill-current text-yellow-500" />
                             <span>{course.rating}</span>
                           </div>
                         </TableCell>
@@ -488,7 +565,11 @@ export default function AdminCoursesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => window.location.href = `/admin/courses/${course.id}`}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  (window.location.href = `/admin/courses/${course.id}`)
+                                }
+                              >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
@@ -496,13 +577,21 @@ export default function AdminCoursesPage() {
                               {course.status === 'pending_review' && (
                                 <>
                                   <DropdownMenuItem
-                                    onClick={() => handleStatusChange(course.id, 'published')}
+                                    onClick={() =>
+                                      handleStatusChange(course.id, 'published')
+                                    }
                                   >
                                     <CheckCircle className="mr-2 h-4 w-4" />
                                     Approve & Publish
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => handleStatusChange(course.id, 'draft', 'Needs revision')}
+                                    onClick={() =>
+                                      handleStatusChange(
+                                        course.id,
+                                        'draft',
+                                        'Needs revision'
+                                      )
+                                    }
                                   >
                                     <XCircle className="mr-2 h-4 w-4" />
                                     Request Changes
@@ -511,7 +600,9 @@ export default function AdminCoursesPage() {
                               )}
                               {course.status === 'published' && (
                                 <DropdownMenuItem
-                                  onClick={() => handleStatusChange(course.id, 'archived')}
+                                  onClick={() =>
+                                    handleStatusChange(course.id, 'archived')
+                                  }
                                 >
                                   <Archive className="mr-2 h-4 w-4" />
                                   Archive
@@ -540,16 +631,21 @@ export default function AdminCoursesPage() {
           {coursesData && coursesData.totalPages > 1 && (
             <div className="flex items-center justify-between py-4">
               <div className="text-sm text-muted-foreground">
-                Showing {((queryState.page - 1) * queryState.limit) + 1} to{' '}
-                {Math.min(queryState.page * queryState.limit, coursesData.total)} of{' '}
-                {coursesData.total} courses
+                Showing {(queryState.page - 1) * queryState.limit + 1} to{' '}
+                {Math.min(
+                  queryState.page * queryState.limit,
+                  coursesData.total
+                )}{' '}
+                of {coursesData.total} courses
               </div>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={queryState.page <= 1}
-                  onClick={() => setQueryState(prev => ({ ...prev, page: prev.page - 1 }))}
+                  onClick={() =>
+                    setQueryState(prev => ({ ...prev, page: prev.page - 1 }))
+                  }
                 >
                   Previous
                 </Button>
@@ -557,7 +653,9 @@ export default function AdminCoursesPage() {
                   variant="outline"
                   size="sm"
                   disabled={queryState.page >= coursesData.totalPages}
-                  onClick={() => setQueryState(prev => ({ ...prev, page: prev.page + 1 }))}
+                  onClick={() =>
+                    setQueryState(prev => ({ ...prev, page: prev.page + 1 }))
+                  }
                 >
                   Next
                 </Button>

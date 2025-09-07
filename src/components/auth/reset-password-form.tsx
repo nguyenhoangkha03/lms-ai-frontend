@@ -23,6 +23,7 @@ import {
   type ResetPasswordFormData,
 } from '@/lib/validations/auth-schemas';
 import { ROUTES } from '@/lib/constants/constants';
+import { useResetPasswordMutation } from '@/lib/redux/api/auth-api';
 import {
   Lock,
   AlertCircle,
@@ -63,9 +64,10 @@ export const ResetPasswordForm: React.FC = () => {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [resetPassword, { isLoading }] = useResetPasswordMutation();
   const [passwordStrength, setPasswordStrength] = useState({
     score: 0,
     feedback: [] as string[],
@@ -77,7 +79,7 @@ export const ResetPasswordForm: React.FC = () => {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       token: token || '',
-      password: '',
+      newPassword: '',
       confirmPassword: '',
     },
   });
@@ -88,7 +90,7 @@ export const ResetPasswordForm: React.FC = () => {
     }
   }, [token]);
 
-  const password = form.watch('password');
+  const password = form.watch('newPassword');
 
   useEffect(() => {
     if (password) {
@@ -98,20 +100,9 @@ export const ResetPasswordForm: React.FC = () => {
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
-      setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to reset password');
-      }
+      const result = await resetPassword(data).unwrap();
 
       setIsSuccess(true);
       toast({
@@ -123,10 +114,12 @@ export const ResetPasswordForm: React.FC = () => {
       setTimeout(() => {
         router.push(ROUTES.LOGIN);
       }, 3000);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      const errorMessage = 
+        error?.data?.message || 
+        error?.message || 
+        'Failed to reset password. Please try again.';
+      setError(errorMessage);
     }
   };
 
@@ -167,7 +160,7 @@ export const ResetPasswordForm: React.FC = () => {
 
           <FormField
             control={form.control}
-            name="password"
+            name="newPassword"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>New Password</FormLabel>

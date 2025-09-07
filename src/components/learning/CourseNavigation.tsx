@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CourseDetail } from '@/types/course';
 import { useGetCourseProgressQuery } from '@/lib/redux/api/learning-api';
+import { useGetCourseAssessmentsQuery } from '@/lib/redux/api/assessment-api';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,8 @@ import {
   X,
   Video,
   Music,
+  Trophy,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +35,7 @@ interface CourseNavigationProps {
   course: CourseDetail;
   currentLessonId: string;
   onLessonSelect: (lessonId: string) => void;
+  onAssessmentSelect?: (assessmentId: string) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -40,6 +44,7 @@ export function CourseNavigation({
   course,
   currentLessonId,
   onLessonSelect,
+  onAssessmentSelect,
   collapsed = false,
   onToggleCollapse,
 }: CourseNavigationProps) {
@@ -52,6 +57,7 @@ export function CourseNavigation({
   });
 
   const { data: courseProgress } = useGetCourseProgressQuery(course.id);
+  const { data: courseAssessments = [] } = useGetCourseAssessmentsQuery(course.id);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev =>
@@ -99,6 +105,31 @@ export function CourseNavigation({
     return remainingMinutes > 0
       ? `${hours}h ${remainingMinutes}m`
       : `${hours}h`;
+  };
+
+  const getAssessmentIcon = (type: string) => {
+    switch (type) {
+      case 'quiz':
+        return <HelpCircle className="h-4 w-4" />;
+      case 'exam':
+      case 'final_exam':
+      case 'midterm':
+        return <FileText className="h-4 w-4" />;
+      case 'assignment':
+      case 'project':
+        return <Target className="h-4 w-4" />;
+      default:
+        return <HelpCircle className="h-4 w-4" />;
+    }
+  };
+
+  const handleAssessmentClick = (assessmentId: string) => {
+    if (onAssessmentSelect) {
+      onAssessmentSelect(assessmentId);
+    } else {
+      // Default behavior: navigate to assessment taking page
+      window.open(`/student/assessments/${assessmentId}/take`, '_blank');
+    }
   };
 
   const getSectionProgress = (sectionId: string) => {
@@ -348,6 +379,87 @@ export function CourseNavigation({
             );
           })}
         </div>
+
+        {/* Course Assessments */}
+        {courseAssessments.length > 0 && (
+          <div className="border-t pt-4">
+            <div className="px-2 py-1">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Trophy className="h-4 w-4" />
+                Bài kiểm tra ({courseAssessments.length})
+              </h3>
+              <div className="space-y-2">
+                {courseAssessments.slice(0, 5).map((assessment) => (
+                  <Button
+                    key={assessment.id}
+                    variant="ghost"
+                    className="h-auto w-full justify-start p-3 text-left"
+                    onClick={() => handleAssessmentClick(assessment.id)}
+                  >
+                    <div className="flex w-full items-center gap-3">
+                      <div className="flex-shrink-0">
+                        {getAssessmentIcon(assessment.assessmentType)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">
+                          {assessment.title}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className="capitalize">
+                            {assessment.assessmentType === 'quiz' && 'Quiz'}
+                            {assessment.assessmentType === 'exam' && 'Exam'}
+                            {assessment.assessmentType === 'assignment' && 'Assignment'}
+                            {assessment.assessmentType === 'project' && 'Project'}
+                            {assessment.assessmentType === 'final_exam' && 'Final'}
+                            {assessment.assessmentType === 'midterm' && 'Midterm'}
+                          </span>
+                          {assessment.timeLimit && (
+                            <>
+                              <span>•</span>
+                              <span>{assessment.timeLimit}m</span>
+                            </>
+                          )}
+                          {assessment.totalPoints && (
+                            <>
+                              <span>•</span>
+                              <span>{assessment.totalPoints}pts</span>
+                            </>
+                          )}
+                        </div>
+                        {/* Status indicator */}
+                        <div className="mt-1">
+                          {(assessment as any).canTakeNow ? (
+                            <Badge className="text-xs bg-green-100 text-green-800">
+                              Sẵn sàng
+                            </Badge>
+                          ) : (assessment as any).attemptCount >= assessment.maxAttempts ? (
+                            <Badge className="text-xs bg-blue-100 text-blue-800">
+                              Hoàn thành
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              Chờ
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+                {courseAssessments.length > 5 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-blue-600"
+                    onClick={() => window.open('/student/assessments', '_blank')}
+                  >
+                    Xem tất cả ({courseAssessments.length} bài kiểm tra)
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer Stats */}

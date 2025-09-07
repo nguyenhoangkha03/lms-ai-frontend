@@ -176,14 +176,24 @@ export const useAuth = () => {
   useEffect(() => {
     if (!auth.isAuthenticated) return;
 
-    const handleActivity = () => updateActivity();
+    let lastUpdate = 0;
+    const THROTTLE_MS = 30000; // Throttle to max once per 30 seconds
 
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastUpdate > THROTTLE_MS) {
+        lastUpdate = now;
+        updateActivity();
+      }
+    };
+
+    // Remove mousemove to prevent constant re-renders on hover
     const events = [
       'mousedown',
-      'mousemove',
-      'keypress',
+      'keypress', 
       'scroll',
       'touchstart',
+      'click', // Add click as alternative to mousemove
     ];
     events.forEach(event => {
       document.addEventListener(event, handleActivity, true);

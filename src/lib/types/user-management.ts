@@ -1,3 +1,5 @@
+import { StudentProfile, TeacherProfile } from '../types';
+
 export interface User {
   id: string;
   email: string;
@@ -7,6 +9,7 @@ export interface User {
   displayName: string;
   phone?: string;
   userType: 'student' | 'teacher' | 'admin';
+  profile?: TeacherProfile | StudentProfile | UserProfile;
   status:
     | 'pending'
     | 'active'
@@ -55,6 +58,7 @@ export interface UserProfile {
   verifiedAt?: string;
   verifiedBy?: string;
   metadata?: Record<string, any>;
+  user?: User;
 }
 
 export interface TeacherApplication {
