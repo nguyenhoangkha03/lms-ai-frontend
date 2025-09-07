@@ -55,10 +55,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  useGetCurrentLearningPathQuery,
   useAdaptLearningPathMutation,
   useGenerateLearningPathMutation,
 } from '@/lib/redux/api/ai-recommendation-api';
+import { useLearningPathFromAnalytics } from '@/hooks/use-learning-path-from-analytics';
 import { LearningPathStep, AIAdaptation } from '@/lib/types/ai-recommendation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -125,7 +125,7 @@ export const AdaptiveLearningPath: React.FC<AdaptiveLearningPathProps> = ({
     isLoading,
     isError,
     refetch,
-  } = useGetCurrentLearningPathQuery();
+  } = useLearningPathFromAnalytics();
 
   const [adaptPath] = useAdaptLearningPathMutation();
   const [generatePath] = useGenerateLearningPathMutation();
@@ -1137,16 +1137,37 @@ export const AdaptiveLearningPath: React.FC<AdaptiveLearningPathProps> = ({
             <Button
               variant="outline"
               onClick={() => {
-                // Export learning path
-                const dataStr = JSON.stringify(learningPath, null, 2);
-                const dataUri =
-                  'data:application/json;charset=utf-8,' +
-                  encodeURIComponent(dataStr);
-                const exportFileDefaultName = `learning-path-${learningPath.id}.json`;
-                const linkElement = document.createElement('a');
-                linkElement.setAttribute('href', dataUri);
-                linkElement.setAttribute('download', exportFileDefaultName);
-                linkElement.click();
+                if (!learningPath) return;
+                
+                try {
+                  // Export learning path
+                  const dataStr = JSON.stringify(learningPath, null, 2);
+                  const dataUri =
+                    'data:application/json;charset=utf-8,' +
+                    encodeURIComponent(dataStr);
+                  const exportFileDefaultName = `learning-path-${learningPath.id}.json`;
+                  const linkElement = document.createElement('a');
+                  linkElement.setAttribute('href', dataUri);
+                  linkElement.setAttribute('download', exportFileDefaultName);
+                  
+                  // Temporarily add to body, click, then remove
+                  document.body.appendChild(linkElement);
+                  linkElement.click();
+                  
+                  // Clean up safely
+                  setTimeout(() => {
+                    if (linkElement.parentNode) {
+                      linkElement.parentNode.removeChild(linkElement);
+                    }
+                  }, 100);
+                } catch (error) {
+                  console.error('Export failed:', error);
+                  toast({
+                    title: 'Export Failed',
+                    description: 'Unable to export learning path',
+                    variant: 'destructive'
+                  });
+                }
               }}
             >
               <Calendar className="mr-2 h-4 w-4" />

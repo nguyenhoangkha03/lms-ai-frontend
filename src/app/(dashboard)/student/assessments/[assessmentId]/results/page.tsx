@@ -334,8 +334,6 @@ export default function AssessmentResultsPage() {
                     const answerText = JSON.parse(
                       question?.options as any
                     )?.find((option: any) => option.id === answer.answer)?.text;
-                    console.log('question', question);
-                    console.log('answerText', answerText);
                     if (!question) {
                       // Show a placeholder if question data is not available
                       return (
@@ -433,8 +431,8 @@ export default function AssessmentResultsPage() {
             {/* AI Lesson Recommendations */}
             <AILessonRecommendations
               userId={user?.id || ''}
-              assessmentAttemptId={latestAttempt?.sessionId || ''}
-              onLessonSelect={(lessonId) => {
+              assessmentAttemptId={latestAttempt?.id || ''}
+              onLessonSelect={lessonId => {
                 router.push(`/student/courses/lessons/${lessonId}`);
               }}
             />

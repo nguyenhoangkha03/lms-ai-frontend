@@ -163,7 +163,7 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=*, microphone=*, geolocation=(), display-capture=*',
           },
           // HSTS (HTTPS only)
           {
@@ -182,6 +182,7 @@ const nextConfig = {
               "media-src 'self' blob: https:",
               "frame-src 'self' https://www.youtube.com https://youtube.com",
               "connect-src 'self' http://localhost:3001 ws://localhost:3001 http://127.0.0.1:5000 https: wss:",
+              "microphone-src 'self'",
               "worker-src 'self' blob:",
             ].join('; '),
           },
@@ -189,6 +190,25 @@ const nextConfig = {
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
+          },
+        ],
+      },
+      // Allow camera and microphone for live sessions
+      {
+        source: '/teacher/live-sessions/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=*, microphone=*, display-capture=*, screen-wake-lock=*',
+          },
+        ],
+      },
+      {
+        source: '/student/live-sessions/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=*, microphone=*, display-capture=*',
           },
         ],
       },

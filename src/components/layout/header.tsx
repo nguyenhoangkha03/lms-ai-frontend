@@ -756,7 +756,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
-                <Link href="/student/profile" className="flex items-center">
+                <Link href="/student/me" className="flex items-center">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </Link>

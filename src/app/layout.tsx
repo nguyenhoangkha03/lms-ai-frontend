@@ -36,6 +36,8 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-status-bar-style': 'default',
     'msapplication-TileColor': '#2563eb',
     'msapplication-config': '/browserconfig.xml',
+    // Permissions Policy meta tag for media access
+    'permissions-policy': 'camera=*, microphone=*, display-capture=*, screen-wake-lock=*',
   },
 };
 

@@ -119,7 +119,7 @@ export default function StudentProfilePage() {
         interests: user.userProfile?.interests || [],
         currentStreak: 'temp', // Not available in backend
         longestStreak: 'temp', // Not available in backend
-        completionRate: 'temp', // Not available in backend  
+        completionRate: 'temp', // Not available in backend
         isPublicProfile: user.userProfile?.isPublic || false,
         showProgress: user.studentProfile?.enableProgressTracking || false,
         emailNotifications: 'temp', // Not available in backend
@@ -182,12 +182,15 @@ export default function StudentProfilePage() {
     }
   }, [user?.id, updateProfile, updateStudentProfile, profileData, studentData]);
 
-  const handleAvatarChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
-  }, []);
+  const handleAvatarChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        setSelectedFile(file);
+      }
+    },
+    []
+  );
 
   const handleAvatarUpload = useCallback(async () => {
     if (!selectedFile) return;
@@ -351,9 +354,9 @@ export default function StudentProfilePage() {
                       currentStreak: 'temp', // Not available in backend
                       longestStreak: 'temp', // Not available in backend
                       completionRate: 'temp', // Not available in backend
-                      isPublicProfile:
-                        user.userProfile?.isPublic || false,
-                      showProgress: user.studentProfile?.enableProgressTracking || false,
+                      isPublicProfile: user.userProfile?.isPublic || false,
+                      showProgress:
+                        user.studentProfile?.enableProgressTracking || false,
                       emailNotifications: 'temp', // Not available in backend
                     });
                   }
@@ -379,7 +382,7 @@ export default function StudentProfilePage() {
               </Button>
               <Button variant="outline" asChild>
                 <a
-                  href={`/profile/${user?.username}`}
+                  href={`/student/profile/${user?.username}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1039,10 +1042,7 @@ export default function StudentProfilePage() {
                       <Input
                         id="weeklyGoal"
                         type="number"
-                        value={
-                          studentData.weeklyLearningGoalHours ||
-                          'temp'
-                        }
+                        value={studentData.weeklyLearningGoalHours || 'temp'}
                         onChange={e =>
                           setStudentData({
                             ...studentData,
@@ -1090,8 +1090,7 @@ export default function StudentProfilePage() {
                       id="interests"
                       value={
                         (
-                          studentData.interests ||
-                          user?.userProfile?.interests
+                          studentData.interests || user?.userProfile?.interests
                         )?.join(', ') || ''
                       }
                       onChange={e =>
@@ -1144,8 +1143,7 @@ export default function StudentProfilePage() {
                     </div> */}
                     <div className="text-center">
                       <div className="text-2xl font-bold text-orange-600">
-                        {studentData.completionRate ?? 'temp'}
-                        %
+                        {studentData.completionRate ?? 'temp'}%
                       </div>
                       <div className="text-sm text-gray-600">
                         Completion Rate
@@ -1167,10 +1165,7 @@ export default function StudentProfilePage() {
                     <div>
                       <Label htmlFor="timezone">Timezone</Label>
                       <Select
-                        value={
-                          profileData.timezone ||
-                          'temp'
-                        }
+                        value={profileData.timezone || 'temp'}
                         onValueChange={value =>
                           setProfileData({
                             ...profileData,
@@ -1209,10 +1204,7 @@ export default function StudentProfilePage() {
                         Preferred Language
                       </Label>
                       <Select
-                        value={
-                          profileData.preferredLanguage ||
-                          'temp'
-                        }
+                        value={profileData.preferredLanguage || 'temp'}
                         onValueChange={value =>
                           setProfileData({
                             ...profileData,

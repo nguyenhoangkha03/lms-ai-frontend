@@ -14,30 +14,30 @@ export const forumApi = baseApi.injectEndpoints({
   endpoints: builder => ({
     // Categories
     getCategories: builder.query<ForumCategory[], void>({
-      query: () => 'categories',
+      query: () => 'forum/categories',
       providesTags: ['ForumCategory'],
     }),
 
     getCategoryById: builder.query<ForumCategory, string>({
-      query: id => `categories/${id}`,
+      query: id => `forum/categories/${id}`,
       providesTags: (result, error, id) => [{ type: 'ForumCategory', id }],
     }),
 
     getCategoryBySlug: builder.query<ForumCategory, string>({
-      query: slug => `categories/slug/${slug}`,
+      query: slug => `forum/categories/slug/${slug}`,
       providesTags: (result, error, slug) => [
         { type: 'ForumCategory', id: slug },
       ],
     }),
 
     getCategoryHierarchy: builder.query<ForumCategory[], void>({
-      query: () => 'categories/hierarchy',
+      query: () => 'forum/categories/hierarchy',
       providesTags: ['ForumCategory'],
     }),
 
     createCategory: builder.mutation<ForumCategory, Partial<ForumCategory>>({
       query: category => ({
-        url: 'categories',
+        url: 'forum/categories',
         method: 'POST',
         body: category,
       }),
@@ -49,7 +49,7 @@ export const forumApi = baseApi.injectEndpoints({
       { categoryId: string } & Partial<ForumCategory>
     >({
       query: ({ categoryId, ...updates }) => ({
-        url: `categories/${categoryId}`,
+        url: `forum/categories/${categoryId}`,
         method: 'PUT',
         body: updates,
       }),
@@ -61,7 +61,7 @@ export const forumApi = baseApi.injectEndpoints({
 
     deleteCategory: builder.mutation<void, { categoryId: string }>({
       query: ({ categoryId }) => ({
-        url: `categories/${categoryId}`,
+        url: `forum/categories/${categoryId}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['ForumCategory'],
@@ -80,19 +80,19 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: 'threads',
+        url: 'forum/threads',
         params,
       }),
       providesTags: ['ForumThread'],
     }),
 
     getThreadById: builder.query<ForumThread, string>({
-      query: id => `threads/${id}`,
+      query: id => `forum/threads/${id}`,
       providesTags: (result, error, id) => [{ type: 'ForumThread', id }],
     }),
 
     getThreadBySlug: builder.query<ForumThread, string>({
-      query: slug => `threads/slug/${slug}`,
+      query: slug => `forum/threads/slug/${slug}`,
       providesTags: (result, error, slug) => [
         { type: 'ForumThread', id: slug },
       ],
@@ -109,7 +109,7 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: thread => ({
-        url: 'threads',
+        url: 'forum/threads',
         method: 'POST',
         body: thread,
       }),
@@ -194,7 +194,7 @@ export const forumApi = baseApi.injectEndpoints({
     }),
 
     getPostById: builder.query<ForumPost, string>({
-      query: id => `posts/${id}`,
+      query: id => `forum/posts/${id}`,
       providesTags: (result, error, id) => [{ type: 'ForumPost', id }],
     }),
 
@@ -208,7 +208,7 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: post => ({
-        url: 'posts',
+        url: 'forum/posts',
         method: 'POST',
         body: post,
       }),
@@ -296,14 +296,14 @@ export const forumApi = baseApi.injectEndpoints({
       },
       string
     >({
-      query: postId => `votes/posts/${postId}`,
+      query: postId => `forum/votes/posts/${postId}`,
     }),
 
     getUserVoteOnPost: builder.query<
       { voteType?: 'up' | 'down' | null },
       string
     >({
-      query: postId => `votes/posts/${postId}/user`,
+      query: postId => `forum/votes/posts/${postId}/user`,
     }),
 
     markHelpful: builder.mutation<void, { postId: string }>({
@@ -317,19 +317,27 @@ export const forumApi = baseApi.injectEndpoints({
     }),
 
     // Tags
+    getTags: builder.query<ForumTag[], { popular?: boolean; limit?: number }>({
+      query: params => ({
+        url: params?.popular ? 'forum/tags/popular' : 'forum/tags',
+        params: params?.limit ? { limit: params.limit } : undefined,
+      }),
+      providesTags: ['ForumTag'],
+    }),
+
     getAllTags: builder.query<ForumTag[], void>({
-      query: () => 'tags',
+      query: () => 'forum/tags',
       providesTags: ['ForumTag'],
     }),
 
     getTagById: builder.query<ForumTag, string>({
-      query: id => `tags/${id}`,
+      query: id => `forum/tags/${id}`,
       providesTags: (result, error, id) => [{ type: 'ForumTag', id }],
     }),
 
     getPopularTags: builder.query<ForumTag[], { limit?: number }>({
       query: params => ({
-        url: 'tags/popular',
+        url: 'forum/tags/popular',
         params,
       }),
       providesTags: ['ForumTag'],
@@ -337,7 +345,7 @@ export const forumApi = baseApi.injectEndpoints({
 
     getRecentTags: builder.query<ForumTag[], { limit?: number }>({
       query: params => ({
-        url: 'tags/recent',
+        url: 'forum/tags/recent',
         params,
       }),
       providesTags: ['ForumTag'],
@@ -345,7 +353,7 @@ export const forumApi = baseApi.injectEndpoints({
 
     searchTags: builder.query<ForumTag[], string>({
       query: query => ({
-        url: 'tags/search',
+        url: 'forum/tags/search',
         params: { q: query },
       }),
       providesTags: ['ForumTag'],
@@ -360,7 +368,7 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: tag => ({
-        url: 'tags',
+        url: 'forum/tags',
         method: 'POST',
         body: tag,
       }),
@@ -421,7 +429,7 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: 'search',
+        url: 'forum/search',
         params: {
           ...params,
           dateFrom: params.dateFrom?.toISOString(),
@@ -440,25 +448,25 @@ export const forumApi = baseApi.injectEndpoints({
       string
     >({
       query: query => ({
-        url: 'search/suggestions',
+        url: 'forum/search/suggestions',
         params: { q: query },
       }),
     }),
 
     // Statistics
     getStats: builder.query<ForumStats, void>({
-      query: () => 'statistics',
+      query: () => 'forum/statistics',
       providesTags: ['ForumStats'],
     }),
 
     getOverviewStats: builder.query<ForumStats, void>({
-      query: () => 'statistics/overview',
+      query: () => 'forum/statistics/overview',
       providesTags: ['ForumStats'],
     }),
 
     getTrendStats: builder.query<any[], { period?: 'day' | 'week' | 'month' }>({
       query: params => ({
-        url: 'statistics/trends',
+        url: 'forum/statistics/trends',
         params,
       }),
       providesTags: ['ForumStats'],
@@ -466,7 +474,7 @@ export const forumApi = baseApi.injectEndpoints({
 
     // User Reputation
     getUserReputation: builder.query<UserReputation, string>({
-      query: userId => `users/${userId}/reputation`,
+      query: userId => `forum/users/${userId}/reputation`,
       providesTags: (result, error, userId) => [
         { type: 'UserReputation', id: userId },
       ],
@@ -483,7 +491,7 @@ export const forumApi = baseApi.injectEndpoints({
       { limit?: number; period?: 'all' | 'month' | 'week' }
     >({
       query: params => ({
-        url: 'reputation/leaderboard',
+        url: 'forum/reputation/leaderboard',
         params,
       }),
       providesTags: ['UserReputation'],
@@ -521,7 +529,7 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: params => ({
-        url: 'moderation/reports',
+        url: 'forum/moderation/reports',
         params,
       }),
       providesTags: ['ModerationReport'],
@@ -557,7 +565,7 @@ export const forumApi = baseApi.injectEndpoints({
       }
     >({
       query: actionData => ({
-        url: 'moderation/actions',
+        url: 'forum/moderation/actions',
         method: 'POST',
         body: actionData,
       }),
@@ -581,7 +589,7 @@ export const forumApi = baseApi.injectEndpoints({
       { page?: number; limit?: number }
     >({
       query: params => ({
-        url: 'moderation/history',
+        url: 'forum/moderation/history',
         params,
       }),
     }),
@@ -613,7 +621,7 @@ export const forumApi = baseApi.injectEndpoints({
       { page?: number; limit?: number }
     >({
       query: params => ({
-        url: 'bookmarks',
+        url: 'forum/bookmarks',
         params,
       }),
       providesTags: ['ForumThread'],
@@ -670,7 +678,7 @@ export const forumApi = baseApi.injectEndpoints({
       { page?: number; limit?: number }
     >({
       query: params => ({
-        url: 'subscriptions',
+        url: 'forum/subscriptions',
         params,
       }),
       providesTags: ['ForumThread'],
@@ -716,6 +724,7 @@ export const {
   useMarkHelpfulMutation,
 
   // Tags
+  useGetTagsQuery,
   useGetAllTagsQuery,
   useGetTagByIdQuery,
   useGetPopularTagsQuery,

@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
 // Import components
@@ -215,6 +215,7 @@ export default function LiveSessionsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
+            <DialogTitle className="sr-only">Create Live Session</DialogTitle>
             <CreateSessionDialog
               onClose={() => setShowCreateDialog(false)}
               onSuccess={() => {

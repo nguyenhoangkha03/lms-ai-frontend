@@ -51,6 +51,7 @@ import {
   useGetStudentAchievementsQuery,
 } from '@/lib/redux/api/student-api';
 import AIPerformanceWidget from '@/components/ai/ai-performance-widget';
+import TodaysPlanModal from '@/components/dashboard/TodaysPlanModal';
 
 export default function StudentDashboardPage() {
   console.log('📱 Student Dashboard Page Loaded');
@@ -312,30 +313,32 @@ export default function StudentDashboardPage() {
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
               >
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="rounded-full border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all hover:bg-white/30"
-                >
-                  <motion.div
-                    className="flex items-center"
-                    whileHover={{ x: 2 }}
-                    transition={{ duration: 0.3 }}
+                <TodaysPlanModal>
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="rounded-full border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all hover:bg-white/30"
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Today's Plan
                     <motion.div
-                      animate={{ x: [0, 3, 0] }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      }}
+                      className="flex items-center"
+                      whileHover={{ x: 2 }}
+                      transition={{ duration: 0.3 }}
                     >
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Today's Plan
+                      <motion.div
+                        animate={{ x: [0, 3, 0] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      >
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                </Button>
+                  </Button>
+                </TodaysPlanModal>
               </motion.div>
             </motion.div>
           </div>
@@ -823,6 +826,18 @@ export default function StudentDashboardPage() {
                     <Download className="h-4 w-4 text-white" />
                   </div>
                   Shopping Cart
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/forum">
+                <Button
+                  variant="outline"
+                  className="h-12 w-full justify-start border-2 transition-all hover:border-indigo-300 hover:bg-indigo-50"
+                >
+                  <div className="mr-3 rounded-full bg-indigo-500 p-1">
+                    <MessageCircle className="h-4 w-4 text-white" />
+                  </div>
+                  Community Forum
                   <ChevronRight className="ml-auto h-4 w-4" />
                 </Button>
               </Link>

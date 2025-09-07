@@ -350,7 +350,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+        <div className="space-y-4">
           {/* Title Field */}
           {showTitle && (
             <div>
@@ -598,11 +598,15 @@ const PostEditor: React.FC<PostEditorProps> = ({
                 Cancel
               </Button>
             )}
-            <Button type="submit" disabled={isSubmitting || !content.trim()}>
+            <Button 
+              type="button" 
+              disabled={isSubmitting || !content.trim()}
+              onClick={handleSubmit(onFormSubmit)}
+            >
               {isSubmitting ? 'Publishing...' : 'Publish'}
             </Button>
           </div>
-        </form>
+        </div>
       </CardContent>
     </Card>
   );

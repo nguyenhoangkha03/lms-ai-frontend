@@ -48,6 +48,7 @@ export default function AIPerformanceWidget({
 
   // AI API queries
   const { data: aiHealth } = useCheckAIHealthQuery();
+  console.log('aiHealth', aiHealth);
   const {
     data: performanceData,
     isLoading: performanceLoading,
@@ -56,11 +57,15 @@ export default function AIPerformanceWidget({
     { user_id: user?.id || '', course_id: courseId || '' },
     { skip: !user?.id || !courseId }
   );
+
+  console.log('performanceData', performanceData);
   const { data: attitudeData, isLoading: attitudeLoading } =
     useGetStudentAttitudeQuery(
       { user_id: user?.id || '' },
       { skip: !user?.id }
     );
+
+  console.log('attitudeData', attitudeData);
 
   const isAIAvailable = aiHealth?.ai_api_available || false;
   const isLoading = performanceLoading || attitudeLoading;
@@ -93,6 +98,7 @@ export default function AIPerformanceWidget({
           label: 'Intermediate',
         };
       case 'poor':
+      case 'needs_improvement':
         return {
           color: 'bg-red-500',
           textColor: 'text-red-700',
@@ -114,30 +120,54 @@ export default function AIPerformanceWidget({
   // Attitude colors and messages
   const getAttitudeConfig = (attitude: string) => {
     switch (attitude) {
-      case 'Active':
+      case 'Hard_work':
         return {
           color: 'bg-green-500',
           textColor: 'text-green-700',
           bgColor: 'bg-green-50',
-          label: 'Positive',
-          message: 'You are very active in your studies! 🚀',
+          label: 'Hard Working',
+          message: 'Excellent! You are very dedicated to your studies! 🚀',
         };
-      case 'Moderate':
+      case 'Active':
+        return {
+          color: 'bg-blue-500',
+          textColor: 'text-blue-700',
+          bgColor: 'bg-blue-50',
+          label: 'Active',
+          message: 'Great! You are actively engaging with your studies! 💪',
+        };
+      case 'Cramming':
         return {
           color: 'bg-yellow-500',
           textColor: 'text-yellow-700',
           bgColor: 'bg-yellow-50',
-          label: 'Neutral',
-          message: 'You are making progress but could do better! 💪',
+          label: 'Cramming',
+          message: 'Try to study more consistently instead of cramming! 📚',
+        };
+      case 'Distraction':
+        return {
+          color: 'bg-orange-500',
+          textColor: 'text-orange-700',
+          bgColor: 'bg-orange-50',
+          label: 'Distracted',
+          message: 'Stay focused! Try to minimize distractions while studying. 🎯',
+        };
+      case 'Lazy':
+        return {
+          color: 'bg-red-400',
+          textColor: 'text-red-600',
+          bgColor: 'bg-red-50',
+          label: 'Low Effort',
+          message: 'You need to put more effort into your studies! 💡',
         };
       case 'Give_up':
         return {
           color: 'bg-red-500',
           textColor: 'text-red-700',
           bgColor: 'bg-red-50',
-          label: 'Negative',
+          label: 'At Risk',
           message:
-            "You are giving up! Don't give up! Please contact your teacher for support. 💬",
+            "Don't give up! Please contact your teacher for support. Your success matters! 💬",
         };
       default:
         return {
@@ -154,11 +184,11 @@ export default function AIPerformanceWidget({
   // Trend icon
   const getTrendIcon = (trend: string) => {
     switch (trend) {
-      case 'tăng':
+      case 'up':
         return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'giảm':
+      case 'down':
         return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'ổn định':
+      case 'stable':
         return <Minus className="h-4 w-4 text-blue-500" />;
       default:
         return <Activity className="h-4 w-4 text-gray-500" />;
@@ -343,7 +373,7 @@ export default function AIPerformanceWidget({
               </h3>
 
               <div className="space-y-2">
-                {performanceData?.data?.trend_prediction === 'giảm' && (
+                {performanceData?.data?.trend_prediction === 'down' && (
                   <p className="text-sm text-gray-600">
                     • Consider reviewing previous lessons to strengthen your
                     foundation
@@ -353,6 +383,18 @@ export default function AIPerformanceWidget({
                 {attitudeData?.data?.predicted_attitude === 'Give_up' && (
                   <p className="text-sm text-gray-600">
                     • Take breaks when needed and don't hesitate to ask for help
+                  </p>
+                )}
+                
+                {attitudeData?.data?.predicted_attitude === 'Lazy' && (
+                  <p className="text-sm text-gray-600">
+                    • Set small, achievable goals to build momentum in your studies
+                  </p>
+                )}
+                
+                {attitudeData?.data?.predicted_attitude === 'Distraction' && (
+                  <p className="text-sm text-gray-600">
+                    • Create a dedicated study space and use focus techniques like Pomodoro
                   </p>
                 )}
 

@@ -135,6 +135,19 @@ export const liveTeachingApi = baseApi.injectEndpoints({
       query: sessionId => ({
         url: `/video/sessions/${sessionId}/participants`,
       }),
+      transformResponse: (response: any) => {
+        // Handle API response format
+        if (response?.data?.participants) {
+          return response.data.participants;
+        }
+        if (response?.participants) {
+          return response.participants;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return [];
+      },
       providesTags: ['SessionParticipant'],
     }),
 

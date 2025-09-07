@@ -187,6 +187,7 @@ export const baseApi = createApi({
     'Gradebook',
     'ManualGrading',
     'VideoSession',
+    'LiveSessions',
     'SessionParticipant',
     'BreakoutRoom',
     'Poll',

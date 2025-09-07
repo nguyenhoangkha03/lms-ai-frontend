@@ -314,7 +314,7 @@ export const ForumCategoryList: React.FC<ForumCategoryListProps> = ({
   // Process categories for hierarchy if needed
   const processedCategories = showHierarchy 
     ? buildCategoryHierarchy(categories)
-    : categories.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    : [...categories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   // Separate featured and regular categories
   const featuredCategories = processedCategories.filter(cat => cat.isFeatured);

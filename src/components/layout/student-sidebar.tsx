@@ -7,7 +7,7 @@ import {
   Home,
   BookOpen,
   Settings,
-  MessageSquare,
+  MessagesSquare,
   ClipboardList,
   TrendingUp,
   Brain,
@@ -57,6 +57,11 @@ const studentNavigation: NavItem[] = [
     href: '/student',
     icon: <Home className="h-5 w-5" />,
   },
+  {
+    title: 'Forum',
+    href: '/forum',
+    icon: <MessagesSquare className="h-5 w-5" />,
+  },
 
   // Learning Section
   {
@@ -80,6 +85,11 @@ const studentNavigation: NavItem[] = [
     title: 'Tests',
     href: '/student/assessments',
     icon: <FileCheck className="h-5 w-5" />,
+  },
+  {
+    title: 'AI Chat',
+    href: '/student/ai-chat',
+    icon: <Brain className="h-5 w-5" />,
   },
   {
     title: 'Progress',
@@ -110,16 +120,14 @@ const studentNavigation: NavItem[] = [
   },
 
   // AI Features Section
-  {
-    title: 'AI Chat',
-    href: '/student/ai-chat',
-    icon: <Brain className="h-5 w-5" />,
-  },
+
   //   {
   //     title: 'AI Tutor',
   //     href: '/student/ai-tutor',
   //     icon: <Bot className="h-5 w-5" />,
   //   },
+
+  // Community Section
   //   {
   //     title: 'Recommendations',
   //     href: '/student/recommendations',

@@ -12,10 +12,7 @@ import {
   Maximize2,
   Send,
   Bot,
-  Mic,
   MicOff,
-  Volume2,
-  VolumeX,
   RefreshCw,
   Loader2,
   Paperclip,
@@ -68,8 +65,6 @@ export function AIChatFloat({
   const [isMinimized, setIsMinimized] = useState(defaultMinimized);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
@@ -180,6 +175,8 @@ export function AIChatFloat({
       setMessages(prev =>
         prev.filter(m => m.id !== 'typing').concat(aiResponse)
       );
+      
+      
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -305,17 +302,17 @@ export function AIChatFloat({
     }
   };
 
+
+
+
   const toggleVoice = () => {
-    setIsListening(!isListening);
-    if (!isListening) {
-      toast.info('Tính năng nhận diện giọng nói đang được phát triển');
-    }
+    toast.info('Tính năng nhận diện giọng nói đang được phát triển');
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    toast.info(isMuted ? 'Đã bật âm thanh' : 'Đã tắt âm thanh');
-  };
+
+
+
+
 
   const clearChat = () => {
     setMessages([
@@ -460,28 +457,6 @@ export function AIChatFloat({
 
                     {/* Control buttons with enhanced styling */}
                     <div className="flex items-center space-x-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.button
-                            whileHover={{ scale: 1.1, rotate: 10 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/30"
-                            onClick={toggleMute}
-                          >
-                            {isMuted ? (
-                              <VolumeX className="h-4 w-4" />
-                            ) : (
-                              <Volume2 className="h-4 w-4" />
-                            )}
-                          </motion.button>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="left"
-                          className="border-gray-700 bg-gray-900 text-white"
-                        >
-                          {isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-                        </TooltipContent>
-                      </Tooltip>
 
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -846,28 +821,12 @@ export function AIChatFloat({
                                   type="button"
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
-                                  className={cn(
-                                    'flex h-8 w-8 items-center justify-center rounded-xl border transition-all duration-200',
-                                    isListening
-                                      ? 'border-red-200 bg-gradient-to-r from-red-100 to-pink-100 text-red-600'
-                                      : 'border-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 hover:from-gray-200 hover:to-gray-300'
-                                  )}
+                                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 transition-all duration-200 hover:from-gray-200 hover:to-gray-300"
                                   onClick={toggleVoice}
                                   disabled={isLoading}
+                                  title="Tính năng giọng nói đang phát triển"
                                 >
-                                  {isListening ? (
-                                    <motion.div
-                                      animate={{ scale: [1, 1.2, 1] }}
-                                      transition={{
-                                        duration: 1,
-                                        repeat: Infinity,
-                                      }}
-                                    >
-                                      <Mic className="h-4 w-4" />
-                                    </motion.div>
-                                  ) : (
-                                    <MicOff className="h-4 w-4" />
-                                  )}
+                                  <MicOff className="h-4 w-4" />
                                 </motion.button>
                               </div>
                             </div>
@@ -1118,5 +1077,7 @@ export function AIChatFloat({
     </TooltipProvider>
   );
 
-  return createPortal(chatFloat, document.documentElement);
+  const content = chatFloat;
+
+  return createPortal(content, document.documentElement);
 }

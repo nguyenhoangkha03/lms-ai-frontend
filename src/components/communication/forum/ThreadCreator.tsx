@@ -45,6 +45,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import PostEditor from './PostEditor';
 import { ForumCategory } from '@/lib/types/forum';
 import { forumApi } from '@/lib/redux/api/forum-api';
+import { useAuth } from '@/hooks/use-auth';
 
 // Thread creation schema
 const threadSchema = z.object({
@@ -137,6 +138,7 @@ const ThreadCreator: React.FC<ThreadCreatorProps> = ({
   showBackButton = true,
 }) => {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState<'type' | 'details' | 'content'>('type');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
@@ -194,12 +196,48 @@ const ThreadCreator: React.FC<ThreadCreatorProps> = ({
   };
 
   const onSubmit = async (data: ThreadFormData & { attachments?: File[] }) => {
+    console.log('Submitting thread data:', data);
+    console.log('Title value:', data.title, 'Length:', data.title?.length);
+    console.log('Authentication status:', { isAuthenticated, user });
+    
+    // Check authentication
+    if (!isAuthenticated || !user) {
+      alert('You must be logged in to create a thread. Please log in and try again.');
+      router.push('/login');
+      return;
+    }
+    
+    // The token will be handled automatically by the baseApi with AdvancedTokenManager
+    // No need to manually check token here since RTK Query will handle it
+    
+    // Validate required fields
+    if (!data.title || data.title.length < 5) {
+      console.error('Title validation failed:', { title: data.title, length: data.title?.length });
+      alert(`Title must be at least 5 characters long. Current: "${data.title}" (${data.title?.length} chars)`);
+      return;
+    }
+    
+    if (!data.categoryId && (!categories || categories.length === 0)) {
+      alert('Please select a category or wait for categories to load');
+      return;
+    }
+    
     try {
-      const result = await createThread({
-        ...data,
-        // Handle file attachments if needed
-        attachmentUrls: data.attachments ? [] : undefined, // Would upload files first
-      }).unwrap();
+      // Clean payload to match backend expectations
+      const payload = {
+        title: data.title,
+        content: data.content,
+        categoryId: data.categoryId || categories[0]?.id,
+        type: data.type,
+        tags: data.tags || [],
+        summary: data.summary,
+        // Remove fields that backend doesn't expect
+        // isAnonymous, attachments, attachmentUrls are not sent
+      };
+      
+      console.log('Thread creation payload:', payload);
+      
+      const result = await createThread(payload).unwrap();
 
       // Clear any saved draft
       const draftKeys = Object.keys(localStorage).filter(key => 
@@ -212,9 +250,20 @@ const ThreadCreator: React.FC<ThreadCreatorProps> = ({
       } else {
         router.push(`/forum/threads/${result.slug}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create thread:', error);
-      // Handle error (show toast, etc.)
+      
+      let errorMessage = 'Failed to create thread. ';
+      if (error?.data?.message) {
+        errorMessage += error.data.message;
+      } else if (error?.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Please check the console for details and try again.';
+      }
+      
+      // Handle error - show error message and stay on form
+      alert(errorMessage);
     }
   };
 
@@ -478,6 +527,7 @@ const ThreadCreator: React.FC<ThreadCreatorProps> = ({
 
             <PostEditor
               postType={watchedType as any}
+              initialTitle={watchedTitle} // Pass title from previous step
               showTitle={false} // Title already set in previous step
               showCategory={false} // Category already set
               showTags={true}
@@ -485,7 +535,17 @@ const ThreadCreator: React.FC<ThreadCreatorProps> = ({
               placeholder={`Write your ${watchedType === 'question' ? 'question' : watchedType === 'announcement' ? 'announcement' : 'thread'} content here...`}
               categories={categories.map(c => ({ id: c.id, name: c.name }))}
               availableTags={availableTags}
-              onSubmit={onSubmit}
+              onSubmit={(data) => {
+                // Merge data with ThreadCreator form state
+                const threadData = {
+                  ...data,
+                  title: watchedTitle, // Use title from ThreadCreator form
+                  categoryId: watchedCategoryId, // Use category from ThreadCreator form
+                  type: watchedType, // Use type from ThreadCreator form
+                  summary: watch('summary'), // Use summary from ThreadCreator form
+                };
+                onSubmit(threadData);
+              }}
               onCancel={handleBack}
               onSaveDraft={handleSaveDraft}
               isSubmitting={isCreating}

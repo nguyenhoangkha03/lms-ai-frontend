@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, TrendingUp, MessageSquare, Users, Pin, Star, Activity } from 'lucide-react';
+import { Search, TrendingUp, MessageSquare, Users, Pin, Star, Activity, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,18 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { forumApi } from '@/lib/redux/api/forum-api';
+import { useAuth } from '@/hooks/use-auth';
 
 // Import new components
 import ThreadList from '@/components/communication/forum/ThreadList';
 import ForumCategoryList from '@/components/communication/forum/ForumCategoryList';
 
 const ForumPage: React.FC = () => {
+  const router = useRouter();
+  const { user, isStudent, isTeacher, isAdmin } = useAuth();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'trending'>('recent');
@@ -23,13 +28,15 @@ const ForumPage: React.FC = () => {
 
   // API calls
   const { data: categories = [], isLoading: categoriesLoading } = forumApi.useGetCategoriesQuery();
-  const { data: threads = [], isLoading: threadsLoading } = forumApi.useGetThreadsQuery({
+  const { data: threadsResponse, isLoading: threadsLoading } = forumApi.useGetThreadsQuery({
     category: selectedCategory !== 'all' ? selectedCategory : undefined,
     type: activeTab !== 'all' ? activeTab.slice(0, -1) : undefined, // Remove 's' from plural
     sort: sortBy,
     search: searchQuery,
   });
   const { data: stats, isLoading: statsLoading } = forumApi.useGetStatsQuery();
+
+  const threads = threadsResponse?.threads || [];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +47,34 @@ const ForumPage: React.FC = () => {
     setSelectedCategory(category.id);
   };
 
+  // Function to get back URL based on user type
+  const getBackUrl = () => {
+    if (isStudent) return '/student';
+    if (isTeacher) return '/teacher';
+    if (isAdmin) return '/admin';
+    return '/'; // fallback
+  };
+
+  const handleBackClick = () => {
+    router.push(getBackUrl());
+  };
+
   return (
     <div className="container mx-auto space-y-6 px-4 py-6">
+      {/* Back Button */}
+      {user && (
+        <div className="mb-4">
+          <Button 
+            variant="ghost" 
+            onClick={handleBackClick}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to {isStudent ? 'Student' : isTeacher ? 'Teacher' : isAdmin ? 'Admin' : ''} Dashboard
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
         <div>
